@@ -1,0 +1,12 @@
+{
+  "name": "circleguard-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "redis": "5.11.0"
+  }
+}
