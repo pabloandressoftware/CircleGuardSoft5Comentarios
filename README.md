@@ -149,6 +149,25 @@ We maintain high system integrity via multi-level testing:
 
 **Note**: Integration tests use **Testcontainers** to spawn ephemeral Neo4j and PostgreSQL instances for zero-side-effect validation.
 
+## Sprint 1
+
+The [Sprint 1 runbook](docs/sprint-1-persona-a.md) covers versioned releases, AWS
+EC2 bootstrap for dev/stage/prod, and the Playwright gate in Jenkins.
+
+| Environment | EC2 hostname in Ohio (`us-east-2`) |
+| --- | --- |
+| Dev | `ec2-18-188-13-235.us-east-2.compute.amazonaws.com` |
+| Stage | `ec2-13-59-101-106.us-east-2.compute.amazonaws.com` |
+| Prod | `ec2-18-189-44-203.us-east-2.compute.amazonaws.com` |
+
+These hostnames are for SSH. The application HTTPS URLs will be available
+after the environment Compose and deployment are integrated. If an instance
+is stopped and started again, check the stack's current `PublicDns` output.
+
+The [CI and image packaging runbook](docs/sprint-1-persona-b.md) covers the
+Jenkins, SonarQube and Nexus stack and the build and publication of the nine
+application images.
+
 ---
 
 ## Privacy & Compliance
