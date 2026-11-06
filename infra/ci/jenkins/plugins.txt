@@ -1,0 +1,8 @@
+configuration-as-code
+workflow-aggregator
+github-branch-source
+docker-workflow
+sonar
+ssh-agent
+junit
+htmlpublisher
