@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import { DynamicForm } from '../DynamicForm';
 
@@ -7,10 +7,21 @@ const mockQuestions: any[] = [
   { id: '2', text: 'Question 2', type: 'TEXT' }
 ];
 
+function FormWithResponses() {
+  const [responses, setResponses] = useState<Record<string, any>>({});
+  return (
+    <DynamicForm
+      questions={mockQuestions}
+      responses={responses}
+      onAnswer={(id, value) => setResponses(previous => ({ ...previous, [id]: value }))}
+    />
+  );
+}
+
 describe('DynamicForm', () => {
   it('renders all questions', () => {
     const { getByText } = render(
-      <DynamicForm questions={mockQuestions} onSubmit={() => {}} />
+      <FormWithResponses />
     );
 
     expect(getByText('Question 1')).toBeTruthy();
@@ -19,13 +30,12 @@ describe('DynamicForm', () => {
 
   it('updates text responses', () => {
     const { getByPlaceholderText } = render(
-      <DynamicForm questions={mockQuestions} onSubmit={() => {}} />
+      <FormWithResponses />
     );
 
     const input = getByPlaceholderText('Type your response...');
     fireEvent.changeText(input, 'Testing');
     
-    // Check if value is updated (internal state is harder to test directly without props)
     expect(input.props.value).toBe('Testing');
   });
 });
