@@ -1,6 +1,7 @@
 jenkins:
   numExecutors: 1
   labelString: "docker"
+  quietPeriod: 0
   securityRealm:
     local:
       allowsSignup: false
@@ -10,3 +11,45 @@ jenkins:
   authorizationStrategy:
     loggedInUsersCanDoAnything:
       allowAnonymousRead: false
+
+unclassified:
+  globalLibraries:
+    libraries:
+      - name: "circleguard"
+        defaultVersion: "dev"
+        implicit: false
+        allowVersionOverride: true
+        includeInChangesets: false
+        retriever:
+          modernSCM:
+            scm:
+              git:
+                id: "circleguard-shared-library"
+                remote: "https://github.com/ingesoft5/CircleGuardSoft5Comentarios.git"
+
+jobs:
+  - script: |
+      multibranchPipelineJob('circleguard') {
+        displayName('CircleGuard Multibranch')
+        description('Descubre las ramas del monorepo y construye solo los servicios modificados.')
+
+        branchSources {
+          github {
+            id('circleguard-github')
+            repoOwner('ingesoft5')
+            repository('CircleGuardSoft5Comentarios')
+          }
+        }
+
+        factory {
+          workflowBranchProjectFactory {
+            scriptPath('Jenkinsfile')
+          }
+        }
+
+        orphanedItemStrategy {
+          discardOldItems {
+            numToKeep(20)
+          }
+        }
+      }
