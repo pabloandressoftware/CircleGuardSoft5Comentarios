@@ -19,7 +19,8 @@ La Parte 1 lleva el proyecto desde el commit hasta el despliegue: gobierno del r
 
 - **Marco:** Scrum (sprints 0, 1 y 2) con un tablero Kanban en Jira. La justificación completa está en `docs/agil/marco.md`.
 - **Backlog:** 12 épicas, 29 historias de usuario y 144 puntos. Cada HU tiene criterios de aceptación, puntos, responsable e iteración en su descripción, y las HU grandes tienen subtareas.
-- **Alcance de la Parte 1:** HU-01 a HU-16 (16 historias, 74 puntos). La Parte 2 (Sprint 2) cubre HU-17 a HU-29.
+- **Alcance acordado del Sprint 1 (esta entrega):** 10 historias y 49 puntos: HU-03, 04, 05, 06, 07, 08, 09, 10, 12 y 15. HU-01 y HU-02 pertenecen al Sprint 0. HU-11, 13, 14 y 16 quedaron **fuera del alcance acordado de esta entrega** y pasan al siguiente sprint. La Parte 2 (Sprint 2) cubre HU-17 a HU-29.
+- **Fuentes del estado:** Jira (corte de hoy), el repositorio y el documento del equipo «Sprint 1 · Pendientes por persona» (corte del 6 de noviembre). Lo que proviene de ese documento se cita como «según los registros del equipo (corte 6-nov)» y no se presenta como verificado para este informe.
 - **Documentación de sprints:** `docs/agil/sprint-0.md` y `docs/agil/sprint-1.md` (planeación, review y retrospectiva). Las fechas y las reflexiones del equipo están marcadas `[COMPLETAR]` en esos archivos.
 
 | Rol | Responsabilidad | Persona |
@@ -82,28 +83,35 @@ push / PR ──► GitHub ──webhook──► Jenkins (multibranch + Shared 
 
 ## 5. Estado de las historias de usuario
 
-Estado en Jira al redactar este informe y evidencia disponible. «Verificado» significa que se ejecutó y se observó el resultado; «documentado» significa que el responsable lo registra en `docs/` pero no se reprodujo para este informe.
+Criterios: **verificado** = se ejecutó y se observó el resultado al preparar este informe; **registros del equipo** = consta en el documento «Sprint 1 · Pendientes por persona» (corte 6-nov) o en `docs/sprint-1-persona-*.md`, sin reproducirse aquí; **código integrado** = está en `dev` sin evidencia de ejecución.
 
-| HU | Historia | Responsable (Jira) | Jira | Evidencia real |
-| --- | --- | --- | --- | --- |
-| HU-01 | Tablero ágil y sprints documentados | Rodolfo Moreno | Por hacer | Documentos en `docs/agil/` integrados. Pendientes: marcas `[COMPLETAR]` y acceso del docente al tablero. |
-| HU-02 | Proteger `main` y formalizar PR | Pablo Guzmán | Finalizada | **Verificado:** protección activa en `main` y `dev`, commitlint pasando en GitHub Actions, plantillas y tabla de aprobadores. **Parcial:** el check de Jenkins no reporta. |
-| HU-03 | SemVer y notas de entrega | Daniel Martínez | En curso | Código integrado (release-please, `version.txt`). Sin ejecución verificada. |
-| HU-04 | Jenkins, SonarQube y Nexus | Pablo Guzmán | Finalizada | **Verificado en local:** el bootstrap levanta el stack, dos ejecuciones no duplican recursos, el gate exige 60 %, credenciales fuera del repo. **No probado:** modo `--aws` y un análisis que falle el gate. |
-| HU-05 | Ambientes dev, stage y prod | Daniel Martínez | En curso | Código integrado. **Documentado** por el responsable: instancias EC2 por ambiente y una prueba de que dev no alcanza la base de prod (tiempo agotado al puerto 5432). Falta la URL HTTPS de la aplicación (criterio 4). |
-| HU-06 | Ocho servicios Java y cliente web | Pablo Guzmán | Finalizada | **Verificado en local:** 9 imágenes construidas y publicadas en un Nexus local con etiqueta `v0.0.1`, usuario sin privilegios y HEALTHCHECK en las 9. No se publicó en el Nexus de AWS. |
-| HU-07 | Configuración externalizada y Compose por ambiente | NIGORI YT | Por hacer | Código integrado (`deploy/`, variables). Sin ejecución verificada. |
-| HU-08 | Jenkins por push y módulos afectados | Rodolfo Moreno | Finalizada | **Documentado** por el responsable en `docs/sprint-1-persona-c.md`: build iniciado 5,3 s después del push, build selectivo de un servicio en 22 s, `BUILD_ALL` y cambio en la raíz. No reproducido para este informe. |
-| HU-09 | Pruebas y bloqueo con SonarQube | NIGORI YT | Por hacer | Código integrado (JaCoCo, gate bloqueante). El `Jenkinsfile` unificado con HU-08 **no se ha ejecutado en Jenkins**. |
-| HU-10 | Desplegar en dev y promover | Rodolfo Moreno | En curso | **No implementada.** Sin rama ni código; hay un marcador en el `Jenkinsfile`. |
-| HU-11 | Notificar fallos y rollback | Sin asignar | Por hacer | **No implementada.** |
-| HU-12 | Pruebas base y validación del QR | NIGORI YT | Por hacer | Código integrado (QR en milisegundos, acceso denegado a `SUSPECT`, `PROBABLE` y `CONFIRMED`). Sin ejecución verificada aquí. |
-| HU-13 | 60 % de cobertura en cinco servicios | Sin asignar | Por hacer | **No implementada.** Hay JaCoCo (HU-09), pero no se midió la cobertura por servicio. |
-| HU-14 | Tres integraciones con Testcontainers | Sin asignar | Por hacer | **No implementada.** |
-| HU-15 | Tres flujos E2E con Playwright | Daniel Martínez | En curso | Código integrado. **Documentado** por el responsable: 4 pruebas pasaron en local el 6 de nov; la de `SUSPECT` dependía de HU-12. No ejecutado desde Jenkins. |
-| HU-16 | Documentar operación y evidencias | Sin asignar | Por hacer | Este informe y los documentos `docs/sprint-1-persona-*.md`. |
+### Alcance acordado del Sprint 1 (10 HU, 49 puntos)
 
-**Resumen:** de 74 puntos de la Parte 1, Jira marca como finalizados 21 (HU-02, 04, 06 y 08). Las demás historias tienen código o documentación, pero la mayoría **sin evidencia de ejecución integrada**. HU-10, 11, 13 y 14 no se implementaron.
+| HU | Historia | Pts | Responsable (Jira) | Jira | Evidencia |
+| --- | --- | --- | --- | --- | --- |
+| HU-03 | Versionado y releases | 3 | Daniel Martínez | En curso | Código integrado (release-please, `version.txt`). Según los registros del equipo: en progreso, verificando el tag SemVer contra el commit; falta integrar release-please en `main` y confirmar el permiso para abrir el PR de release. |
+| HU-04 | Jenkins, SonarQube y Nexus | 8 | Pablo Guzmán | Finalizada | **Verificado en local:** el bootstrap levanta el stack, dos ejecuciones no duplican recursos, el gate exige 60 % de cobertura nueva, credenciales fuera del repo. Registros del equipo: servidor de CI aprovisionado en EC2 con bootstrap repetido. No probado por mí: modo `--aws` y un análisis que falle el gate. |
+| HU-05 | Ambientes en AWS | 5 | Daniel Martínez | En curso | Código integrado. Registros del equipo: tres VM en Ohio (`us-east-2`) para dev, stage y prod, bootstrap repetido y aislamiento de PostgreSQL entre dev y prod comprobado. Falta el Compose y los valores de HU-07, los archivos de entorno en Jenkins y las URL HTTPS. |
+| HU-06 | Imágenes Docker | 5 | Pablo Guzmán | Finalizada | **Verificado en local:** 9 imágenes (8 servicios y la web) construidas y publicadas con etiqueta `v0.0.1` en un Nexus local, usuario sin privilegios y HEALTHCHECK en las 9. Registros del equipo: nueve imágenes `v0.0.1` comprobadas en Nexus. |
+| HU-07 | Variables y Compose | 5 | NIGORI YT | Por hacer | Código integrado en `dev` (`deploy/`, variables de entorno). Registros del equipo: faltaba evidencia del Compose definitivo por ambiente. |
+| HU-08 | Multibranch y webhook | 5 | Rodolfo Moreno | Finalizada | Evidencia **documentada por su responsable** en `docs/sprint-1-persona-c.md`: build iniciado 5,3 s después del push, build selectivo de un servicio en 22 s, `BUILD_ALL` y cambio en la raíz. No reproducida aquí. |
+| HU-09 | Pruebas y quality gate | 5 | NIGORI YT | Por hacer | Código integrado (JaCoCo, gate bloqueante, publicación limitada a tags). Unido al `Jenkinsfile` de HU-08, y ese pipeline unificado **no se ha ejecutado en Jenkins**. Registros del equipo: SonarQube ya tiene el gate de 60 %. |
+| HU-10 | Despliegue y promoción | 5 | Rodolfo Moreno | En curso | **Sin código en `dev`**; solo un marcador en el `Jenkinsfile`. Registros del equipo: las tres VM están disponibles; falta evidencia del flujo (despliegue y humo en dev, E2E, promoción del mismo digest a stage y aprobación manual de prod). |
+| HU-12 | QR y pruebas base | 3 | NIGORI YT | Por hacer | Código integrado (vigencia del QR en milisegundos, acceso denegado a `SUSPECT`, `PROBABLE` y `CONFIRMED`; PR #13 mergeado). Registros del equipo (6-nov): el gateway dejaba pasar `SUSPECT`; el fallo se corrigió con este cambio, sin ejecución verificada aquí. |
+| HU-15 | Pruebas Playwright | 5 | Daniel Martínez | En curso | Código integrado. Registros del equipo: Chromium validado en Jenkins y 4 de 5 casos pasaron en local; el de `SUSPECT` fallaba hasta la corrección de HU-12. No se ha ejecutado la suite completa desde Jenkins. |
+
+### Sprint 0 (previo)
+
+| HU | Historia | Pts | Responsable (Jira) | Jira | Evidencia |
+| --- | --- | --- | --- | --- | --- |
+| HU-01 | Tablero ágil y sprints documentados | 3 | Rodolfo Moreno | Por hacer | Documentos en `docs/agil/` integrados. Pendientes: las marcas `[COMPLETAR]` y confirmar el acceso del docente al tablero. |
+| HU-02 | Proteger `main` y formalizar PR | 3 | Pablo Guzmán | Finalizada | **Verificado:** protección activa en `main` y `dev`, commitlint pasando en GitHub Actions, plantillas y tabla de aprobadores. **Parcial:** el check de Jenkins no se publica aún. |
+
+### Fuera del alcance acordado de esta entrega (pasan al siguiente sprint)
+
+HU-11 (notificar fallos y rollback), HU-13 (60 % de cobertura en cinco servicios), HU-14 (tres integraciones con Testcontainers) y HU-16 (documentar operación y evidencias). No se implementaron porque no estaban en el alcance acordado. Este informe y los documentos `docs/sprint-1-persona-*.md` son la documentación de operación disponible hoy.
+
+**Resumen:** del alcance acordado (49 puntos), Jira marca como finalizadas HU-04, 06 y 08 (18 puntos). HU-03, 05, 10 y 15 siguen en curso. HU-07, 09 y 12 tienen su código integrado en `dev` pero siguen «Por hacer» en Jira. La mayor brecha es HU-10 (sin código) y que el pipeline unificado no se ha ejecutado de punta a punta.
 
 ## 6. Problemas encontrados y cómo se resolvieron
 
@@ -122,7 +130,8 @@ Estado en Jira al redactar este informe y evidencia disponible. «Verificado» s
 - **Check de Jenkins en `main`:** exigido pero sin publicar. Falta un Jenkins accesible desde internet, un token de GitHub y el webhook. La demostración del webhook de HU-08 usó un túnel smee.io.
 - **Pipeline de punta a punta:** el `Jenkinsfile` unificado no se ha corrido; tampoco se probó el gate de SonarQube bloqueando una cobertura menor a 60 %.
 - **AWS:** el modo `--aws` del bootstrap y la publicación en el Nexus de AWS no se probaron. La URL HTTPS de la aplicación por ambiente está pendiente (DNS y TLS).
-- **No implementadas:** HU-10 (despliegue y promoción), HU-11 (notificaciones y rollback), HU-13 (cobertura de 60 % en cinco servicios) y HU-14 (Testcontainers).
+- **Dentro del alcance y sin implementar:** HU-10 (despliegue y promoción).
+- **Fuera del alcance acordado de esta entrega:** HU-11 (notificaciones y rollback), HU-13 (cobertura de 60 % en cinco servicios), HU-14 (Testcontainers) y HU-16 (documentación de operación).
 - **Deuda conocida:** un test preexistente de `form-service` falla (`AttachmentControllerTest`); `file-service` guarda archivos dentro del contenedor; hay carpetas `services/*/bin/` del IDE versionadas.
 - **Jira:** conviene alinear los estados con la evidencia real; varias HU con código integrado siguen «Por hacer» o «En curso».
 

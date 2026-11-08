@@ -9,7 +9,7 @@ Objetivo: mostrar lo que **funciona y se puede comprobar**, y ser claros con lo 
 | 1:15–2:15 | Terminal: `bootstrap-ci.sh --local` y Jenkins, SonarQube y Nexus arriba; el quality gate `CircleGuard` | Un solo script levanta el stack, se puede repetir sin duplicar, el gate exige 60 % de cobertura de código nuevo. |
 | 2:15–3:00 | Terminal: `package-images.sh`; Nexus con las 9 imágenes | Imágenes de los 8 servicios y la web, sin privilegios y con healthcheck. |
 | 3:00–3:45 | Jenkins: job multibranch y consola de un build | Disparo por push, detección de módulos modificados y quality gate. **Solo mostrar lo que se haya ejecutado de verdad.** `[COMPLETAR: confirmar qué build se muestra]` |
-| 3:45–4:30 | Tabla de estado de HU del informe | Qué está verificado, qué tiene código sin ejecución y qué no se implementó (HU-10, 11, 13, 14). Por qué. |
+| 3:45–4:30 | Tabla de estado de HU del informe | Alcance acordado de 10 HU: qué está verificado, qué tiene código sin ejecución y qué falta (HU-10). HU-11, 13, 14 y 16 quedaron fuera del alcance acordado. |
 | 4:30–5:00 | Pantalla de cierre | Siguientes pasos: check de Jenkins en `main`, despliegue y promoción, cobertura y pruebas de integración. Declaración de uso de IA. |
 
 Recomendaciones:
