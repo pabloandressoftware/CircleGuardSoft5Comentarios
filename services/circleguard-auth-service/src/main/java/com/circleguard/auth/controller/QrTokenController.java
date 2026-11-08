@@ -24,9 +24,10 @@ public class QrTokenController {
         UUID anonymousId = UUID.fromString(auth.getName());
         String token = qrService.generateQrToken(anonymousId);
         
+        // expiresIn en segundos y derivado de la misma vigencia con la que se firmo el token
         return ResponseEntity.ok(Map.of(
             "qrToken", token,
-            "expiresIn", "60"
+            "expiresIn", String.valueOf(qrService.getExpirationSeconds())
         ));
     }
 }
