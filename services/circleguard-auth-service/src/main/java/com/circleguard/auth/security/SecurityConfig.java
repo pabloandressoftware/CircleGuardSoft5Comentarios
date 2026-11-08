@@ -1,6 +1,7 @@
 package com.circleguard.auth.security;
 
 import com.circleguard.auth.service.CustomUserDetailsService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.ldap.core.support.LdapContextSource;
@@ -20,6 +21,22 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    // HU-07: origenes y LDAP externalizados (CORS_ALLOWED_ORIGINS, LDAP_*). Los valores por defecto son los de desarrollo local.
+    @Value("${circleguard.cors.allowed-origins:http://localhost:8081,http://localhost:8080}")
+    private String[] allowedOrigins;
+
+    @Value("${spring.ldap.urls:ldap://localhost:389}")
+    private String ldapUrl;
+
+    @Value("${spring.ldap.base:dc=circleguard,dc=edu}")
+    private String ldapBase;
+
+    @Value("${spring.ldap.username:cn=admin,dc=circleguard,dc=edu}")
+    private String ldapUsername;
+
+    @Value("${spring.ldap.password:admin}")
+    private String ldapPassword;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter) throws Exception {
         http
@@ -37,7 +54,7 @@ public class SecurityConfig {
     @Bean
     public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
         org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
-        configuration.setAllowedOrigins(java.util.List.of("http://localhost:8081", "http://localhost:8080"));
+        configuration.setAllowedOrigins(java.util.List.of(allowedOrigins));
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(java.util.List.of("*"));
         configuration.setAllowCredentials(true);
@@ -56,10 +73,10 @@ public class SecurityConfig {
     @Bean
     public LdapContextSource contextSource() {
         LdapContextSource contextSource = new LdapContextSource();
-        contextSource.setUrl("ldap://localhost:389");
-        contextSource.setBase("dc=circleguard,dc=edu");
-        contextSource.setUserDn("cn=admin,dc=circleguard,dc=edu");
-        contextSource.setPassword("admin");
+        contextSource.setUrl(ldapUrl);
+        contextSource.setBase(ldapBase);
+        contextSource.setUserDn(ldapUsername);
+        contextSource.setPassword(ldapPassword);
         return contextSource;
     }
 

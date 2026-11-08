@@ -1,0 +1,66 @@
+# =============================================================================
+# HU-07 · Proxy HTTPS de mismo origen para un ambiente de CircleGuard.
+# La app web llama a /api/v1/...; aqui cada prefijo va a su microservicio.
+# Las rutas se tomaron de los @RequestMapping de cada servicio y no se pisan.
+# =============================================================================
+{
+	# API de administracion solo dentro del contenedor (la usa el healthcheck)
+	admin 127.0.0.1:2019
+	# El firewall de la VM solo abre 443: no se escucha en 80 para redirigir
+	auto_https disable_redirects
+}
+
+# SITE_ADDRESS = DNS publico de la VM (y opcionalmente su IP), separados por coma.
+{$SITE_ADDRESS} {
+	# Sin dominio propio ni puerto 80 abierto no se puede pedir un certificado publico:
+	# Caddy firma con su CA interna. En la Parte 2 se cambia por un certificado publico.
+	tls internal
+	encode gzip
+
+	@auth path /api/v1/auth/* /api/v1/users/*
+	handle @auth {
+		reverse_proxy auth-service:8180
+	}
+
+	@identity path /api/v1/identities/*
+	handle @identity {
+		reverse_proxy identity-service:8083
+	}
+
+	@promotion path /api/v1/health* /api/v1/circles* /api/v1/encounters* /api/v1/buildings* /api/v1/floors* /api/v1/access-points* /api/v1/admin/settings* /api/v1/location* /api/v1/mesh* /api/v1/sessions*
+	handle @promotion {
+		reverse_proxy promotion-service:8088
+	}
+
+	@form path /api/v1/questionnaires* /api/v1/surveys* /api/v1/certificates* /api/v1/attachments*
+	handle @form {
+		reverse_proxy form-service:8086
+	}
+
+	@gateway path /api/v1/gate/*
+	handle @gateway {
+		reverse_proxy gateway-service:8087
+	}
+
+	@file path /api/v1/files/*
+	handle @file {
+		reverse_proxy file-service:8085
+	}
+
+	@dashboard path /api/v1/analytics/*
+	handle @dashboard {
+		reverse_proxy dashboard-service:8084
+	}
+
+	# Todo lo demas es la app web (nginx en el contenedor web)
+	handle {
+		reverse_proxy web:8080
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+	log
+}

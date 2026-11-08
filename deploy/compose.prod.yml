@@ -1,0 +1,25 @@
+# HU-07 · Ajustes de stage y prod (COMPOSE_FILE=compose.yml:compose.prod.yml)
+# Stage usa este mismo archivo para probar exactamente la configuracion de prod.
+# Diferencia con dev: los contenedores se reinician siempre (tambien tras un
+# "docker stop" seguido de un reinicio de la VM) y no se publica ningun puerto
+# interno.
+x-always: &always
+  restart: always
+
+services:
+  proxy: *always
+  web: *always
+  auth-service: *always
+  identity-service: *always
+  promotion-service: *always
+  form-service: *always
+  gateway-service: *always
+  notification-service: *always
+  file-service: *always
+  dashboard-service: *always
+  postgres: *always
+  neo4j: *always
+  zookeeper: *always
+  kafka: *always
+  redis: *always
+  openldap: *always

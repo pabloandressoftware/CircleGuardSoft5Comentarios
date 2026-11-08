@@ -1,0 +1,8 @@
+# HU-07 · Ajustes SOLO de dev (COMPOSE_FILE=compose.yml:compose.dev.yml)
+# Redis se publica en el loopback de la VM para que Playwright (HU-15) prepare
+# el estado de la cuenta sintetica por un tunel SSH. No se abre al exterior:
+# el firewall de la VM solo admite 22 y 443.
+services:
+  redis:
+    ports:
+      - "127.0.0.1:6379:6379"

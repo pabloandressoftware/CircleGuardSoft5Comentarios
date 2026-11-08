@@ -1,13 +1,19 @@
+# Configuracion externalizada (HU-07)
 spring:
   application:
     name: circleguard-file-service
+  servlet:
+    multipart:
+      max-file-size: ${MAX_UPLOAD_SIZE:10MB}
+      max-request-size: ${MAX_UPLOAD_SIZE:10MB}
 
 # Placeholder for S3/MinIO configuration if needed later
 # aws:
 #   s3:
-#     endpoint: http://localhost:9000
-#     access-key: minioadmin
-#     secret-key: minioadmin
+#     endpoint: ${S3_ENDPOINT}
+#     access-key: ${S3_ACCESS_KEY}
+#     secret-key: ${S3_SECRET_KEY}
 
 server:
   port: 8085
+  forward-headers-strategy: native
