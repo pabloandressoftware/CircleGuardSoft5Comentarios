@@ -89,7 +89,7 @@ export const QuestionInput: React.FC<QuestionInputProps> = ({ question, value, o
   );
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID={`question-${question.id}`}>
       <Text style={styles.label}>{question.text}</Text>
       {question.type === 'YES_NO' && renderYesNo()}
       {question.type === 'SINGLE_CHOICE' && renderSingleChoice()}

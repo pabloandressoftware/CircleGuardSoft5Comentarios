@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { DASHBOARD_BASE_URL } from '@/constants/Config';
 import { Activity, ShieldAlert, Users, Calendar } from 'lucide-react-native';
 
 interface SummaryData {
@@ -24,7 +25,7 @@ export default function AdminDashboardScreen() {
 
   const fetchSummary = async () => {
     try {
-      const response = await fetch('http://localhost:8084/api/v1/analytics/summary');
+      const response = await fetch(`${DASHBOARD_BASE_URL}/api/v1/analytics/summary`);
       if (response.ok) {
         const data = await response.json();
         setSummary(data);
