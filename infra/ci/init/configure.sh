@@ -3,6 +3,7 @@ set -eu
 
 sonar=http://sonarqube:9000
 nexus=http://nexus:8081/service/rest/v1
+jenkins=http://jenkins:8080
 gate='CircleGuard'
 
 request() {
@@ -35,8 +36,40 @@ nexus_api() {
   request -u "admin:$CI_NEXUS_PASSWORD" "$@"
 }
 
-wait_until Jenkins request http://jenkins:8080/login
-request -u "$CI_JENKINS_USER:$CI_JENKINS_PASSWORD" http://jenkins:8080/api/json >/dev/null
+jenkins_api() {
+  request -u "$CI_JENKINS_USER:$CI_JENKINS_PASSWORD" "$@"
+}
+
+jenkins_status() {
+  curl --silent --output /dev/null --write-out '%{http_code}' --max-time 10 \
+    -u "$CI_JENKINS_USER:$CI_JENKINS_PASSWORD" "$@"
+}
+
+configure_github_credential() {
+  [ -n "${CI_GITHUB_TOKEN:-}" ] || return 0
+
+  github_user=${CI_GITHUB_USER:-x-access-token}
+  crumb=$(jenkins_api "$jenkins/crumbIssuer/api/json" | jq -r '.crumb')
+  payload=$(jq -nc \
+    --arg user "$github_user" \
+    --arg token "$CI_GITHUB_TOKEN" \
+    '{credentials:{scope:"GLOBAL",id:"circleguard-github",username:$user,password:$token,description:"PAT de GitHub para multibranch y Shared Library","$class":"com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl"}}')
+
+  status=$(jenkins_status "$jenkins/credentials/store/system/domain/_/credential/circleguard-github/api/json") || true
+  if [ "$status" = 200 ]; then
+    jenkins_api -H "Jenkins-Crumb: $crumb" -X POST \
+      "$jenkins/credentials/store/system/domain/_/credential/circleguard-github/doDelete" >/dev/null
+  fi
+
+  jenkins_api -H "Jenkins-Crumb: $crumb" -X POST \
+    "$jenkins/credentials/store/system/domain/_/createCredentials" \
+    --data-urlencode "json=$payload" >/dev/null
+  echo 'Credencial circleguard-github registrada en Jenkins.'
+}
+
+wait_until Jenkins request "$jenkins/login"
+jenkins_api "$jenkins/api/json" >/dev/null
+configure_github_credential
 wait_until SonarQube sonar_ready
 wait_until Nexus request "$nexus/status"
 

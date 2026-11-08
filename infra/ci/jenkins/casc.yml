@@ -13,6 +13,8 @@ jenkins:
       allowAnonymousRead: false
 
 unclassified:
+  gitHubConfiguration:
+    apiRateLimitChecker: NoThrottle
   globalLibraries:
     libraries:
       - name: "circleguard"
@@ -22,10 +24,12 @@ unclassified:
         includeInChangesets: false
         retriever:
           modernSCM:
+            libraryPath: "jenkins"
             scm:
               git:
                 id: "circleguard-shared-library"
                 remote: "https://github.com/ingesoft5/CircleGuardSoft5Comentarios.git"
+                credentialsId: "${CI_GITHUB_CREDENTIALS_ID}"
 
 jobs:
   - script: |
@@ -38,6 +42,8 @@ jobs:
             id('circleguard-github')
             repoOwner('ingesoft5')
             repository('CircleGuardSoft5Comentarios')
+            scanCredentialsId('${CI_GITHUB_CREDENTIALS_ID}')
+            checkoutCredentialsId('${CI_GITHUB_CREDENTIALS_ID}')
           }
         }
 

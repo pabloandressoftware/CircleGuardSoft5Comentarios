@@ -32,8 +32,11 @@
 | `infra/ci/jenkins/casc.yml` | Library global, job multibranch y `quietPeriod`. |
 
 El pipeline ejecuta `gradle --no-daemon --console=plain --max-workers=2
-:services:<servicio>:build` por cada módulo afectado, publica los resultados
-JUnit y archiva `changed-services.txt` como evidencia de la selección.
+-Dorg.gradle.jvmargs=-Xmx512m :services:<servicio>:build` por cada módulo
+afectado, publica los resultados JUnit y archiva `changed-services.txt` como
+evidencia de la selección. Los módulos se construyen en lotes de dos para no
+saturar el agente: ocho daemons de Gradle simultáneos consumían cerca de 5 GB
+y dejaban a Jenkins sin respuesta.
 
 ## Puesta en marcha
 
@@ -61,6 +64,35 @@ CI_JENKINS_PORT=8181 CI_JENKINS_USER=... CI_JENKINS_PASSWORD=... \
 JCasC crea el job `circleguard`. Si no aparece, revisen
 `docker compose -p circleguard-ci logs jenkins` y corrijan el YAML antes de
 reiniciar.
+
+### 1.1 Acceso a GitHub
+
+La vía recomendada para el Sprint 1 es dejar el repositorio **público**.
+Jenkins descubre las ramas y clona la Shared Library de forma anónima, sin
+credenciales: dejen `CI_GITHUB_CREDENTIALS_ID` vacío en `ci.env`.
+
+Si el repositorio debe permanecer privado, creen un PAT de GitHub:
+
+- Fine-grained: acceso al repositorio `CircleGuardSoft5Comentarios` con
+  permisos `Contents: Read` y `Metadata: Read` (y `Pull requests: Read` si
+  quieren construir PRs). Los PR desde forks también requieren
+  `Pull requests: Read`.
+- Classic: scope `repo`.
+
+Agreguen el token a `ci.env` y repitan el bootstrap para que el inicializador
+cree la credencial `circleguard-github`:
+
+```dotenv
+CI_GITHUB_CREDENTIALS_ID=circleguard-github
+CI_GITHUB_USER=x-access-token
+CI_GITHUB_TOKEN=github_pat_...
+```
+
+El inicializador la registra mediante la API de Jenkins. Para hacerlo a mano:
+**Manage Jenkins → Credentials → System → Global → Add Credentials**,
+tipo *Username with password*, ID `circleguard-github`, usuario de GitHub (o
+`x-access-token`) y el PAT como contraseña. Después fuercen un escaneo del job
+`circleguard`.
 
 ### 2. Exponer el webhook con smee.io
 

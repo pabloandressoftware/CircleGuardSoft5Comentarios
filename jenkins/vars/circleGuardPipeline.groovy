@@ -1,7 +1,7 @@
 def call(Map config = [:]) {
     def buildAll = params.BUILD_ALL ?: false
     def gradleCommand = config.gradleCommand ?: 'gradle'
-    def gradleArgs = config.gradleArgs ?: '--no-daemon --console=plain --max-workers=2'
+    def gradleArgs = config.gradleArgs ?: '--no-daemon --console=plain --max-workers=2 -Dorg.gradle.jvmargs=-Xmx512m'
 
     stage('Checkout') {
         checkout scm
@@ -21,17 +21,20 @@ def call(Map config = [:]) {
     }
 
     stage('Compilar y probar módulos') {
-        def branches = [:]
-        for (name in changed) {
-            branches[name] = {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    stage(name) {
-                        sh "${gradleCommand} ${gradleArgs} :services:${name}:build"
+        def maxParallel = (config.maxParallel ?: 2) as int
+        for (batch in changed.collate(maxParallel)) {
+            def branches = [:]
+            for (name in batch) {
+                branches[name] = {
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        stage(name) {
+                            sh "${gradleCommand} ${gradleArgs} :services:${name}:build"
+                        }
                     }
                 }
             }
+            parallel branches
         }
-        parallel branches
     }
 
     junit allowEmptyResults: true, testResults: 'services/*/build/test-results/test/*.xml'
