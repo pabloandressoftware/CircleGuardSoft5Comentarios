@@ -1,0 +1,12 @@
+jenkins:
+  numExecutors: 1
+  labelString: "docker"
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "${CI_JENKINS_USER}"
+          password: "${CI_JENKINS_PASSWORD}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
