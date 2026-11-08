@@ -1,0 +1,357 @@
+# =============================================================================
+# HU-07 · CircleGuard en un ambiente desplegado (dev, stage o prod).
+#
+# Va en /opt/circleguard/ de cada VM junto a su .env (credencial circleguard-env-<ambiente> de Jenkins).
+# El .env elige los archivos con COMPOSE_FILE, asi que basta con:
+#     docker compose pull && docker compose up -d
+#
+# Solo el proxy publica un puerto (443). Bases de datos, Kafka y servicios
+# quedan en la red interna de Docker: no son alcanzables desde otro ambiente.
+# Cada secreto usa ${VAR:?}: si falta en el .env, Compose se niega a arrancar.
+# =============================================================================
+name: ${COMPOSE_PROJECT_NAME:-circleguard}
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "3"
+
+# Memoria contenida: 8 servicios Java + middleware deben caber en una VM de 8 GB
+x-java-env: &java-env
+  # Variable propia: si se usara JAVA_TOOL_OPTIONS, Compose tomaria la del shell del host
+  JAVA_TOOL_OPTIONS: ${CIRCLEGUARD_JAVA_OPTS:--Xms64m -Xmx320m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError}
+
+# Mismo criterio que el HEALTHCHECK de la imagen: el servicio responde HTTP.
+# 401/403/404 cuentan como vivo porque "/" no es una ruta publica de las API.
+x-java-health: &java-health
+  test: ["CMD-SHELL", "status=$$(curl -sS --max-time 4 -o /dev/null -w '%{http_code}' http://127.0.0.1:$${SERVER_PORT}/) && case $$status in 2??|3??|401|403|404) exit 0 ;; *) exit 1 ;; esac"]
+  interval: 15s
+  timeout: 5s
+  retries: 6
+  start_period: 120s
+
+x-db-env: &db-env
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_USERNAME: ${DB_USERNAME:?Define DB_USERNAME}
+  DB_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD}
+  JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+
+x-restart: &restart
+  restart: unless-stopped
+
+services:
+  # ------------------------------------------------------------------ Proxy --
+  proxy:
+    image: caddy:2.8.4-alpine
+    <<: *restart
+    ports:
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?Define SITE_ADDRESS (DNS publico de la VM)}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      promotion-service:
+        condition: service_started
+      form-service:
+        condition: service_started
+      gateway-service:
+        condition: service_started
+      file-service:
+        condition: service_started
+      dashboard-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:2019/config/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    logging: *logging
+
+  web:
+    image: ${REGISTRY:-127.0.0.1:5000}/circleguard/web:${IMAGE_TAG:?Define IMAGE_TAG (vX.Y.Z)}
+    <<: *restart
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -T 4 -O /dev/null http://127.0.0.1:8080/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    logging: *logging
+
+  # ------------------------------------------------------------- Servicios --
+  auth-service:
+    image: ${REGISTRY:-127.0.0.1:5000}/circleguard/circleguard-auth-service:${IMAGE_TAG:?Define IMAGE_TAG (vX.Y.Z)}
+    <<: *restart
+    environment:
+      <<: [*java-env, *db-env]
+      LDAP_URL: ldap://openldap:389
+      LDAP_BASE: ${LDAP_BASE:-dc=circleguard,dc=edu}
+      LDAP_USERNAME: ${LDAP_USERNAME:-cn=admin,dc=circleguard,dc=edu}
+      LDAP_PASSWORD: ${LDAP_PASSWORD:?Define LDAP_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-3600000}
+      QR_SECRET: ${QR_SECRET:?Define QR_SECRET}
+      QR_EXPIRATION: ${QR_EXPIRATION:-60000}
+      IDENTITY_SERVICE_URL: http://identity-service:8083
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?Define CORS_ALLOWED_ORIGINS}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      openldap:
+        condition: service_healthy
+      identity-service:
+        condition: service_healthy
+    healthcheck: *java-health
+    logging: *logging
+
+  identity-service:
+    image: ${REGISTRY:-127.0.0.1:5000}/circleguard/circleguard-identity-service:${IMAGE_TAG:?Define IMAGE_TAG (vX.Y.Z)}
+    <<: *restart
+    environment:
+      <<: [*java-env, *db-env]
+      VAULT_SECRET: ${VAULT_SECRET:?Define VAULT_SECRET}
+      VAULT_SALT: ${VAULT_SALT:?Define VAULT_SALT}
+      VAULT_HASH_SALT: ${VAULT_HASH_SALT:?Define VAULT_HASH_SALT}
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?Define CORS_ALLOWED_ORIGINS}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck: *java-health
+    logging: *logging
+
+  promotion-service:
+    image: ${REGISTRY:-127.0.0.1:5000}/circleguard/circleguard-promotion-service:${IMAGE_TAG:?Define IMAGE_TAG (vX.Y.Z)}
+    <<: *restart
+    environment:
+      <<: [*java-env, *db-env]
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USERNAME: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?Define NEO4J_PASSWORD}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Define REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?Define CORS_ALLOWED_ORIGINS}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck: *java-health
+    logging: *logging
+
+  form-service:
+    image: ${REGISTRY:-127.0.0.1:5000}/circleguard/circleguard-form-service:${IMAGE_TAG:?Define IMAGE_TAG (vX.Y.Z)}
+    <<: *restart
+    environment:
+      <<: [*java-env, *db-env]
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck: *java-health
+    logging: *logging
+
+  gateway-service:
+    image: ${REGISTRY:-127.0.0.1:5000}/circleguard/circleguard-gateway-service:${IMAGE_TAG:?Define IMAGE_TAG (vX.Y.Z)}
+    <<: *restart
+    environment:
+      <<: *java-env
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Define REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET}
+      QR_SECRET: ${QR_SECRET:?Define QR_SECRET}
+      QR_EXPIRATION: ${QR_EXPIRATION:-60000}
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck: *java-health
+    logging: *logging
+
+  notification-service:
+    image: ${REGISTRY:-127.0.0.1:5000}/circleguard/circleguard-notification-service:${IMAGE_TAG:?Define IMAGE_TAG (vX.Y.Z)}
+    <<: *restart
+    environment:
+      <<: *java-env
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      AUTH_API_URL: http://auth-service:8180
+      IDENTITY_SERVICE_URL: http://identity-service:8083
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET}
+      QR_SECRET: ${QR_SECRET:?Define QR_SECRET}
+      SMTP_HOST: ${SMTP_HOST:-localhost}
+      SMTP_PORT: ${SMTP_PORT:-25}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_AUTH: ${SMTP_AUTH:-false}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-AC_MOCK_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-MOCK_TOKEN}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-+15550000000}
+      GOTIFY_URL: ${GOTIFY_URL:-http://localhost:8080}
+      GOTIFY_TOKEN: ${GOTIFY_TOKEN:-MOCK_TOKEN}
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck: *java-health
+    logging: *logging
+
+  file-service:
+    image: ${REGISTRY:-127.0.0.1:5000}/circleguard/circleguard-file-service:${IMAGE_TAG:?Define IMAGE_TAG (vX.Y.Z)}
+    <<: *restart
+    environment:
+      <<: *java-env
+    healthcheck: *java-health
+    logging: *logging
+
+  dashboard-service:
+    image: ${REGISTRY:-127.0.0.1:5000}/circleguard/circleguard-dashboard-service:${IMAGE_TAG:?Define IMAGE_TAG (vX.Y.Z)}
+    <<: *restart
+    environment:
+      <<: [*java-env, *db-env]
+      PROMOTION_SERVICE_URL: http://promotion-service:8088
+    depends_on:
+      postgres:
+        condition: service_healthy
+      promotion-service:
+        condition: service_healthy
+    healthcheck: *java-health
+    logging: *logging
+
+  # ------------------------------------------------------------ Middleware --
+  postgres:
+    image: postgres:16
+    <<: *restart
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:?Define DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD}
+      POSTGRES_DB: circleguard
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d circleguard"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  neo4j:
+    image: neo4j:5.26
+    <<: *restart
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?Define NEO4J_PASSWORD}
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+    volumes:
+      - neo4j-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p \"$${NEO4J_AUTH#neo4j/}\" 'RETURN 1' >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    logging: *logging
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    <<: *restart
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      KAFKA_HEAP_OPTS: -Xms128m -Xmx256m
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/2181' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    <<: *restart
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server 127.0.0.1:9092 --list >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    logging: *logging
+
+  redis:
+    image: redis:7.2
+    <<: *restart
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Define REDIS_PASSWORD}
+    command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  openldap:
+    image: osixia/openldap:1.5.0
+    <<: *restart
+    environment:
+      LDAP_ORGANISATION: CircleGuard
+      LDAP_DOMAIN: circleguard.edu
+      LDAP_ADMIN_PASSWORD: ${LDAP_PASSWORD:?Define LDAP_PASSWORD}
+    volumes:
+      - ldap-data:/var/lib/ldap
+      - ldap-config:/etc/ldap/slapd.d
+    healthcheck:
+      test: ["CMD-SHELL", "ldapsearch -x -H ldap://127.0.0.1 -b dc=circleguard,dc=edu -D cn=admin,dc=circleguard,dc=edu -w \"$$LDAP_ADMIN_PASSWORD\" -s base >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging: *logging
+
+volumes:
+  caddy-data:
+  caddy-config:
+  postgres-data:
+  neo4j-data:
+  zookeeper-data:
+  kafka-data:
+  redis-data:
+  ldap-data:
+  ldap-config:

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { QuestionInput, QuestionType } from './QuestionInput';
 
@@ -11,17 +11,11 @@ interface Question {
 
 interface DynamicFormProps {
   questions: Question[];
-  onSubmit: (responses: Record<string, any>) => void;
-  submitLabel?: string;
+  responses: Record<string, any>;
+  onAnswer: (id: string, value: any) => void;
 }
 
-export const DynamicForm: React.FC<DynamicFormProps> = ({ questions, onSubmit }) => {
-  const [responses, setResponses] = useState<Record<string, any>>({});
-
-  const handleUpdate = (id: string, value: any) => {
-    setResponses(prev => ({ ...prev, [id]: value }));
-  };
-
+export const DynamicForm: React.FC<DynamicFormProps> = ({ questions, responses, onAnswer }) => {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {questions.map((q) => (
@@ -29,7 +23,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ questions, onSubmit })
           key={q.id}
           question={q}
           value={responses[q.id]}
-          onChange={(val) => handleUpdate(q.id, val)}
+          onChange={(val) => onAnswer(q.id, val)}
         />
       ))}
     </ScrollView>
