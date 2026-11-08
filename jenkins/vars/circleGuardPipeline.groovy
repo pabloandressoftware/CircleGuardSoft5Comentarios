@@ -10,7 +10,7 @@ def call(Map config = [:]) {
 
     def changed = []
     stage('Detectar módulos modificados') {
-        changed = circleGuardChanges(buildAll: buildAll)
+        changed = circleGuardChanges(buildAll: buildAll, baseBranch: config.baseBranch ?: 'dev')
         writeFile file: 'changed-services.txt', text: (changed ? changed.join('\n') : '')
         archiveArtifacts artifacts: 'changed-services.txt', allowEmptyArchive: true
     }

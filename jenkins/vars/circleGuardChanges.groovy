@@ -65,6 +65,12 @@ private String resolveBase(Map config) {
     if (env.GIT_PREVIOUS_COMMIT) {
         return env.GIT_PREVIOUS_COMMIT
     }
+
+    def baseBranch = config.baseBranch ?: 'dev'
+    def remoteBase = "origin/${baseBranch}"
+    if (env.BRANCH_NAME && env.BRANCH_NAME != baseBranch && commitExists(remoteBase)) {
+        return remoteBase
+    }
     return null
 }
 

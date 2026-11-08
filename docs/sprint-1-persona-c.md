@@ -11,10 +11,11 @@
 - Detección de cambios con `git diff`, sin construir los ocho servicios en
   cada push:
   - Pull request: diff contra `origin/${CHANGE_TARGET}`.
-  - Rama: diff contra `GIT_PREVIOUS_SUCCESSFUL_COMMIT`; el primer build
-    construye todo.
-  - Cambio en la raíz (`build.gradle.kts`, `settings.gradle.kts`, `gradle/`,
-    `gradlew`, `gradlew.bat`) o en `jenkins/` construye todo.
+  - Rama: diff contra `GIT_PREVIOUS_SUCCESSFUL_COMMIT` o, si no existe,
+    contra el commit anterior. Una rama nueva sin historial compara contra
+    `origin/dev`.
+  - Cambio en la raíz (`Jenkinsfile`, `build.gradle.kts`, `settings.gradle.kts`,
+    `gradle/`, `gradlew`, `gradlew.bat`) o en `jenkins/` construye todo.
   - Parámetro `BUILD_ALL=true` fuerza la construcción de los ocho servicios.
 - `quietPeriod` en 0 y disparador `githubPush()`. Con el webhook configurado,
   el build inicia en segundos tras el push.
