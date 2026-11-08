@@ -1,8 +1,10 @@
 configuration-as-code
 workflow-aggregator
 github-branch-source
+job-dsl
 docker-workflow
 sonar
 ssh-agent
 junit
 htmlpublisher
+timestamper
