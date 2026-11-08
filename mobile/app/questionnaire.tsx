@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import { MeshBackground } from '@/components/MeshBackground';
 import { DynamicForm } from '@/components/DynamicForm';
 import { ChevronLeft, ArrowRight, ClipboardCheck, Paperclip, FileCheck } from 'lucide-react-native';
@@ -115,8 +115,13 @@ export default function QuestionnaireScreen() {
       });
 
       if (response.ok) {
+        const message = 'Thank you for your report. Your status has been updated.';
+        if (Platform.OS === 'web') {
+          alert(message);
+        } else {
+          Alert.alert('Submitted', message);
+        }
         router.replace('/(tabs)');
-        Alert.alert('Submitted', 'Thank you for your report. Your status has been updated.');
       } else {
         throw new Error('Submission failed');
       }
@@ -167,10 +172,10 @@ export default function QuestionnaireScreen() {
           </View>
         </View>
 
-        <DynamicForm 
-          questions={questionnaire.questions} 
-          onSubmit={() => {}} // Controlled by external button
-          // Pass setResponses to capture state
+        <DynamicForm
+          questions={questionnaire.questions}
+          responses={responses}
+          onAnswer={(id, value) => setResponses(previous => ({ ...previous, [id]: value }))}
         />
         
         <View style={styles.attachmentBox}>
