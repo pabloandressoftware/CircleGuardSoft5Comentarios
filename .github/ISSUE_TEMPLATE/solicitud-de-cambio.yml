@@ -1,0 +1,39 @@
+name: Solicitud de cambio
+description: Pide un cambio que afecte codigo, pipeline, infraestructura o ambientes.
+title: "[Cambio] "
+labels: ["cambio"]
+body:
+  - type: input
+    id: hu
+    attributes:
+      label: HU de Jira
+      placeholder: KAN-16
+    validations:
+      required: true
+  - type: dropdown
+    id: tipo
+    attributes:
+      label: Tipo de cambio
+      options: [Aplicacion (servicios o mobile), Pipeline / CI, Infraestructura / ambientes, Documentacion, Pruebas]
+    validations:
+      required: true
+  - type: dropdown
+    id: riesgo
+    attributes:
+      label: Riesgo
+      options: [Bajo, Medio, Alto]
+    validations:
+      required: true
+  - type: textarea
+    id: descripcion
+    attributes:
+      label: Que se quiere cambiar y por que
+    validations:
+      required: true
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Plan de rollback
+      description: Como se revierte si falla.
+    validations:
+      required: true
