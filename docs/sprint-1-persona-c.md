@@ -155,6 +155,27 @@ git push origin prueba-hu-08
 También pueden usar **Build with Parameters → BUILD_ALL** para forzar los
 ocho servicios sin tocar archivos.
 
+## Evidencia de aceptación (8 de noviembre de 2026)
+
+- **Webhook**: push a `hu-08-demo` → build `#3` inició **5.3 segundos**
+  después (criterio: menos de 60 s). El forwarder registró
+  `RESP 200 event=push` en `/github-webhook/`.
+- **Shared Library**: la consola muestra
+  `Loading library circleguard@dev:jenkins/`.
+- **Build selectivo**: `Servicios modificados: circleguard-auth-service` y una
+  sola invocación `:services:circleguard-auth-service:build`; terminó en
+  `BUILD SUCCESSFUL` en 22 s. El artefacto `changed-services.txt` contiene solo
+  ese servicio.
+- **BUILD_ALL**: con `BUILD_ALL=true` la consola muestra `BUILD_ALL activo: se
+  construirán los ocho servicios` y programa los servicios en lotes de dos
+  (notification, dashboard, form, promotion, etc.).
+- **Cambio en la raíz**: el merge a `dev` que modificó `jenkins/` disparó un
+  build que programó los ocho servicios.
+
+Nota: el servicio `form-service` tiene un test preexistente que falla
+(`AttachmentControllerTest`, carga del `ApplicationContext`). No es causado
+por HU-08; el pipeline lo reporta como fallo del módulo.
+
 ## Notas
 
 - `defaultVersion` de la library es `dev` porque HU-04 aún no está en `main`.
@@ -167,3 +188,8 @@ ocho servicios sin tocar archivos.
   locales que suban el wrapper a otra versión mayor.
 - El webhook de smee.io es para demostración. Para operación real, publiquen
   Jenkins tras un reverse proxy con TLS y usen esa URL en GitHub.
+- `smee-client` 5.0.0 puede devolver `405 Method POST required` porque su
+  `fetch` sigue un redirect y convierte el POST en GET. Para la demostración se
+  usó un forwarder que conserva el método POST y la cabecera
+  `X-GitHub-Event`. Si reproducen el webhook, verifiquen que Jenkins recibe un
+  POST y responda 200.
