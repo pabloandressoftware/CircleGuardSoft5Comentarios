@@ -40,8 +40,16 @@ jenkins_api() {
   request -u "$CI_JENKINS_USER:$CI_JENKINS_PASSWORD" "$@"
 }
 
+cookie_jar=/tmp/jenkins-cookies
+jenkins_web() {
+  curl --silent --show-error --fail --max-time 10 \
+    -c "$cookie_jar" -b "$cookie_jar" \
+    -u "$CI_JENKINS_USER:$CI_JENKINS_PASSWORD" "$@"
+}
+
 jenkins_status() {
   curl --silent --output /dev/null --write-out '%{http_code}' --max-time 10 \
+    -c "$cookie_jar" -b "$cookie_jar" \
     -u "$CI_JENKINS_USER:$CI_JENKINS_PASSWORD" "$@"
 }
 
@@ -49,7 +57,7 @@ configure_github_credential() {
   [ -n "${CI_GITHUB_TOKEN:-}" ] || return 0
 
   github_user=${CI_GITHUB_USER:-x-access-token}
-  crumb=$(jenkins_api "$jenkins/crumbIssuer/api/json" | jq -r '.crumb')
+  crumb=$(jenkins_web "$jenkins/crumbIssuer/api/json" | jq -r '.crumb')
   payload=$(jq -nc \
     --arg user "$github_user" \
     --arg token "$CI_GITHUB_TOKEN" \
@@ -57,11 +65,11 @@ configure_github_credential() {
 
   status=$(jenkins_status "$jenkins/credentials/store/system/domain/_/credential/circleguard-github/api/json") || true
   if [ "$status" = 200 ]; then
-    jenkins_api -H "Jenkins-Crumb: $crumb" -X POST \
+    jenkins_web -H "Jenkins-Crumb: $crumb" -X POST \
       "$jenkins/credentials/store/system/domain/_/credential/circleguard-github/doDelete" >/dev/null
   fi
 
-  jenkins_api -H "Jenkins-Crumb: $crumb" -X POST \
+  jenkins_web -H "Jenkins-Crumb: $crumb" -X POST \
     "$jenkins/credentials/store/system/domain/_/createCredentials" \
     --data-urlencode "json=$payload" >/dev/null
   echo 'Credencial circleguard-github registrada en Jenkins.'
