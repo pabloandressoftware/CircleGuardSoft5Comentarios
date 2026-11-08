@@ -41,6 +41,10 @@ node_modules/
 .expo/
 dist/
 web-build/
+playwright-report/
+test-results/
+.env
+ci.env
 
 # Docker Local Data
 *_data/
