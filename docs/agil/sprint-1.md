@@ -41,7 +41,15 @@ ambientes en AWS. Entrega el **8 de noviembre de 2026 a las 23:59 (Colombia)**.
   privilegios, tienen healthcheck y se publican en Nexus.
 - **HU-08:** multibranch con shared library y build selectivo (ver `docs/sprint-1-persona-c.md`).
 
-**Demo:** [COMPLETAR por el equipo: fecha y qué se mostró]
+**Demo:** se presenta en el video de entrega (límite: domingo 8 de noviembre de 2026, 11:59 p. m.). El guion paso a paso está en `docs/informe/guion-video.md`. Muestra, en orden:
+
+1. El flujo de trabajo: un PR por HU con responsable de Jira, aprobador distinto, commitlint y ramas protegidas.
+2. El bootstrap del CI repetido dos veces sin duplicar recursos y el quality gate de 60 %.
+3. Las nueve imágenes publicadas en Nexus.
+4. Un build del pipeline unificado con `BUILD_ALL`: pruebas de los 8 servicios y reportes JUnit y JaCoCo.
+5. El estado real de las HU con su evidencia.
+
+No se muestra lo que no se ejecutó: despliegue y promoción (HU-10), el gate bloqueando por cobertura y el modo `--aws`.
 
 ## Retrospectiva
 
