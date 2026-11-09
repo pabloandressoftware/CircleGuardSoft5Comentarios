@@ -1,6 +1,7 @@
 configuration-as-code
 workflow-aggregator
 github-branch-source
+basic-branch-build-strategies
 job-dsl
 docker-workflow
 sonar

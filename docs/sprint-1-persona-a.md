@@ -14,9 +14,12 @@ requieren que otros workflows de GitHub se disparen desde el PR o tag, usen el
 secreto de repositorio `RELEASE_PLEASE_TOKEN` con una credencial autorizada para
 el repositorio. El token por defecto sirve para el propio workflow.
 
-Jenkins debe descubrir los tags de release y ejecutar el empaquetado y despliegue
-oficial desde el **commit del tag**, después de sus controles de calidad. Tras el
-checkout y fetch de tags, obtengan la etiqueta con:
+Jenkins descubre los tags y programa automáticamente los publicados en los
+últimos siete días. Reconstruyan la imagen de CI para instalar
+`basic-branch-build-strategies` y cargar la configuración de JCasC. Para
+publicar, Jenkins comprueba que el commit del tag está en `main` y que el
+tag del job coincide con `version.txt`. Para comprobar la versión en un
+checkout local del tag:
 
 ```bash
 git fetch origin --tags
@@ -26,9 +29,8 @@ IMAGE_TAG=$(node scripts/release-image-tag.mjs)
 El comando falla si `HEAD` y `version.txt` no coinciden con un tag SemVer.
 Usen `IMAGE_TAG` al publicar y promuevan las mismas referencias o digests en
 dev, stage y prod. Los builds de PR pueden compilar y verificar sin publicar.
-Con esta estrategia, el merge que actualiza la versión oficial es el merge
-del PR de release. El equipo de pipeline debe conectar la detección del tag y
-el uso de la versión a HU-08, HU-09 y HU-10.
+El merge del PR de release actualiza la versión oficial. La publicación y
+la promoción se ejecutan desde el job del tag en Jenkins.
 
 ## HU-05 · EC2 por ambiente
 
@@ -127,18 +129,18 @@ cuestionario con confirmación y dos casos de QR auténtico, uno para `ACTIVE`
 y otro para `SUSPECT`. Para la puerta se prepara temporalmente el estado de la cuenta
 sintética en Redis. El QR se pide a auth y se valida con gateway. La
 comprobación de `SUSPECT` requiere la corrección de HU-12.
-En la ejecución local del 6 de noviembre de 2026 pasaron cuatro pruebas
-(ambos casos de login, el cuestionario y el QR de `ACTIVE`). El gateway
-devolvió `GREEN` para `SUSPECT`, cuyo resultado esperado es `RED`.
+El 8 de noviembre de 2026, con HU-12 integrada en `dev` (`4694769`), pasaron
+los cinco casos locales. Gateway devolvió `GREEN` para `ACTIVE` y `RED`
+para `SUSPECT`.
 
-En el pipeline, carguen `jenkins/` como Shared Library y llamen a
-`circleGuardE2E('circleguard-e2e-health')` después del despliegue y prueba de
-humo de dev y antes de promover a stage. La imagen de Jenkins instala las
-dependencias de sistema de Chromium. Al cambiar Playwright en `e2e/`,
-actualicen también `PLAYWRIGHT_VERSION` en el Dockerfile de Jenkins.
-Se verificó el arranque de Chromium como usuario Jenkins en EC2.
-Configuren las URL y el túnel en el agente y el usuario de prueba como
-credencial **Username with password**.
-El paso archiva `playwright-report/` también si falla una prueba. Dejen que
-el fallo detenga el pipeline y ejecuten una sola suite a la vez por cuenta
-sintética.
+En una release, Jenkins ejecuta Playwright después del despliegue y el humo
+de dev. Un fallo impide promover a stage. Para probar un dev que ya está
+desplegado, abran el job `circleguard/dev` y seleccionen **Build with
+Parameters** con `RUN_E2E_DEV=true` y `SKIP_DEPLOY=false`.
+
+El paso obtiene el host y la contraseña de Redis de `circleguard-env-dev`.
+Usa `circleguard-env-ssh` para el túnel de Redis y `circleguard-e2e-health`
+como credencial **Username with password** de una cuenta exclusiva de dev.
+Jenkins cierra el túnel y archiva `playwright-report/` al terminar las
+pruebas, incluso si fallan. Al cambiar Playwright, actualicen también
+`PLAYWRIGHT_VERSION` en el Dockerfile de Jenkins.

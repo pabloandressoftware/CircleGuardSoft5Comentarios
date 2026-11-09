@@ -62,10 +62,20 @@ jobs:
           }
         }
 
-        // HU-10: ademas de ramas y PR, descubrir los tags de release (vX.Y.Z).
-        // El DSL de alto nivel no expone TagDiscoveryTrait; se inyecta en el XML.
+        // Descubrir tags y programar sus builds. Con una estrategia explicita,
+        // tambien hay que conservar el disparo automatico de ramas y PR.
         configure { project ->
-          project / 'sources' / 'data' / 'jenkins.branch.BranchSource' / 'source' / 'traits' <<
+          def branchSource = project / 'sources' / 'data' / 'jenkins.branch.BranchSource'
+          branchSource / 'source' / 'traits' << {
             'org.jenkinsci.plugins.github__branch__source.TagDiscoveryTrait' { }
+          }
+          branchSource / 'buildStrategies' << {
+            'jenkins.branch.buildstrategies.basic.BranchBuildStrategyImpl' { }
+            'jenkins.branch.buildstrategies.basic.ChangeRequestBuildStrategyImpl' { }
+            'jenkins.branch.buildstrategies.basic.TagBuildStrategyImpl' {
+              atLeastMillis(-1L)
+              atMostMillis(604800000L) // Solo tags creados en los ultimos 7 dias.
+            }
+          }
         }
       }
