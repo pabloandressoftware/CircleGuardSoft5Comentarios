@@ -15,7 +15,7 @@ repositorio.
 **Preparación (sin HU propia):** creación del repositorio desde la plantilla del curso,
 definición del backlog de 12 épicas y 29 HU en Jira, y reparto de roles A a D.
 
-Fechas del sprint: [COMPLETAR por el equipo]
+**Fechas del sprint:** 28 de octubre al 1 de noviembre de 2026.
 
 ## Review
 
@@ -27,6 +27,8 @@ Fechas del sprint: [COMPLETAR por el equipo]
 
 ## Retrospectiva
 
+> Borrador redactado con hechos verificables del repositorio y de Jira. El equipo lo confirma o ajusta en la retrospectiva.
+
 Hechos del sprint que conviene discutir:
 
 | Qué pasó | Impacto | Acción acordada |
@@ -34,8 +36,17 @@ Hechos del sprint que conviene discutir:
 | Las reglas de ramas no se pueden configurar en la organización `ingesoft5` (plan GitHub Team) | HU-02 no era viable en ese repositorio | Mover el repositorio a la cuenta del líder de desarrollo, donde son gratuitas |
 | Algunos PR se enviaron a `main` en lugar de `dev` | PR cerrado y trabajo repetido | La protección de `main` y la plantilla de PR lo evitan |
 
-**Qué hicimos bien:** [COMPLETAR por el equipo]
+**Qué hicimos bien:**
 
-**Qué mejorar:** [COMPLETAR por el equipo]
+- Se construyó el backlog completo antes de programar: 12 épicas, 29 HU y 144 puntos, con criterios de aceptación, puntos, responsable e iteración.
+- Se repartieron los roles A a D y quedó claro quién responde por cada HU.
 
-**Acciones para el siguiente sprint:** [COMPLETAR por el equipo]
+**Qué mejorar:**
+
+- Se descubrió tarde que las reglas de ramas no están disponibles en la organización del curso (plan gratuito).
+- Falta confirmar que el docente tiene acceso al tablero de Jira.
+
+**Acciones para el siguiente sprint:**
+
+- Mover el repositorio a la cuenta del líder de desarrollo y activar ahí la protección de ramas (hecho).
+- Confirmar el acceso del docente al tablero KAN.

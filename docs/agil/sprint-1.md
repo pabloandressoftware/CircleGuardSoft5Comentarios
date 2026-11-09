@@ -24,7 +24,7 @@ ambientes en AWS. Entrega el **8 de noviembre de 2026 a las 23:59 (Colombia)**.
 | HU-15 (KAN-27) | Automatizar tres flujos E2E con Playwright | Daniel Martinez | 5 | En curso |
 | HU-16 (KAN-28) | Documentar operación y evidencias de la Parte 1 | Sin asignar | 3 | Por hacer |
 
-Fechas del sprint: [COMPLETAR por el equipo]
+**Fechas del sprint:** 2 al 8 de noviembre de 2026.
 
 ## Review (estado según Jira)
 
@@ -45,6 +45,8 @@ Fechas del sprint: [COMPLETAR por el equipo]
 
 ## Retrospectiva
 
+> Borrador redactado con hechos verificables del repositorio y de Jira. El equipo lo confirma o ajusta en la retrospectiva.
+
 Hechos del sprint que conviene discutir:
 
 | Qué pasó | Impacto | Acción acordada |
@@ -54,8 +56,23 @@ Hechos del sprint que conviene discutir:
 | El check de Jenkins exigido en `main` aún no reporta en el repositorio nuevo | `main` no admite merges | Publicar Jenkins con URL pública, crear el token y el webhook |
 | HU-04 y HU-06 bloqueaban a HU-08 y HU-09 | Trabajo en cadena | Terminar primero las HU de las que otras dependen |
 
-**Qué hicimos bien:** [COMPLETAR por el equipo]
+**Qué hicimos bien:**
 
-**Qué mejorar:** [COMPLETAR por el equipo]
+- Cada HU tiene su rama y entra a `dev` por un PR aprobado por otra persona, con commits Conventional Commits validados por commitlint.
+- El stack de CI (Jenkins, SonarQube y Nexus) se levanta con un solo script y es idempotente.
+- Las nueve imágenes se construyen reproducibles, sin privilegios y con healthcheck.
+- El pipeline unificado de HU-08 y HU-09 se ejecutó en un Jenkins local de pruebas: detecta módulos, corre pruebas y publica los reportes JUnit y JaCoCo.
 
-**Acciones para el Sprint 2:** [COMPLETAR por el equipo]
+**Qué mejorar:**
+
+- Las HU se integraron al final y en cadena (HU-05 → HU-04 → HU-08 → HU-09); conviene abrir PR pequeños y temprano.
+- Varios PR se enviaron a la rama equivocada (`main` en vez de `dev`).
+- Las pruebas de backend fallan en Jenkins: `form-service` (1), `identity-service` (4) y `promotion-service` (5, incluidos errores de inicialización de Testcontainers). Por eso el quality gate no llega a SonarQube.
+- HU-10 (despliegue y promoción) quedó sin implementar.
+
+**Acciones para el Sprint 2:**
+
+- Arreglar las pruebas de backend y habilitar Testcontainers en el agente de Jenkins (HU-12, HU-13 y HU-14).
+- Publicar Jenkins con URL accesible, token de GitHub y webhook para que el check exigido en `main` se reporte.
+- Implementar HU-10 y HU-11 sobre el pipeline unificado.
+- Abrir los PR de cada HU al día, no al cierre del sprint.
