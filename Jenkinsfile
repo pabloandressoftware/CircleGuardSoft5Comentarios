@@ -39,6 +39,11 @@ pipeline {
             defaultValue: false,
             description: 'Validar el pipeline sin tocar ninguna VM (util en local).'
         )
+        booleanParam(
+            name: 'RUN_E2E_DEV',
+            defaultValue: false,
+            description: 'En la rama dev, probar el ambiente ya desplegado con Playwright.'
+        )
     }
 
     options {
@@ -54,7 +59,7 @@ pipeline {
             steps {
                 script {
                     sh 'git fetch --no-tags --prune origin +refs/heads/*:refs/remotes/origin/*'
-                    sh 'git fetch --tags --force origin'
+                    sh 'git fetch --tags origin'
                     quality = load 'jenkins/vars/circleGuardQuality.groovy'
                     publish = load 'jenkins/vars/circleGuardPublish.groovy'
                     deploy = load 'jenkins/vars/circleGuardDeploy.groovy'
@@ -143,9 +148,17 @@ pipeline {
         stage('E2E dev') {
             when {
                 allOf {
-                    buildingTag()
-                    tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
                     expression { !params.SKIP_DEPLOY }
+                    anyOf {
+                        allOf {
+                            buildingTag()
+                            tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                        }
+                        allOf {
+                            branch 'dev'
+                            expression { params.RUN_E2E_DEV }
+                        }
+                    }
                 }
             }
             steps {

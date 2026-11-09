@@ -13,7 +13,13 @@ def call(Map args = [:]) {
     String credentialsId = args.get('credentialsId', 'nexus-registry')
     String registry = args.get('registry', '127.0.0.1:5000')
 
-    String imageTag = sh(script: 'node scripts/release-image-tag.mjs', returnStdout: true).trim()
+    String imageTag = sh(script: '''
+        git merge-base --is-ancestor HEAD refs/remotes/origin/main || {
+            echo 'El commit de release debe estar integrado en main.' >&2
+            exit 1
+        }
+        node scripts/release-image-tag.mjs "$TAG_NAME"
+    ''', returnStdout: true).trim()
     withCredentials([usernamePassword(credentialsId: credentialsId,
                                       usernameVariable: 'NX_USER', passwordVariable: 'NX_PASS')]) {
         withEnv(["REGISTRY=${registry}", "IMAGE_TAG=${imageTag}"]) {
