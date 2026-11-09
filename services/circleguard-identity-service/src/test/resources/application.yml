@@ -19,5 +19,6 @@ vault:
   salt: "deadbeef"      # hex for encryption
   hash-salt: "12345678" # hex for hashing
 
+# El application.yml de test reemplaza al de main: declara tambien el JWT.
 jwt:
-  secret: "test-jwt-secret-key-32-chars-long-1234567890"
+  secret: "my-super-secret-test-key-32-chars-long-12345678"

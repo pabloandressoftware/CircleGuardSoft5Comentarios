@@ -64,6 +64,9 @@ subprojects {
 
     tasks.withType<Test> {
         useJUnitPlatform()
+        // Testcontainers 1.19 usa docker-java con API 1.32 por defecto; Docker
+        // 24+ exige 1.40 o superior y devuelve 400 al negociar.
+        systemProperty("api.version", "1.43")
         // El reporte de cobertura se genera siempre, tambien si una prueba falla
         finalizedBy("jacocoTestReport")
     }
