@@ -5,7 +5,7 @@ Ingeniería de Software V · Universidad Icesi · Entrega: domingo 8 de noviembr
 Repositorio de trabajo: https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios
 Tablero: Jira, proyecto KAN (`seraph.atlassian.net`)
 
-Equipo: Pablo Guzmán (`pabloandressoftware`), Daniel Martínez (`damaral2005`), Rodolfo Moreno (`Matatrolls`), NIGORI YT (`itsnigori98`).
+Equipo: Pablo Andrés Guzmán Alarcón (`pabloandressoftware`), Daniel Martínez Alvarado (`damaral2005`), Rodolfo Moreno Gutiérrez (`Matatrolls`), Nicolás Góngora Rincón (`itsnigori98`).
 
 > Este informe distingue entre lo **verificado con ejecución**, lo que tiene **código integrado sin evidencia de ejecución** y lo **no implementado**. Lo que solo el equipo conoce está marcado `[COMPLETAR]`.
 
@@ -21,14 +21,14 @@ La Parte 1 lleva el proyecto desde el commit hasta el despliegue: gobierno del r
 - **Backlog:** 12 épicas, 29 historias de usuario y 144 puntos. Cada HU tiene criterios de aceptación, puntos, responsable e iteración en su descripción, y las HU grandes tienen subtareas.
 - **Alcance acordado del Sprint 1 (esta entrega):** 10 historias y 49 puntos: HU-03, 04, 05, 06, 07, 08, 09, 10, 12 y 15. HU-01 y HU-02 pertenecen al Sprint 0. HU-11, 13, 14 y 16 quedaron **fuera del alcance acordado de esta entrega** y pasan al siguiente sprint. La Parte 2 (Sprint 2) cubre HU-17 a HU-29.
 - **Fuentes del estado:** Jira (corte de hoy), el repositorio y el documento del equipo «Sprint 1 · Pendientes por persona» (corte del 6 de noviembre). Lo que proviene de ese documento se cita como «según los registros del equipo (corte 6-nov)» y no se presenta como verificado para este informe.
-- **Documentación de sprints:** `docs/agil/sprint-0.md` y `docs/agil/sprint-1.md` (planeación, review y retrospectiva). Las fechas y las reflexiones del equipo están marcadas `[COMPLETAR]` en esos archivos.
+- **Documentación de sprints:** `docs/agil/sprint-0.md` y `docs/agil/sprint-1.md` (planeación, review y retrospectiva). Sprint 0: 28 de octubre al 1 de noviembre de 2026; Sprint 1: 2 al 8 de noviembre de 2026. Las retrospectivas son un borrador con hechos del repositorio que el equipo confirma; queda pendiente solo la demo del Sprint 1.
 
 | Rol | Responsabilidad | Persona |
 | --- | --- | --- |
-| A | Gestión ágil, versiones y E2E | Daniel Martínez |
-| B | Infraestructura | Pablo Guzmán |
-| C | Pipeline y despliegue | Rodolfo Moreno |
-| D | Configuración y calidad | NIGORI YT |
+| A | Gestión ágil, versiones y E2E | Daniel Martínez Alvarado |
+| B | Infraestructura | Pablo Andrés Guzmán Alarcón |
+| C | Pipeline y despliegue | Rodolfo Moreno Gutiérrez |
+| D | Configuración y calidad | Nicolás Góngora Rincón |
 
 ## 3. Estrategia de ramas y gobierno (HU-02)
 
@@ -89,29 +89,29 @@ Criterios: **verificado** = se ejecutó y se observó el resultado al preparar e
 
 | HU | Historia | Pts | Responsable (Jira) | Jira | Evidencia |
 | --- | --- | --- | --- | --- | --- |
-| HU-03 | Versionado y releases | 3 | Daniel Martínez | En curso | Código integrado (release-please, `version.txt`). Según los registros del equipo: en progreso, verificando el tag SemVer contra el commit; falta integrar release-please en `main` y confirmar el permiso para abrir el PR de release. |
-| HU-04 | Jenkins, SonarQube y Nexus | 8 | Pablo Guzmán | Finalizada | **Verificado en local:** el bootstrap levanta el stack, dos ejecuciones no duplican recursos, el gate exige 60 % de cobertura nueva, credenciales fuera del repo. Registros del equipo: servidor de CI aprovisionado en EC2 con bootstrap repetido. No probado por mí: modo `--aws` y un análisis que falle el gate. |
-| HU-05 | Ambientes en AWS | 5 | Daniel Martínez | En curso | Código integrado. Registros del equipo: tres VM en Ohio (`us-east-2`) para dev, stage y prod, bootstrap repetido y aislamiento de PostgreSQL entre dev y prod comprobado. Falta el Compose y los valores de HU-07, los archivos de entorno en Jenkins y las URL HTTPS. |
-| HU-06 | Imágenes Docker | 5 | Pablo Guzmán | Finalizada | **Verificado en local:** 9 imágenes (8 servicios y la web) construidas y publicadas con etiqueta `v0.0.1` en un Nexus local, usuario sin privilegios y HEALTHCHECK en las 9. Registros del equipo: nueve imágenes `v0.0.1` comprobadas en Nexus. |
-| HU-07 | Variables y Compose | 5 | NIGORI YT | Por hacer | Código integrado en `dev` (`deploy/`, variables de entorno). Registros del equipo: faltaba evidencia del Compose definitivo por ambiente. |
-| HU-08 | Multibranch y webhook | 5 | Rodolfo Moreno | Finalizada | Evidencia **documentada por su responsable** en `docs/sprint-1-persona-c.md`: build iniciado 5,3 s después del push, build selectivo de un servicio en 22 s, `BUILD_ALL` y cambio en la raíz. No reproducida aquí. |
-| HU-09 | Pruebas y quality gate | 5 | NIGORI YT | Por hacer | Código integrado (JaCoCo, gate bloqueante, publicación limitada a tags). Unido al `Jenkinsfile` de HU-08, y ese pipeline unificado **no se ha ejecutado en Jenkins**. Registros del equipo: SonarQube ya tiene el gate de 60 %. |
-| HU-10 | Despliegue y promoción | 5 | Rodolfo Moreno | En curso | **Sin código en `dev`**; solo un marcador en el `Jenkinsfile`. Registros del equipo: las tres VM están disponibles; falta evidencia del flujo (despliegue y humo en dev, E2E, promoción del mismo digest a stage y aprobación manual de prod). |
-| HU-12 | QR y pruebas base | 3 | NIGORI YT | Por hacer | Código integrado (vigencia del QR en milisegundos, acceso denegado a `SUSPECT`, `PROBABLE` y `CONFIRMED`; PR #13 mergeado). Registros del equipo (6-nov): el gateway dejaba pasar `SUSPECT`; el fallo se corrigió con este cambio, sin ejecución verificada aquí. |
-| HU-15 | Pruebas Playwright | 5 | Daniel Martínez | En curso | Código integrado. Registros del equipo: Chromium validado en Jenkins y 4 de 5 casos pasaron en local; el de `SUSPECT` fallaba hasta la corrección de HU-12. No se ha ejecutado la suite completa desde Jenkins. |
+| HU-03 | Versionado y releases | 3 | Daniel Martínez Alvarado | En curso | Código integrado (release-please, `version.txt`). Según los registros del equipo: en progreso, verificando el tag SemVer contra el commit; falta integrar release-please en `main` y confirmar el permiso para abrir el PR de release. |
+| HU-04 | Jenkins, SonarQube y Nexus | 8 | Pablo Andrés Guzmán Alarcón | Finalizada | **Verificado en local:** el bootstrap levanta el stack, dos ejecuciones no duplican recursos, el gate exige 60 % de cobertura nueva, credenciales fuera del repo. Registros del equipo: servidor de CI aprovisionado en EC2 con bootstrap repetido. No probado por mí: modo `--aws` y un análisis que falle el gate. |
+| HU-05 | Ambientes en AWS | 5 | Daniel Martínez Alvarado | En curso | Código integrado. Registros del equipo: tres VM en Ohio (`us-east-2`) para dev, stage y prod, bootstrap repetido y aislamiento de PostgreSQL entre dev y prod comprobado. Falta el Compose y los valores de HU-07, los archivos de entorno en Jenkins y las URL HTTPS. |
+| HU-06 | Imágenes Docker | 5 | Pablo Andrés Guzmán Alarcón | Finalizada | **Verificado en local:** 9 imágenes (8 servicios y la web) construidas y publicadas con etiqueta `v0.0.1` en un Nexus local, usuario sin privilegios y HEALTHCHECK en las 9. Registros del equipo: nueve imágenes `v0.0.1` comprobadas en Nexus. |
+| HU-07 | Variables y Compose | 5 | Nicolás Góngora Rincón | Por hacer | Código integrado en `dev` (`deploy/`, variables de entorno). Registros del equipo: faltaba evidencia del Compose definitivo por ambiente. |
+| HU-08 | Multibranch y webhook | 5 | Rodolfo Moreno Gutiérrez | Finalizada | Evidencia **documentada por su responsable** en `docs/sprint-1-persona-c.md`: build iniciado 5,3 s después del push, build selectivo de un servicio en 22 s, `BUILD_ALL` y cambio en la raíz. No reproducida aquí. |
+| HU-09 | Pruebas y quality gate | 5 | Nicolás Góngora Rincón | Por hacer | Código integrado (JaCoCo, gate bloqueante, publicación limitada a tags). **Verificado en un Jenkins local:** el pipeline unificado de HU-08 y HU-09 se ejecutó con `BUILD_ALL` sobre `dev` con HU-10; compiló y probó los 8 servicios (56 de 58 pruebas pasan), publicó los reportes JUnit y JaCoCo y se detuvo en 2 pruebas de `promotion` cuyo contenedor de Neo4j no arrancó a tiempo, sin llegar al análisis de SonarQube. Registros del equipo: SonarQube ya tiene el gate de 60 %. |
+| HU-10 | Despliegue y promoción | 5 | Rodolfo Moreno Gutiérrez | En curso | Código integrado (PR #21): despliegue en dev con prueba de humo, E2E, promoción de la misma etiqueta a stage y aprobación manual de prod, solo en tags `vX.Y.Z`. **Sin evidencia de ejecución:** requiere un tag de release y las VM de AWS. |
+| HU-12 | QR y pruebas base | 3 | Nicolás Góngora Rincón | Por hacer | Código integrado (vigencia del QR en milisegundos, acceso denegado a `SUSPECT`, `PROBABLE` y `CONFIRMED`; PR #13 mergeado). Registros del equipo (6-nov): el gateway dejaba pasar `SUSPECT`; el fallo se corrigió con este cambio, **Verificado en Jenkins local:** las pruebas de `identity` (8), `form` (6) y `promotion` HealthStatus (4) pasan, y las del cliente web (Jest) pasan 13 de 13. |
+| HU-15 | Pruebas Playwright | 5 | Daniel Martínez Alvarado | En curso | Código integrado. Registros del equipo: Chromium validado en Jenkins y 4 de 5 casos pasaron en local; el de `SUSPECT` fallaba hasta la corrección de HU-12. No se ha ejecutado la suite completa desde Jenkins. |
 
 ### Sprint 0 (previo)
 
 | HU | Historia | Pts | Responsable (Jira) | Jira | Evidencia |
 | --- | --- | --- | --- | --- | --- |
-| HU-01 | Tablero ágil y sprints documentados | 3 | Rodolfo Moreno | Por hacer | Documentos en `docs/agil/` integrados. Pendientes: las marcas `[COMPLETAR]` y confirmar el acceso del docente al tablero. |
-| HU-02 | Proteger `main` y formalizar PR | 3 | Pablo Guzmán | Finalizada | **Verificado:** protección activa en `main` y `dev`, commitlint pasando en GitHub Actions, plantillas y tabla de aprobadores. **Parcial:** el check de Jenkins no se publica aún. |
+| HU-01 | Tablero ágil y sprints documentados | 3 | Rodolfo Moreno Gutiérrez | Por hacer | Documentos en `docs/agil/` integrados. Fechas y retrospectivas integradas (#19). Pendientes: la demo del Sprint 1 y confirmar el acceso del docente al tablero. |
+| HU-02 | Proteger `main` y formalizar PR | 3 | Pablo Andrés Guzmán Alarcón | Finalizada | **Verificado:** protección activa en `main` y `dev`, commitlint pasando en GitHub Actions, plantillas y tabla de aprobadores. **Parcial:** el check de Jenkins no se publica aún. |
 
 ### Fuera del alcance acordado de esta entrega (pasan al siguiente sprint)
 
 HU-11 (notificar fallos y rollback), HU-13 (60 % de cobertura en cinco servicios), HU-14 (tres integraciones con Testcontainers) y HU-16 (documentar operación y evidencias). No se implementaron porque no estaban en el alcance acordado. Este informe y los documentos `docs/sprint-1-persona-*.md` son la documentación de operación disponible hoy.
 
-**Resumen:** del alcance acordado (49 puntos), Jira marca como finalizadas HU-04, 06 y 08 (18 puntos). HU-03, 05, 10 y 15 siguen en curso. HU-07, 09 y 12 tienen su código integrado en `dev` pero siguen «Por hacer» en Jira. La mayor brecha es HU-10 (sin código) y que el pipeline unificado no se ha ejecutado de punta a punta.
+**Resumen:** del alcance acordado (49 puntos), Jira marca como finalizadas HU-04, 06 y 08 (18 puntos). HU-03, 05, 10 y 15 siguen en curso. HU-07, 09 y 12 tienen su código integrado en `dev` pero siguen «Por hacer» en Jira. La mayor brecha es que el pipeline unificado no llegó a ejecutarse de punta a punta (se detuvo en 2 pruebas de `promotion` por el arranque lento de Neo4j) y que HU-10 tiene código integrado pero sin evidencia de ejecución.
 
 ## 6. Problemas encontrados y cómo se resolvieron
 
@@ -119,8 +119,9 @@ HU-11 (notificar fallos y rollback), HU-13 (60 % de cobertura en cinco servicios
 | --- | --- | --- |
 | Las branch rules no se pueden configurar en la organización `ingesoft5` (plan GitHub Team) | HU-02 no era viable en el repositorio original | Se creó el repositorio bajo la cuenta de `pabloandressoftware` (público, donde las reglas son gratuitas), se migraron todas las ramas con su historial y se reconstruyó `dev` con un PR por HU. Se conserva `dev-respaldo` con el `dev` anterior. |
 | El mirror de plugins de Jenkins (`ftp.halifax.rwth-aachen.de`) estuvo caído | `bootstrap-ci.sh` se colgó 17 minutos | Se fijó `JENKINS_UC_DOWNLOAD` a otro mirror en el Dockerfile de Jenkins. Queda como dependencia externa. |
-| HU-08 y HU-09 modifican el mismo `Jenkinsfile` con diseños distintos | Conflicto al integrar la segunda | Se unieron en un solo pipeline declarativo que conserva los elementos de ambas. La sintaxis de Groovy se validó, pero el pipeline unificado **no se ejecutó en Jenkins**. |
+| HU-08 y HU-09 modifican el mismo `Jenkinsfile` con diseños distintos | Conflicto al integrar la segunda | Se unieron en un solo pipeline declarativo que conserva los elementos de ambas. Se validó la sintaxis de Groovy y el pipeline unificado se ejecutó después en un Jenkins local (ver HU-09 en la sección 5). |
 | Un PR de HU se envió a `main` en lugar de `dev` | PR cerrado y trabajo repetido | Se cerró y se abrió otro PR hacia `dev`; los PR de HU-09 y HU-12 se redirigieron a `dev` cambiando su base. El flujo `hu-XX -> dev -> main` quedó documentado. |
+| Las pruebas de backend fallaban en Jenkins (10 pruebas en `identity`, `form` y `promotion`) | El pipeline con `BUILD_ALL` se detenía en la etapa de calidad | Causas raíz: `jwt.secret` ausente en el `application.yml` de prueba (identity), una prueba de `form` que exigía PostgreSQL real, un rol simulado sin el prefijo `ROLE_` (promotion) y Testcontainers 1.19 incompatible con Docker 29 (API 1.32 frente al mínimo 1.40). Se corrigieron en HU-10 (#21) y en el PR #20; quedan 2 pruebas por el arranque lento de Neo4j en la máquina de prueba. |
 | La regla `subject-case` de commitlint rechazaba asuntos con siglas (`URLs`, `JaCoCo`) | Fallaban los PR de HU-07 y HU-09 | Se desactivó solo esa regla; el resto de Conventional Commits sigue validándose. |
 | Las aprobaciones se descartaban solas cuando `dev` cambiaba | Un PR aprobado volvía a «revisión requerida» | Se desactivó «descartar aprobaciones antiguas» en `dev`. |
 | Una rama de HU nueva no tenía el check commitlint | El check es obligatorio y no corría | Se actualizó la rama con `dev` para que el workflow se ejecutara. |
@@ -128,16 +129,32 @@ HU-11 (notificar fallos y rollback), HU-13 (60 % de cobertura en cinco servicios
 ## 7. Limitaciones y trabajo pendiente
 
 - **Check de Jenkins en `main`:** exigido pero sin publicar. Falta un Jenkins accesible desde internet, un token de GitHub y el webhook. La demostración del webhook de HU-08 usó un túnel smee.io.
-- **Pipeline de punta a punta:** el `Jenkinsfile` unificado no se ha corrido; tampoco se probó el gate de SonarQube bloqueando una cobertura menor a 60 %.
+- **Pipeline de punta a punta:** el `Jenkinsfile` unificado se ejecutó en un Jenkins local con `BUILD_ALL` y recorrió todas las etapas de calidad, pero se detuvo en 2 pruebas de `promotion` (Neo4j no arrancó a tiempo). Por eso no se alcanzó el análisis de SonarQube, no se probó el gate bloqueando una cobertura menor a 60 % y no corrieron las etapas de web, publicación y despliegue.
 - **AWS:** el modo `--aws` del bootstrap y la publicación en el Nexus de AWS no se probaron. La URL HTTPS de la aplicación por ambiente está pendiente (DNS y TLS).
-- **Dentro del alcance y sin implementar:** HU-10 (despliegue y promoción).
+- **Dentro del alcance y sin evidencia de ejecución:** HU-10 (despliegue y promoción), porque depende de un tag de release y de las VM de AWS.
 - **Fuera del alcance acordado de esta entrega:** HU-11 (notificaciones y rollback), HU-13 (cobertura de 60 % en cinco servicios), HU-14 (Testcontainers) y HU-16 (documentación de operación).
-- **Deuda conocida:** un test preexistente de `form-service` falla (`AttachmentControllerTest`); `file-service` guarda archivos dentro del contenedor; hay carpetas `services/*/bin/` del IDE versionadas.
+- **Deuda conocida:** `file-service` guarda archivos dentro del contenedor; hay carpetas `services/*/bin/` del IDE versionadas.
 - **Jira:** conviene alinear los estados con la evidencia real; varias HU con código integrado siguen «Por hacer» o «En curso».
 
 ## 8. Contribución individual
 
-[COMPLETAR por el equipo: qué hizo cada integrante, con enlaces a PR y commits. La trazabilidad del repositorio muestra: Pablo (HU-02, 04, 06), Daniel (HU-03, 05, 15), Rodolfo (HU-01, 08), NIGORI (HU-07, 09, 12).]
+La trazabilidad sale del historial de GitHub y de Jira (corte del 8 de noviembre de 2026). Los commits cuentan los de `dev` sin merges; los PR son los del repositorio de trabajo.
+
+| Integrante | HU responsable (Jira) | PR mergeados | Commits | PR aprobados |
+| --- | --- | --- | --- | --- |
+| Pablo Andrés Guzmán Alarcón (`pabloandressoftware`) | HU-02, HU-04, HU-06 | #1 y #6 (HU-02), #10 (commitlint), #11 (HU-04), #5 (HU-06) | 10 | 8 |
+| Daniel Martínez Alvarado (`damaral2005`) | HU-03, HU-05, HU-15 | #15 (HU-03), #14 (HU-05), #16 (HU-15) | 3 | 3 |
+| Rodolfo Moreno Gutiérrez (`Matatrolls`) | HU-01, HU-08, HU-10 | #8 (HU-01), #9 (HU-08), #21 (HU-10) | 6 | 6 |
+| Nicolás Góngora Rincón (`itsnigori98`) | HU-07, HU-09, HU-12 | #7 (HU-07), #12 (HU-09), #13 (HU-12) | 9 | 0 |
+
+Otros aportes y aclaraciones:
+
+- **Pablo Andrés:** migró el repositorio a su cuenta y reconstruyó `dev` con un PR por HU, configuró la protección de `main` y `dev` y commitlint, redactó este informe y los documentos de HU-01 (#18 y #19), corrigió la compatibilidad de Testcontainers con Docker 29 (#20) y ejecutó el pipeline unificado en un Jenkins local de pruebas.
+- **Rodolfo:** abrió el PR de HU-01 (#8), cuyos documentos escribió la cuenta de Pablo, y en HU-10 (#21) corrigió también las pruebas de backend de `identity`, `form` y `promotion`. Sus commits aparecen con el nombre «Seraph» en Git.
+- **Daniel:** según los registros del equipo, aprovisionó el servidor de CI y las tres VM de AWS en Ohio. Esa infraestructura no está en el repositorio, así que no se reproduce aquí.
+- **Nicolás:** aporta el mayor número de commits después de Pablo; sus HU son HU-07, HU-09 y HU-12.
+- Los PR #1 a #5 del repositorio original de la organización (`ingesoft5`) no se migraron; su contenido sí está en el historial.
+- Cada PR indica en su cuerpo el responsable de Jira y los aprobadores válidos; el responsable de una HU no aprueba la suya.
 
 ## 9. Declaración de uso de IA generativa
 
