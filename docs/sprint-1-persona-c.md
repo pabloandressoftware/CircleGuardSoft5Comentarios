@@ -172,9 +172,9 @@ ocho servicios sin tocar archivos.
 - **Cambio en la raíz**: el merge a `dev` que modificó `jenkins/` disparó un
   build que programó los ocho servicios.
 
-Nota: el servicio `form-service` tiene un test preexistente que falla
-(`AttachmentControllerTest`, carga del `ApplicationContext`). No es causado
-por HU-08; el pipeline lo reporta como fallo del módulo.
+Nota: el test preexistente `AttachmentControllerTest` de `form-service` se
+corrigió en HU-10 (`@WebMvcTest` + `StorageService` simulado), igual que el
+`jwt.secret` de las pruebas de `identity-service`.
 
 ## Notas
 
@@ -193,3 +193,105 @@ por HU-08; el pipeline lo reporta como fallo del módulo.
   usó un forwarder que conserva el método POST y la cabecera
   `X-GitHub-Event`. Si reproducen el webhook, verifiquen que Jenkins recibe un
   POST y responda 200.
+
+# HU-10 · Despliegue y promoción entre ambientes
+
+## Flujo
+
+El despliegue oficial solo corre en builds de un **tag `vX.Y.Z`**, que Release
+Please crea al fusionar su PR de release en `main`. Un merge normal a `main` no
+publica ni despliega: así la misma imagen inmutable se promueve por los tres
+ambientes.
+
+```
+tag vX.Y.Z
+  → Calidad de servicios (8) + web + Sonar
+  → Publicar 9 imágenes en Nexus
+  → Desplegar dev → Humo → E2E Playwright
+  → Desplegar stage (misma etiqueta) → Humo
+  → input del usuario aprobador → Desplegar prod → Humo
+  → approval-prod.txt y deploy-<ambiente>.txt archivados
+```
+
+La Parte 1 despliega **auth, identity, promotion, form, gateway, web y
+middleware**. `notification`, `file` y `dashboard` quedan con el perfil
+`part2` en `deploy/compose.yml`: se compilan, prueban y publican, pero no se
+levantan en los ambientes. Para incluirlos: `COMPOSE_PROFILES=part2`.
+
+## Piezas nuevas
+
+| Archivo | Responsabilidad |
+| --- | --- |
+| `jenkins/vars/circleGuardDeploy.groovy` | Instala el `.env`, copia `deploy/` a la VM, abre el túnel inverso a Nexus y ejecuta `run.sh` con la etiqueta. |
+| `jenkins/vars/circleGuardSmoke.groovy` | Humo HTTPS contra el proxy; acepta 2xx/3xx/401/403/404 y falla con 5xx. |
+| `jenkins/vars/circleGuardE2E.groovy` | URLs del proxy, CA interna, seed del cuestionario y túnel SSH a Redis de dev. |
+| `deploy/run.sh` | En la VM: `sudo -n docker login`, `compose pull`, `up -d --wait`, `ps` y humo local. |
+| `infra/ci/jenkins/casc.yml` | Usuario `aprobador` y `TagDiscoveryTrait` en el job multibranch. |
+
+## Credenciales de Jenkins
+
+| ID | Tipo | Uso |
+| --- | --- | --- |
+| `circleguard-env-dev/stage/prod` | Secret file | `.env` de cada ambiente (generado con `deploy/new-env.sh`). |
+| `circleguard-env-ssh` | SSH username with private key | Llave del key pair de las VM. |
+| `nexus-registry` | Username with password | `admin` + `CI_NEXUS_PASSWORD` (lo crea el inicializador). |
+| `circleguard-e2e-health` | Username with password | `health_user` + `password` sembrada por Flyway (lo crea el inicializador). |
+| `sonar-token` | Secret text | Token de análisis (lo crea `scripts/conectar-sonar-jenkins.sh`). |
+
+El inicializador también registra `circleguard-github` cuando
+`CI_GITHUB_TOKEN` está definido. El repositorio nuevo es público, así que el
+escaneo funciona incluso sin esa credencial.
+
+## Aprobación de prod
+
+`input` usa `submitter: 'aprobador'` y `submitterParameter: 'APPROVER'`.
+El usuario se define en JCasC con `CI_APPROVER_USER` / `CI_APPROVER_PASSWORD`.
+El resultado queda en `approval-prod.txt`:
+
+```
+env=prod
+tag=vX.Y.Z
+approver=<usuario>
+build=<url del build>
+```
+
+## Puesta en marcha
+
+```bash
+# 1. Generar los .env (requiere openssl; puede correrse en el contenedor Jenkins)
+bash deploy/new-env.sh dev   <PublicDns-dev>   [IP] > circleguard-env-dev
+bash deploy/new-env.sh stage <PublicDns-stage> [IP] > circleguard-env-stage
+bash deploy/new-env.sh prod  <PublicDns-prod>  [IP] > circleguard-env-prod
+bash deploy/check-env.sh circleguard-env-dev
+
+# 2. Subirlos a Jenkins como Secret file con los IDs circleguard-env-*
+#    y la llave privada como circleguard-env-ssh.
+
+# 3. Conectar SonarQube con Jenkins (una vez)
+bash scripts/conectar-sonar-jenkins.sh /ruta/segura/ci.env
+```
+
+Sin acceso SSH a las VM se puede validar el pipeline con el parámetro
+`SKIP_DEPLOY=true`: corre calidad, web y publicación, pero omite todas las
+etapas de despliegue, humo, E2E y aprobación.
+
+## Verificación local (2026-11-08)
+
+- `gradle --continue test jacocoTestReport` con Gradle 8.14.5/JDK 21 dentro del
+  contenedor Jenkins: **los 8 servicios en verde**, incluidos los tests con
+  Testcontainers (Neo4j/Redis) de `promotion-service`.
+  Se fijó `api.version=1.43` en las tareas `Test` porque docker-java (1.19)
+  pedía la API 1.32 y Docker 24+ devuelve 400; y se añadieron
+  `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE` y `TESTCONTAINERS_HOST_OVERRIDE` al
+  contenedor Jenkins.
+  Los tests de promotion usan H2 en memoria para JPA y contenedores para
+  Neo4j/Redis; `HealthStatusControllerTest` usa `ROLE_HEALTH_CENTER`.
+- `mobile`: `npm ci` + `npx jest --ci` → 3 suites, 13 pruebas en verde.
+- `deploy/compose.yml` + `compose.dev.yml` y `compose.prod.yml` aceptan
+  `docker compose config`; `config --services` lista solo los 7 componentes de
+  la Parte 1 más el middleware.
+- JCasC recargado en Jenkins: job `circleguard` apunta al repositorio nuevo y
+  el XML incluye `TagDiscoveryTrait`.
+- `pipeline-model-converter/validate`: `Jenkinsfile successfully validated`.
+- Credenciales `nexus-registry`, `circleguard-e2e-health` y `sonar-token`
+  registradas; webhook de SonarQube hacia Jenkins creado.

@@ -4,9 +4,17 @@ spring:
   sql:
     init:
       mode: never
+  # Los tests de promotion usan Neo4j/Redis con Testcontainers. JPA se resuelve
+  # con H2 en memoria para no depender de un PostgreSQL local.
+  datasource:
+    url: jdbc:h2:mem:promotion-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
   jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: none
+      ddl-auto: create-drop
   neo4j:
     uri: bolt://localhost:7687
     authentication:

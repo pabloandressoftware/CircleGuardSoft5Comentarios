@@ -8,8 +8,15 @@ services:
       CI_JENKINS_USER: ${CI_JENKINS_USER:?Define CI_JENKINS_USER}
       CI_JENKINS_PASSWORD: ${CI_JENKINS_PASSWORD:?Define CI_JENKINS_PASSWORD}
       CI_GITHUB_CREDENTIALS_ID: ${CI_GITHUB_CREDENTIALS_ID:-}
+      CI_APPROVER_USER: ${CI_APPROVER_USER:-aprobador}
+      CI_APPROVER_PASSWORD: ${CI_APPROVER_PASSWORD:?Define CI_APPROVER_PASSWORD}
+      # Testcontainers dentro del agente habla con el daemon del host.
+      TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+      TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: /var/run/docker.sock
     ports:
       - "127.0.0.1:${CI_JENKINS_PORT:-8181}:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     group_add:
       - "${CI_DOCKER_GID:-0}"
     volumes:
@@ -72,6 +79,9 @@ services:
       CI_SONAR_PASSWORD: ${CI_SONAR_PASSWORD:?Define CI_SONAR_PASSWORD}
       CI_SONAR_INITIAL_PASSWORD: ${CI_SONAR_INITIAL_PASSWORD:-}
       CI_NEXUS_PASSWORD: ${CI_NEXUS_PASSWORD:?Define CI_NEXUS_PASSWORD}
+      CI_NEXUS_USER: ${CI_NEXUS_USER:-admin}
+      CI_E2E_HEALTH_USER: ${CI_E2E_HEALTH_USER:-health_user}
+      CI_E2E_HEALTH_PASSWORD: ${CI_E2E_HEALTH_PASSWORD:-password}
     volumes:
       - nexus-data:/nexus-data:ro
 

@@ -67,10 +67,6 @@ services:
         condition: service_started
       gateway-service:
         condition: service_started
-      file-service:
-        condition: service_started
-      dashboard-service:
-        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:2019/config/ || exit 1"]
       interval: 15s
@@ -187,9 +183,12 @@ services:
     healthcheck: *java-health
     logging: *logging
 
+  # Parte 1: notification, file y dashboard se compilan, prueban y publican,
+  # pero no se despliegan. Solo se levantan con COMPOSE_PROFILES=part2.
   notification-service:
     image: ${REGISTRY:-127.0.0.1:5000}/circleguard/circleguard-notification-service:${IMAGE_TAG:?Define IMAGE_TAG (vX.Y.Z)}
     <<: *restart
+    profiles: [part2]
     environment:
       <<: *java-env
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
@@ -217,6 +216,7 @@ services:
   file-service:
     image: ${REGISTRY:-127.0.0.1:5000}/circleguard/circleguard-file-service:${IMAGE_TAG:?Define IMAGE_TAG (vX.Y.Z)}
     <<: *restart
+    profiles: [part2]
     environment:
       <<: *java-env
     healthcheck: *java-health
@@ -225,6 +225,7 @@ services:
   dashboard-service:
     image: ${REGISTRY:-127.0.0.1:5000}/circleguard/circleguard-dashboard-service:${IMAGE_TAG:?Define IMAGE_TAG (vX.Y.Z)}
     <<: *restart
+    profiles: [part2]
     environment:
       <<: [*java-env, *db-env]
       PROMOTION_SERVICE_URL: http://promotion-service:8088

@@ -75,9 +75,53 @@ configure_github_credential() {
   echo 'Credencial circleguard-github registrada en Jenkins.'
 }
 
+# Crea o reemplaza una credencial usuario/contrasena en el store global.
+configure_user_password_credential() {
+  credential_id=$1
+  credential_user=$2
+  credential_password=$3
+  credential_description=$4
+
+  crumb=$(jenkins_web "$jenkins/crumbIssuer/api/json" | jq -r '.crumb')
+  payload=$(jq -nc \
+    --arg id "$credential_id" \
+    --arg user "$credential_user" \
+    --arg token "$credential_password" \
+    --arg description "$credential_description" \
+    '{credentials:{scope:"GLOBAL",id:$id,username:$user,password:$token,description:$description,"$class":"com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl"}}')
+
+  status=$(jenkins_status "$jenkins/credentials/store/system/domain/_/credential/${credential_id}/api/json") || true
+  if [ "$status" = 200 ]; then
+    jenkins_web -H "Jenkins-Crumb: $crumb" -X POST \
+      "$jenkins/credentials/store/system/domain/_/credential/${credential_id}/doDelete" >/dev/null
+  fi
+
+  jenkins_web -H "Jenkins-Crumb: $crumb" -X POST \
+    "$jenkins/credentials/store/system/domain/_/createCredentials" \
+    --data-urlencode "json=$payload" >/dev/null
+  echo "Credencial ${credential_id} registrada en Jenkins."
+}
+
+# HU-10: publicar y hacer login contra Nexus desde el pipeline.
+configure_nexus_credential() {
+  configure_user_password_credential \
+    nexus-registry "${CI_NEXUS_USER:-admin}" "$CI_NEXUS_PASSWORD" \
+    'Usuario de Nexus para publicar imagenes y desplegarlas'
+}
+
+# HU-10: cuenta de salud para la suite E2E de dev.
+configure_e2e_credential() {
+  [ -n "${CI_E2E_HEALTH_PASSWORD:-}" ] || return 0
+  configure_user_password_credential \
+    circleguard-e2e-health "${CI_E2E_HEALTH_USER:-health_user}" "$CI_E2E_HEALTH_PASSWORD" \
+    'Cuenta de salud para Playwright en dev'
+}
+
 wait_until Jenkins request "$jenkins/login"
 jenkins_api "$jenkins/api/json" >/dev/null
 configure_github_credential
+configure_nexus_credential
+configure_e2e_credential
 wait_until SonarQube sonar_ready
 wait_until Nexus request "$nexus/status"
 

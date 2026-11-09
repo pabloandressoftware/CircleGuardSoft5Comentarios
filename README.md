@@ -168,6 +168,69 @@ The [CI and image packaging runbook](docs/sprint-1-persona-b.md) covers the
 Jenkins, SonarQube and Nexus stack and the build and publication of the nine
 application images.
 
+### Deployment and promotion (HU-10)
+
+The official deployment runs only for tags `vX.Y.Z` created by Release Please
+when its release PR is merged into `main`. A normal merge to `main` does not
+publish or deploy. The tag pipeline reuses the same immutable image:
+
+```
+tag vX.Y.Z → quality → publish 9 images → dev + smoke → E2E → stage + smoke
+             → approver input → prod + smoke
+```
+
+Part 1 deploys auth, identity, promotion, form, gateway, the web client and the
+middleware. Notification, file and dashboard are compiled, tested and published
+but stay behind the `part2` Compose profile. See
+[docs/sprint-1-persona-c.md](docs/sprint-1-persona-c.md#hu-10--despliegue-y-promoción-entre-ambientes)
+for credentials, approval and local validation with `SKIP_DEPLOY=true`.
+
+### Pending for the next operator: VM keys and deploy credentials
+
+HU-10 is implemented and validated locally, but **no real deployment has been
+executed yet**. The next operator needs to provide the VM access and the
+environment secret files before running a release tag:
+
+1. **Get the current VM hostnames.** Read the `PublicDns` output of the
+   CloudFormation stacks `circleguard-dev`, `circleguard-stage` and
+   `circleguard-prod` in `us-east-2`. The hostnames in the table above belong to
+   an older run and must not be reused. This workstation has no AWS CLI, so a
+   session with AWS credentials (or the stack outputs) is required.
+2. **Confirm SSH.** The Jenkins host must reach TCP 22 on each VM; the security
+   groups only allow the `SSH_CIDR` configured at bootstrap.
+3. **Add the VM private key to Jenkins** as an *SSH Username with private key*
+   credential:
+   - ID: `circleguard-env-ssh`
+   - Username: `ubuntu`
+   - Private key: the `.pem` of the EC2 key pair (for example
+     `circleguard-sprint1.pem`). Never commit the key to Git.
+4. **Generate and upload the environment files.** Run these where `openssl` is
+   available (the Jenkins container works), then upload each file as a Jenkins
+   *Secret file*:
+   - `circleguard-env-dev` → `bash deploy/new-env.sh dev <PublicDns-dev> [IP]`
+   - `circleguard-env-stage` → `bash deploy/new-env.sh stage <PublicDns-stage> [IP]`
+   - `circleguard-env-prod` → `bash deploy/new-env.sh prod <PublicDns-prod> [IP]`
+   - Validate each one with `bash deploy/check-env.sh <file>`.
+5. **Set the approver.** Define `CI_APPROVER_USER` (default `aprobador`) and
+   `CI_APPROVER_PASSWORD` in the CI `ci.env`. The local
+   `C:\Users\Rodol\circleguard-ci.env` already has a generated password; set
+   your own on a new CI host.
+6. **Baseline Sonar (recommended).** Run one analysis from `main`/`dev` before
+   the first release tag so the 60 % new-coverage gate has a baseline.
+7. **Release.** Merge `hu-10-deploy` into `dev`, merge `dev` into `main`, merge
+   the Release Please PR to create the `vX.Y.Z` tag, and let the tag pipeline
+   deploy dev, run E2E, promote stage and wait for the approver for prod.
+
+Already created automatically: `nexus-registry` and `circleguard-e2e-health`
+(the CI initializer) and `sonar-token` (the Sonar–Jenkins script). Still
+missing by design: `circleguard-env-ssh` and `circleguard-env-dev/stage/prod`.
+Until those exist, use `SKIP_DEPLOY=true` to validate the pipeline without
+touching any VM.
+
+Expected evidence after a real run: `published-images.txt`, the image digests,
+`docker compose ps` per environment, smoke output, the Playwright report,
+`deploy-<env>.txt` and `approval-prod.txt`.
+
 ---
 
 ## Privacy & Compliance
