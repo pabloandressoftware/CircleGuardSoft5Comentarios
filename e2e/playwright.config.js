@@ -8,5 +8,6 @@ export default defineConfig({
   use: {
     browserName: 'chromium',
     baseURL: process.env.E2E_WEB_URL,
+    ignoreHTTPSErrors: process.env.E2E_IGNORE_HTTPS_ERRORS === '1',
   },
 });

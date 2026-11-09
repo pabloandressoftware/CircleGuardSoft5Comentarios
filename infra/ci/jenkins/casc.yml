@@ -8,6 +8,9 @@ jenkins:
       users:
         - id: "${CI_JENKINS_USER}"
           password: "${CI_JENKINS_PASSWORD}"
+        # HU-10: unico usuario autorizado a aprobar el despliegue a prod.
+        - id: "${CI_APPROVER_USER}"
+          password: "${CI_APPROVER_PASSWORD}"
   authorizationStrategy:
     loggedInUsersCanDoAnything:
       allowAnonymousRead: false
@@ -57,5 +60,12 @@ jobs:
           discardOldItems {
             numToKeep(20)
           }
+        }
+
+        // HU-10: ademas de ramas y PR, descubrir los tags de release (vX.Y.Z).
+        // El DSL de alto nivel no expone TagDiscoveryTrait; se inyecta en el XML.
+        configure { project ->
+          project / 'sources' / 'data' / 'jenkins.branch.BranchSource' / 'source' / 'traits' <<
+            'org.jenkinsci.plugins.github__branch__source.TagDiscoveryTrait' { }
         }
       }
