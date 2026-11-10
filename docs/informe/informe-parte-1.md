@@ -7,6 +7,8 @@ Tablero: Jira, proyecto KAN (`seraph.atlassian.net`)
 
 Equipo: Pablo Andrés Guzmán Alarcón (`pabloandressoftware`), Daniel Martínez Alvarado (`damaral2005`), Rodolfo Moreno Gutiérrez (`Matatrolls`), Nicolás Góngora Rincón (`itsnigori98`).
 
+Video de la demo (3 min): [`docs/video/video_arEawg9t.mp4`](../video/video_arEawg9t.mp4)
+
 > Este informe distingue entre lo **verificado con ejecución**, lo que tiene **código integrado sin evidencia de ejecución** y lo **no implementado**. El registro del uso de IA está en el anexo al final.
 
 ## 1. Resumen
