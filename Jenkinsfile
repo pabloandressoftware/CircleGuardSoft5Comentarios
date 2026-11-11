@@ -23,8 +23,10 @@ def e2e
 def smoke
 def changed = []
 
-// HU-11: aviso por correo. Un fallo al enviar nunca cambia el resultado del build.
+// HU-11: avisos por Discord (webhook en la credencial 'discord-webhook') y por correo.
+// Un fallo al avisar nunca cambia el resultado del build.
 def notifyByMail(String subject, String body) {
+    notifyDiscord(subject, body)
     String to = env.NOTIFY_EMAILS?.trim()
     if (!to) {
         echo 'NOTIFY_EMAILS vacio: no se envia correo (HU-11).'
@@ -35,6 +37,22 @@ def notifyByMail(String subject, String body) {
         echo "Notificacion enviada a ${to}"
     } catch (Exception e) {
         echo "No se pudo enviar el correo: ${e.message}"
+    }
+}
+
+def notifyDiscord(String subject, String body) {
+    try {
+        withCredentials([usernamePassword(credentialsId: 'discord-webhook',
+                usernameVariable: 'DISCORD_USER', passwordVariable: 'DISCORD_WEBHOOK')]) {
+            String content = ("**${subject}**\n${body}" as String)
+            writeFile file: 'discord-message.json',
+                text: groovy.json.JsonOutput.toJson([content: content.take(1900)])
+            // La URL llega por variable de entorno enmascarada: no aparece en la consola.
+            sh 'curl -fsS -X POST -H "Content-Type: application/json" --data @discord-message.json "$DISCORD_WEBHOOK" >/dev/null'
+            echo 'Notificacion enviada a Discord'
+        }
+    } catch (Exception e) {
+        echo "Discord no disponible (se omite): ${e.message}"
     }
 }
 

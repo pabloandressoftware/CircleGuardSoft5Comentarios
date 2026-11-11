@@ -88,6 +88,7 @@ services:
       CI_NEXUS_USER: ${CI_NEXUS_USER:-admin}
       CI_E2E_HEALTH_USER: ${CI_E2E_HEALTH_USER:-health_user}
       CI_E2E_HEALTH_PASSWORD: ${CI_E2E_HEALTH_PASSWORD:-password}
+      CI_DISCORD_WEBHOOK: ${CI_DISCORD_WEBHOOK:-}
     volumes:
       - nexus-data:/nexus-data:ro
 
