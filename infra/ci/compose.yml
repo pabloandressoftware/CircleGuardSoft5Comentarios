@@ -10,6 +10,12 @@ services:
       CI_GITHUB_CREDENTIALS_ID: ${CI_GITHUB_CREDENTIALS_ID:-}
       CI_APPROVER_USER: ${CI_APPROVER_USER:-aprobador}
       CI_APPROVER_PASSWORD: ${CI_APPROVER_PASSWORD:?Define CI_APPROVER_PASSWORD}
+      # HU-11: notificaciones por correo (opcionales; sin ellas el pipeline funciona igual).
+      CI_SMTP_HOST: ${CI_SMTP_HOST:-smtp.gmail.com}
+      CI_SMTP_PORT: ${CI_SMTP_PORT:-465}
+      CI_SMTP_USER: ${CI_SMTP_USER:-}
+      CI_SMTP_PASSWORD: ${CI_SMTP_PASSWORD:-}
+      CI_NOTIFY_EMAILS: ${CI_NOTIFY_EMAILS:-}
       # Testcontainers dentro del agente habla con el daemon del host.
       TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
       TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: /var/run/docker.sock

@@ -14,8 +14,25 @@ jenkins:
   authorizationStrategy:
     loggedInUsersCanDoAnything:
       allowAnonymousRead: false
+  # HU-11: destinatarios de las notificaciones de fallo (los define quien opera el CI, no el repo).
+  globalNodeProperties:
+    - envVars:
+        env:
+          - key: "NOTIFY_EMAILS"
+            value: "${CI_NOTIFY_EMAILS:-}"
+          - key: "NOTIFY_FROM"
+            value: "${CI_SMTP_USER:-}"
 
 unclassified:
+  # HU-11: correo saliente (Gmail con contrasena de aplicacion por defecto).
+  mailer:
+    smtpHost: "${CI_SMTP_HOST:-smtp.gmail.com}"
+    smtpPort: "${CI_SMTP_PORT:-465}"
+    useSsl: true
+    charset: "UTF-8"
+    authentication:
+      username: "${CI_SMTP_USER:-}"
+      password: "${CI_SMTP_PASSWORD:-}"
   gitHubConfiguration:
     apiRateLimitChecker: NoThrottle
   globalLibraries:

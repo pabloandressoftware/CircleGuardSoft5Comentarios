@@ -23,6 +23,21 @@ def e2e
 def smoke
 def changed = []
 
+// HU-11: aviso por correo. Un fallo al enviar nunca cambia el resultado del build.
+def notifyByMail(String subject, String body) {
+    String to = env.NOTIFY_EMAILS?.trim()
+    if (!to) {
+        echo 'NOTIFY_EMAILS vacio: no se envia correo (HU-11).'
+        return
+    }
+    try {
+        mail to: to, from: env.NOTIFY_FROM ?: 'jenkins@circleguard.local', subject: subject, body: body
+        echo "Notificacion enviada a ${to}"
+    } catch (Exception e) {
+        echo "No se pudo enviar el correo: ${e.message}"
+    }
+}
+
 pipeline {
     agent { label 'docker' }
 
@@ -38,6 +53,16 @@ pipeline {
             name: 'SKIP_DEPLOY',
             defaultValue: false,
             description: 'Validar el pipeline sin tocar ninguna VM (util en local).'
+        )
+        string(
+            name: 'ROLLBACK_TAG',
+            defaultValue: '',
+            description: 'HU-11: etiqueta vX.Y.Z anterior a redesplegar en ROLLBACK_ENV, sin reconstruir imagenes. Vacio = pipeline normal.'
+        )
+        choice(
+            name: 'ROLLBACK_ENV',
+            choices: ['dev', 'stage', 'prod'],
+            description: 'Ambiente donde se hace el rollback (solo si ROLLBACK_TAG tiene valor).'
         )
         booleanParam(
             name: 'RUN_E2E_DEV',
@@ -95,6 +120,7 @@ pipeline {
         }
 
         stage('Pruebas del cliente web') {
+            when { expression { !params.ROLLBACK_TAG } }
             steps {
                 dir('mobile') {
                     sh 'npm ci --no-audit --no-fund'
@@ -105,6 +131,39 @@ pipeline {
 
         // HU-09: la publicacion oficial solo ocurre en builds de un tag de release
         // (vX.Y.Z), que Release Please crea desde main. Ramas y PR nunca publican.
+        // HU-11: rollback basico. Redespliega una etiqueta ya publicada (inmutable en Nexus)
+        // con los mismos pasos y la misma prueba de humo del despliegue normal.
+        stage('Rollback') {
+            when {
+                expression { params.ROLLBACK_TAG?.trim() && !params.SKIP_DEPLOY }
+            }
+            steps {
+                script {
+                    String tag = params.ROLLBACK_TAG.trim()
+                    if (!(tag ==~ /^v\d+\.\d+\.\d+$/)) {
+                        error("ROLLBACK_TAG invalido: ${tag} (se espera vX.Y.Z)")
+                    }
+                    if (params.ROLLBACK_ENV == 'prod') {
+                        def approver = input(
+                            message: "¿Volver prod a ${tag}?",
+                            submitter: 'aprobador',
+                            submitterParameter: 'APPROVER',
+                            ok: 'Hacer rollback en prod'
+                        )
+                        echo "Rollback de prod aprobado por ${approver}"
+                    }
+                    String host = deploy.call(params.ROLLBACK_ENV, imageTag: tag)
+                    smoke.call(host)
+                    writeFile file: 'deploy-rollback.txt',
+                        text: "env=${params.ROLLBACK_ENV}\ntag=${tag}\nhost=${host}\nbuild=${env.BUILD_URL}\n"
+                    notifyByMail(
+                        "[CircleGuard] ROLLBACK ${params.ROLLBACK_ENV} a ${tag}",
+                        "Se redesplego ${tag} en ${params.ROLLBACK_ENV} (${host}) y paso la prueba de humo.\nBuild: ${env.BUILD_URL}"
+                    )
+                }
+            }
+        }
+
         stage('Publicar imagenes') {
             when {
                 allOf {
@@ -246,6 +305,14 @@ pipeline {
     }
 
     post {
+        failure {
+            script {
+                notifyByMail(
+                    "[CircleGuard] FALLO ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    "El pipeline fallo.\n\nRama/tag: ${env.BRANCH_NAME ?: env.TAG_NAME}\nEtiqueta: ${env.IMAGE_TAG ?: '-'}\nBuild: ${env.BUILD_URL}\nConsola: ${env.BUILD_URL}console\n\nPara volver a una version anterior, ejecuta el job con ROLLBACK_TAG=vX.Y.Z y ROLLBACK_ENV."
+                )
+            }
+        }
         always {
             archiveArtifacts artifacts: 'services/*/build/reports/tests/test/**', allowEmptyArchive: true
             archiveArtifacts artifacts: 'deploy-*.txt', allowEmptyArchive: true
