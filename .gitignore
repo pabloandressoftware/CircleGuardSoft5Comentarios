@@ -17,6 +17,9 @@ build/
 target/
 **/target/
 
+# Salida de compilacion de IDEs (bin/)
+**/bin/
+
 # IDEs
 .idea/
 *.iml

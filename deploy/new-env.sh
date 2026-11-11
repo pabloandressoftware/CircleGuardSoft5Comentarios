@@ -49,7 +49,8 @@ CORS_ALLOWED_ORIGINS=https://${host}
 # --- PostgreSQL (una instancia, una base por servicio) ---------------------
 DB_USERNAME=circleguard
 DB_PASSWORD=$(rand 32)
-JPA_DDL_AUTO=update
+# Solo dev crea tablas solo; stage y prod validan contra las migraciones de Flyway.
+if [[ $environment == dev ]]; then JPA_DDL_AUTO=update; else JPA_DDL_AUTO=validate; fi
 
 # --- Tokens (auth, gateway, identity, promotion, notification) -------------
 # JWT_SECRET y QR_SECRET: minimo 32 caracteres (HMAC-SHA256)

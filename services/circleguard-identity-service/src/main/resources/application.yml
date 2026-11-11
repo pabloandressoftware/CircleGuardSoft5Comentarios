@@ -8,23 +8,23 @@ spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/circleguard_identity
     username: ${DB_USERNAME:admin}
-    password: ${DB_PASSWORD:password}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:update}
+      ddl-auto: ${JPA_DDL_AUTO:validate}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
 # Llaves de la boveda de identidad (cifrado y hash ciego). Hex.
 vault:
-  secret: ${VAULT_SECRET:746573742d7365637265742d33322d63686172732d6c6f6e672d313233343536}
-  salt: ${VAULT_SALT:deadbeef}
-  hash-salt: ${VAULT_HASH_SALT:12345678}
+  secret: ${VAULT_SECRET}
+  salt: ${VAULT_SALT}
+  hash-salt: ${VAULT_HASH_SALT}
 
 jwt:
-  secret: ${JWT_SECRET:my-super-secret-dev-key-32-chars-long-12345678}
+  secret: ${JWT_SECRET}
 
 circleguard:
   cors:

@@ -6,11 +6,11 @@ spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/circleguard_auth
     username: ${DB_USERNAME:admin}
-    password: ${DB_PASSWORD:password}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:update}
+      ddl-auto: ${JPA_DDL_AUTO:validate}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -18,14 +18,14 @@ spring:
     urls: ${LDAP_URL:ldap://localhost:389}
     base: ${LDAP_BASE:dc=circleguard,dc=edu}
     username: ${LDAP_USERNAME:cn=admin,dc=circleguard,dc=edu}
-    password: ${LDAP_PASSWORD:admin}
+    password: ${LDAP_PASSWORD}
 
 jwt:
-  secret: ${JWT_SECRET:my-super-secret-dev-key-32-chars-long-12345678}
+  secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:3600000}
 
 qr:
-  secret: ${QR_SECRET:my-qr-secret-key-for-dev-1234567890}
+  secret: ${QR_SECRET}
   # Milisegundos. 60000 = 60 s (antes 300 = 0,3 s por error de unidades)
   expiration: ${QR_EXPIRATION:60000}
 

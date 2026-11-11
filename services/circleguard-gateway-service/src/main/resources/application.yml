@@ -9,12 +9,12 @@ spring:
       password: ${REDIS_PASSWORD:}
 
 jwt:
-  secret: ${JWT_SECRET:my-super-secret-dev-key-32-chars-long-12345678}
+  secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:3600000}
 
 qr:
   # Debe ser el MISMO valor que en auth-service: gateway verifica la firma del QR
-  secret: ${QR_SECRET:my-qr-secret-key-for-dev-1234567890}
+  secret: ${QR_SECRET}
   expiration: ${QR_EXPIRATION:60000}
 
 server:
