@@ -21,6 +21,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@org.junit.jupiter.api.Tag("integration")
 @Disabled("Pausada: el contenedor de Neo4j no arranca a tiempo en el entorno de prueba lento. Se rehabilita al corregir HU-14.")
 @SpringBootTest
 @Testcontainers
