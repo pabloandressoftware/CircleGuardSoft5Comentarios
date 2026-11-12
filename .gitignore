@@ -17,6 +17,9 @@ build/
 target/
 **/target/
 
+# Salida de compilacion de IDEs (bin/)
+**/bin/
+
 # IDEs
 .idea/
 *.iml
@@ -41,6 +44,10 @@ node_modules/
 .expo/
 dist/
 web-build/
+playwright-report/
+test-results/
+.env
+ci.env
 
 # Docker Local Data
 *_data/

@@ -1,0 +1,9 @@
+**
+!build.gradle.kts
+!settings.gradle.kts
+!services/
+!services/*/
+!services/*/build.gradle.kts
+!services/*/src/
+!services/*/src/main/
+!services/*/src/main/**

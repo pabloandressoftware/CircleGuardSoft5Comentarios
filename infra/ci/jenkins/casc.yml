@@ -1,0 +1,112 @@
+jenkins:
+  numExecutors: 1
+  labelString: "docker"
+  quietPeriod: 0
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "${CI_JENKINS_USER}"
+          password: "${CI_JENKINS_PASSWORD}"
+        # HU-10: unico usuario autorizado a aprobar el despliegue a prod.
+        - id: "${CI_APPROVER_USER}"
+          password: "${CI_APPROVER_PASSWORD}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+  # HU-11: destinatarios de las notificaciones de fallo (los define quien opera el CI, no el repo).
+  globalNodeProperties:
+    - envVars:
+        env:
+          - key: "NOTIFY_EMAILS"
+            value: "${CI_NOTIFY_EMAILS:-}"
+          - key: "NOTIFY_FROM"
+            value: "${CI_SMTP_USER:-}"
+
+unclassified:
+  # Sin esta URL, BUILD_URL llega vacia y los avisos de fallo salen con 'null'.
+  location:
+    url: "${CI_JENKINS_URL:-http://127.0.0.1:8181/}"
+  # HU-11: correo saliente (Gmail con contrasena de aplicacion por defecto).
+  mailer:
+    smtpHost: "${CI_SMTP_HOST:-smtp.gmail.com}"
+    smtpPort: "${CI_SMTP_PORT:-465}"
+    useSsl: true
+    charset: "UTF-8"
+    authentication:
+      username: "${CI_SMTP_USER:-}"
+      password: "${CI_SMTP_PASSWORD:-}"
+  gitHubConfiguration:
+    apiRateLimitChecker: NoThrottle
+  globalLibraries:
+    libraries:
+      - name: "circleguard"
+        defaultVersion: "dev"
+        implicit: false
+        allowVersionOverride: true
+        includeInChangesets: false
+        retriever:
+          modernSCM:
+            libraryPath: "jenkins"
+            scm:
+              git:
+                id: "circleguard-shared-library"
+                remote: "https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios.git"
+                credentialsId: "${CI_GITHUB_CREDENTIALS_ID}"
+
+jobs:
+  - script: |
+      multibranchPipelineJob('circleguard') {
+        displayName('CircleGuard Multibranch')
+        description('Descubre las ramas del monorepo y construye solo los servicios modificados.')
+
+        branchSources {
+          github {
+            id('circleguard-github')
+            repoOwner('pabloandressoftware')
+            repository('CircleGuardSoft5Comentarios')
+            scanCredentialsId('${CI_GITHUB_CREDENTIALS_ID}')
+            checkoutCredentialsId('${CI_GITHUB_CREDENTIALS_ID}')
+          }
+        }
+
+        factory {
+          workflowBranchProjectFactory {
+            scriptPath('Jenkinsfile')
+          }
+        }
+
+        orphanedItemStrategy {
+          discardOldItems {
+            numToKeep(20)
+          }
+        }
+
+        // Descubrir tags y programar sus builds. Con una estrategia explicita,
+        // tambien hay que conservar el disparo automatico de ramas y PR.
+        configure { project ->
+          def branchSource = project / 'sources' / 'data' / 'jenkins.branch.BranchSource'
+          // Al declarar traits aqui se pierden los de por defecto: hay que pedir
+          // ramas y PR de forma explicita o Jenkins solo vera tags.
+          branchSource / 'source' / 'traits' << {
+            'org.jenkinsci.plugins.github__branch__source.BranchDiscoveryTrait' {
+              strategyId(1) // ramas que no tienen PR abierto
+            }
+            'org.jenkinsci.plugins.github__branch__source.OriginPullRequestDiscoveryTrait' {
+              strategyId(1) // PR del mismo repositorio, probados fusionados con su destino
+            }
+            'org.jenkinsci.plugins.github__branch__source.TagDiscoveryTrait' { }
+          }
+          // Solo se construyen dev, main, los PR (PR-*) y los tags de release (v*).
+          // Las ramas viejas siguen en GitHub pero Jenkins las ignora.
+          (branchSource / 'source' / 'includes').value = 'dev main PR-* v*'
+          branchSource / 'buildStrategies' << {
+            'jenkins.branch.buildstrategies.basic.BranchBuildStrategyImpl' { }
+            'jenkins.branch.buildstrategies.basic.ChangeRequestBuildStrategyImpl' { }
+            'jenkins.branch.buildstrategies.basic.TagBuildStrategyImpl' {
+              atLeastMillis(-1L)
+              atMostMillis(604800000L) // Solo tags creados en los ultimos 7 dias.
+            }
+          }
+        }
+      }

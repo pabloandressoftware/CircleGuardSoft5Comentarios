@@ -13,7 +13,7 @@ import { AUTH_BASE_URL } from '@/constants/Config';
  */
 export default function LoginScreen() {
   const router = useRouter();
-  const { enroll } = useAuth();
+  const { enroll, isLoading } = useAuth();
   
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -84,6 +84,7 @@ export default function LoginScreen() {
                 placeholder="Username"
                 placeholderTextColor="#3f3f46"
                 value={username}
+                editable={!isLoading && !loading}
                 onChangeText={setUsername}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -97,6 +98,7 @@ export default function LoginScreen() {
                 placeholder="Password"
                 placeholderTextColor="#3f3f46"
                 value={password}
+                editable={!isLoading && !loading}
                 onChangeText={setPassword}
                 secureTextEntry
               />
@@ -105,7 +107,7 @@ export default function LoginScreen() {
             <TouchableOpacity 
               style={[styles.loginButton, loading && styles.buttonDisabled]}
               onPress={handleLogin}
-              disabled={loading}
+              disabled={isLoading || loading}
             >
               {loading ? (
                 <ActivityIndicator color="#ffffff" />

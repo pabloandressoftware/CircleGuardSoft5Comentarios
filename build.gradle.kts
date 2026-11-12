@@ -4,6 +4,23 @@ plugins {
     kotlin("jvm") version "1.9.24" apply false
     kotlin("plugin.spring") version "1.9.24" apply false
     kotlin("plugin.jpa") version "1.9.24" apply false
+    // HU-09: analisis de calidad. La tarea "sonar" se ejecuta desde Jenkins (jenkins/vars/circleGuardQuality.groovy)
+    id("org.sonarqube") version "5.1.0.4882"
+}
+
+// La version del analisis sigue a version.txt (Release Please). SonarQube compara el
+// "codigo nuevo" contra el analisis de la version anterior.
+val circleGuardVersion: String = rootProject.file("version.txt").takeIf { it.exists() }?.readText()?.trim() ?: "0.0.0"
+
+sonar {
+    properties {
+        property("sonar.projectKey", "circleguard")
+        property("sonar.projectName", "CircleGuard")
+        property("sonar.projectVersion", circleGuardVersion)
+        property("sonar.sourceEncoding", "UTF-8")
+        // Jenkins espera el resultado con waitForQualityGate (webhook); el escaner no espera
+        property("sonar.qualitygate.wait", "false")
+    }
 }
 
 allprojects {
@@ -18,6 +35,8 @@ allprojects {
 subprojects {
     apply(plugin = "java")
     apply(plugin = "org.jetbrains.kotlin.jvm")
+    // HU-09: cobertura por servicio para el pipeline y para SonarQube
+    apply(plugin = "jacoco")
     extensions.configure<JavaPluginExtension> {
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(21))
@@ -43,7 +62,83 @@ subprojects {
         }
     }
 
+    // HU-07: la configuracion de main ya no trae secretos por defecto; las pruebas usan
+    // valores falsos que solo existen aqui.
+    tasks.withType<Test>().configureEach {
+        environment("JWT_SECRET", "test-jwt-secret-solo-para-pruebas-0123456789")
+        environment("QR_SECRET", "test-qr-secret-solo-para-pruebas-0123456789")
+        environment("DB_PASSWORD", "test-password")
+        environment("LDAP_PASSWORD", "test-password")
+        environment("VAULT_SECRET", "746573742d7365637265742d33322d63686172732d6c6f6e672d313233343536")
+        environment("VAULT_SALT", "deadbeef")
+        environment("VAULT_HASH_SALT", "12345678")
+    }
+
     tasks.withType<Test> {
         useJUnitPlatform()
+        // Testcontainers 1.19 usa docker-java con API 1.32 por defecto; Docker
+        // 24+ exige 1.40 o superior y devuelve 400 al negociar.
+        systemProperty("api.version", "1.43")
+    }
+
+    // HU-13/HU-14: `test` corre solo pruebas unitarias (rapidas); las que levantan
+    // contenedores llevan @Tag("integration") y corren en `integrationTest`.
+    tasks.named<Test>("test") {
+        useJUnitPlatform { excludeTags("integration") }
+        // El reporte de cobertura se genera siempre, tambien si una prueba falla
+        finalizedBy("jacocoTestReport")
+    }
+
+    tasks.register<Test>("integrationTest") {
+        group = "verification"
+        description = "Pruebas de integracion con Testcontainers (@Tag(\"integration\"))."
+        val testSet = project.the<SourceSetContainer>()["test"]
+        testClassesDirs = testSet.output.classesDirs
+        classpath = testSet.runtimeClasspath
+        useJUnitPlatform { includeTags("integration") }
+        shouldRunAfter("test")
+    }
+
+    extensions.configure<JacocoPluginExtension> {
+        toolVersion = "0.8.12" // soporta clases de Java 21
+    }
+
+    tasks.named<JacocoReport>("jacocoTestReport") {
+        dependsOn("test")
+        reports {
+            xml.required.set(true)  // lo lee SonarQube
+            html.required.set(true) // lo publica Jenkins
+            csv.required.set(false)
+        }
+    }
+
+    // HU-13: la cobertura de lineas de los cinco servicios del enunciado debe ser >= 60 %.
+    if (name in setOf(
+            "circleguard-auth-service", "circleguard-identity-service", "circleguard-promotion-service",
+            "circleguard-form-service", "circleguard-gateway-service",
+        )
+    ) {
+        tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
+            dependsOn("test")
+            violationRules {
+                rule {
+                    limit {
+                        counter = "LINE"
+                        value = "COVEREDRATIO"
+                        minimum = "0.60".toBigDecimal()
+                    }
+                }
+            }
+        }
+        tasks.named("check") { dependsOn("jacocoTestCoverageVerification") }
+    }
+
+    extensions.configure<org.sonarqube.gradle.SonarExtension> {
+        properties {
+            property(
+                "sonar.coverage.jacoco.xmlReportPaths",
+                layout.buildDirectory.file("reports/jacoco/test/jacocoTestReport.xml").get().asFile.path,
+            )
+        }
     }
 }

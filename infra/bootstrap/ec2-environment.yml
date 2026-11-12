@@ -1,0 +1,113 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Isolated CircleGuard environment with Docker on EC2
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [dev, stage, prod, ci]
+  NetworkNumber:
+    Type: Number
+    AllowedValues: [10, 20, 30, 40]
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+  SshCidr:
+    Type: String
+  WebCidr:
+    Type: String
+  JenkinsCidr:
+    Type: String
+    Default: ''
+  InstanceType:
+    Type: String
+  DiskSize:
+    Type: Number
+    MinValue: 20
+  UbuntuAmi:
+    Type: AWS::EC2::Image::Id
+  DockerBootstrap:
+    Type: String
+Conditions:
+  AddJenkinsSsh: !And
+    - !Not [!Equals [!Ref JenkinsCidr, '']]
+    - !Not [!Equals [!Ref JenkinsCidr, !Ref SshCidr]]
+  AddJenkinsHttps: !And
+    - !Not [!Equals [!Ref JenkinsCidr, '']]
+    - !Not [!Equals [!Ref JenkinsCidr, !Ref WebCidr]]
+Resources:
+  Network:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Sub '10.${NetworkNumber}.0.0/16'
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - {Key: Name, Value: !Sub 'circleguard-${Environment}'}
+  Internet:
+    Type: AWS::EC2::InternetGateway
+  InternetAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Network
+      InternetGatewayId: !Ref Internet
+  Subnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Network
+      CidrBlock: !Sub '10.${NetworkNumber}.1.0/24'
+      MapPublicIpOnLaunch: true
+  Routes:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Network
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetAttachment
+    Properties:
+      RouteTableId: !Ref Routes
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref Internet
+  SubnetRoutes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref Routes
+      SubnetId: !Ref Subnet
+  HostFirewall:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SSH from operators and HTTPS from approved clients
+      VpcId: !Ref Network
+      SecurityGroupIngress:
+        - {IpProtocol: tcp, FromPort: 22, ToPort: 22, CidrIp: !Ref SshCidr}
+        - {IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: !Ref WebCidr}
+        - !If [AddJenkinsSsh, {IpProtocol: tcp, FromPort: 22, ToPort: 22, CidrIp: !Ref JenkinsCidr}, !Ref 'AWS::NoValue']
+        - !If [AddJenkinsHttps, {IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: !Ref JenkinsCidr}, !Ref 'AWS::NoValue']
+  Host:
+    Type: AWS::EC2::Instance
+    DependsOn: [PublicRoute, SubnetRoutes]
+    Properties:
+      ImageId: !Ref UbuntuAmi
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId: !Ref Subnet
+      SecurityGroupIds: [!Ref HostFirewall]
+      MetadataOptions:
+        HttpTokens: required
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeType: gp3
+            VolumeSize: !Ref DiskSize
+            Encrypted: true
+            DeleteOnTermination: true
+      UserData:
+        Fn::Base64: !Ref DockerBootstrap
+      Tags:
+        - {Key: Name, Value: !Sub 'circleguard-${Environment}'}
+Outputs:
+  InstanceId:
+    Value: !Ref Host
+  PublicDns:
+    Value: !GetAtt Host.PublicDnsName
+  PrivateIp:
+    Value: !GetAtt Host.PrivateIp
+  VpcId:
+    Value: !Ref Network

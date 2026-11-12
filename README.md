@@ -149,6 +149,115 @@ We maintain high system integrity via multi-level testing:
 
 **Note**: Integration tests use **Testcontainers** to spawn ephemeral Neo4j and PostgreSQL instances for zero-side-effect validation.
 
+## Sprint 1
+
+The [Sprint 1 runbook](docs/sprint-1-persona-a.md) covers versioned releases, AWS
+EC2 bootstrap for dev/stage/prod, and the Playwright gate in Jenkins.
+
+| Environment | EC2 hostname in Ohio (`us-east-2`) |
+| --- | --- |
+| Dev | `ec2-18-188-13-235.us-east-2.compute.amazonaws.com` |
+| Stage | `ec2-13-59-101-106.us-east-2.compute.amazonaws.com` |
+| Prod | `ec2-18-189-44-203.us-east-2.compute.amazonaws.com` |
+
+These hostnames are for SSH. The application HTTPS URLs will be available
+after the environment Compose and deployment are integrated. If an instance
+is stopped and started again, check the stack's current `PublicDns` output.
+
+The [CI and image packaging runbook](docs/sprint-1-persona-b.md) covers the
+Jenkins, SonarQube and Nexus stack and the build and publication of the nine
+application images.
+
+### Deployment and promotion (HU-10)
+
+The official deployment runs only for tags `vX.Y.Z` created by Release Please
+when its release PR is merged into `main`. A normal merge to `main` does not
+publish or deploy. The tag pipeline reuses the same immutable image:
+
+```
+tag vX.Y.Z → quality → publish 9 images → dev + smoke → E2E → stage + smoke
+             → approver input → prod + smoke
+```
+
+Part 1 deploys auth, identity, promotion, form, gateway, the web client and the
+middleware. Notification, file and dashboard are compiled, tested and published
+but stay behind the `part2` Compose profile. See
+[docs/sprint-1-persona-c.md](docs/sprint-1-persona-c.md#hu-10--despliegue-y-promoción-entre-ambientes)
+for credentials, approval and local validation with `SKIP_DEPLOY=true`.
+
+### Pending for the next operator: VM keys and deploy credentials
+
+HU-10 is implemented and validated locally, but **no real deployment has been
+executed yet**. The next operator needs to provide the VM access and the
+environment secret files before running a release tag:
+
+1. **Get the current VM hostnames.** Read the `PublicDns` output of the
+   CloudFormation stacks `circleguard-dev`, `circleguard-stage` and
+   `circleguard-prod` in `us-east-2`. The hostnames in the table above belong to
+   an older run and must not be reused. This workstation has no AWS CLI, so a
+   session with AWS credentials (or the stack outputs) is required.
+2. **Confirm SSH.** The Jenkins host must reach TCP 22 on each VM; the security
+   groups only allow the `SSH_CIDR` configured at bootstrap.
+3. **Add the VM private key to Jenkins** as an *SSH Username with private key*
+   credential:
+   - ID: `circleguard-env-ssh`
+   - Username: `ubuntu`
+   - Private key: the `.pem` of the EC2 key pair (for example
+     `circleguard-sprint1.pem`). Never commit the key to Git.
+4. **Generate and upload the environment files.** Run these where `openssl` is
+   available (the Jenkins container works), then upload each file as a Jenkins
+   *Secret file*:
+   - `circleguard-env-dev` → `bash deploy/new-env.sh dev <PublicDns-dev> [IP]`
+   - `circleguard-env-stage` → `bash deploy/new-env.sh stage <PublicDns-stage> [IP]`
+   - `circleguard-env-prod` → `bash deploy/new-env.sh prod <PublicDns-prod> [IP]`
+   - Validate each one with `bash deploy/check-env.sh <file>`.
+5. **Set the approver.** Define `CI_APPROVER_USER` (default `aprobador`) and
+   `CI_APPROVER_PASSWORD` in the CI `ci.env`. The local
+   `C:\Users\Rodol\circleguard-ci.env` already has a generated password; set
+   your own on a new CI host.
+6. **Baseline Sonar (recommended).** Run one analysis from `main`/`dev` before
+   the first release tag so the 60 % new-coverage gate has a baseline.
+7. **Release.** Merge `hu-10-deploy` into `dev`, merge `dev` into `main`, merge
+   the Release Please PR to create the `vX.Y.Z` tag, and let the tag pipeline
+   deploy dev, run E2E, promote stage and wait for the approver for prod.
+
+Already created automatically: `nexus-registry` and `circleguard-e2e-health`
+(the CI initializer) and `sonar-token` (the Sonar–Jenkins script). Still
+missing by design: `circleguard-env-ssh` and `circleguard-env-dev/stage/prod`.
+Until those exist, use `SKIP_DEPLOY=true` to validate the pipeline without
+touching any VM.
+
+Expected evidence after a real run: `published-images.txt`, the image digests,
+`docker compose ps` per environment, smoke output, the Playwright report,
+`deploy-<env>.txt` and `approval-prod.txt`.
+
+---
+
+## Parte 1 · Operación del pipeline y evidencias
+
+Documentos: [arquitectura y pipeline (diagramas)](docs/arquitectura.md) ·
+[informe de la Parte 1](docs/informe/informe-parte-1.md) ·
+[registro de uso de IA](IAG_REGISTRO.md) · [gobierno de cambios](docs/gobernanza/cambios.md).
+
+**Cómo se opera**
+
+| Tarea | Cómo |
+| --- | --- |
+| Levantar el CI local (Jenkins, SonarQube, Nexus) | `bash infra/bootstrap/bootstrap-ci.sh --local <ci.env>`; usa `infra/ci/ci.env.example` como plantilla y guarda el archivo fuera del repositorio. |
+| Pruebas unitarias y cobertura (≥ 60 % de líneas en auth, identity, promotion, form y gateway) | `gradle test jacocoTestReport jacocoTestCoverageVerification` |
+| Pruebas de integración con Testcontainers (PostgreSQL y Kafka reales, requiere Docker) | `gradle :services:circleguard-identity-service:integrationTest :services:circleguard-form-service:integrationTest` |
+| Probar el pipeline sin tocar ninguna VM | Ejecutar el job con `SKIP_DEPLOY=true` |
+| Publicar y desplegar | Un tag `vX.Y.Z` (lo crea Release Please al unir su PR en `main`) recorre dev, E2E, stage, aprobación y prod. |
+| **Rollback** | Ejecutar el job con `ROLLBACK_TAG=vX.Y.Z` y `ROLLBACK_ENV=dev|stage|prod`. Redespliega esa etiqueta ya publicada y corre la prueba de humo; prod pide la aprobación del usuario `aprobador`. |
+| **Notificaciones de fallo** | El pipeline avisa por Discord (credencial `discord-webhook`) y por correo (`CI_SMTP_*` y `CI_NOTIFY_EMAILS` del `ci.env`). |
+
+**Secretos.** Ningún servicio trae contraseñas ni claves por defecto: se inyectan por variables de entorno
+(`deploy/new-env.sh` genera las de cada ambiente). Para correr un servicio en local hay que exportar
+`DB_PASSWORD`, `JWT_SECRET`, `QR_SECRET` y, en identity, `VAULT_SECRET`, `VAULT_SALT` y `VAULT_HASH_SALT`.
+
+**URLs de los ambientes.** Los nombres EC2 de la tabla anterior son solo para SSH y pertenecen a una ejecución
+anterior; las URL HTTPS de la aplicación estarán disponibles cuando se complete un despliegue real.
+
 ---
 
 ## Privacy & Compliance
