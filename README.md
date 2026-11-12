@@ -233,6 +233,33 @@ Expected evidence after a real run: `published-images.txt`, the image digests,
 
 ---
 
+## Parte 1 · Operación del pipeline y evidencias
+
+Documentos: [arquitectura y pipeline (diagramas)](docs/arquitectura.md) ·
+[informe de la Parte 1](docs/informe/informe-parte-1.md) ·
+[registro de uso de IA](IAG_REGISTRO.md) · [gobierno de cambios](docs/gobernanza/cambios.md).
+
+**Cómo se opera**
+
+| Tarea | Cómo |
+| --- | --- |
+| Levantar el CI local (Jenkins, SonarQube, Nexus) | `bash infra/bootstrap/bootstrap-ci.sh --local <ci.env>`; usa `infra/ci/ci.env.example` como plantilla y guarda el archivo fuera del repositorio. |
+| Pruebas unitarias y cobertura (≥ 60 % de líneas en auth, identity, promotion, form y gateway) | `gradle test jacocoTestReport jacocoTestCoverageVerification` |
+| Pruebas de integración con Testcontainers (PostgreSQL y Kafka reales, requiere Docker) | `gradle :services:circleguard-identity-service:integrationTest :services:circleguard-form-service:integrationTest` |
+| Probar el pipeline sin tocar ninguna VM | Ejecutar el job con `SKIP_DEPLOY=true` |
+| Publicar y desplegar | Un tag `vX.Y.Z` (lo crea Release Please al unir su PR en `main`) recorre dev, E2E, stage, aprobación y prod. |
+| **Rollback** | Ejecutar el job con `ROLLBACK_TAG=vX.Y.Z` y `ROLLBACK_ENV=dev|stage|prod`. Redespliega esa etiqueta ya publicada y corre la prueba de humo; prod pide la aprobación del usuario `aprobador`. |
+| **Notificaciones de fallo** | El pipeline avisa por Discord (credencial `discord-webhook`) y por correo (`CI_SMTP_*` y `CI_NOTIFY_EMAILS` del `ci.env`). |
+
+**Secretos.** Ningún servicio trae contraseñas ni claves por defecto: se inyectan por variables de entorno
+(`deploy/new-env.sh` genera las de cada ambiente). Para correr un servicio en local hay que exportar
+`DB_PASSWORD`, `JWT_SECRET`, `QR_SECRET` y, en identity, `VAULT_SECRET`, `VAULT_SALT` y `VAULT_HASH_SALT`.
+
+**URLs de los ambientes.** Los nombres EC2 de la tabla anterior son solo para SSH y pertenecen a una ejecución
+anterior; las URL HTTPS de la aplicación estarán disponibles cuando se complete un despliegue real.
+
+---
+
 ## Privacy & Compliance
 
 - **FERPA Compliance**: Student identities are never stored in the contact graph.
