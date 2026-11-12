@@ -94,6 +94,9 @@ jobs:
             }
             'org.jenkinsci.plugins.github__branch__source.TagDiscoveryTrait' { }
           }
+          // Solo se construyen dev, main, los PR (PR-*) y los tags de release (v*).
+          // Las ramas viejas siguen en GitHub pero Jenkins las ignora.
+          (branchSource / 'source' / 'includes').value = 'dev main PR-* v*'
           branchSource / 'buildStrategies' << {
             'jenkins.branch.buildstrategies.basic.BranchBuildStrategyImpl' { }
             'jenkins.branch.buildstrategies.basic.ChangeRequestBuildStrategyImpl' { }
