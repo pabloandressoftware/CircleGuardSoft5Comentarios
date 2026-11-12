@@ -24,6 +24,9 @@ jenkins:
             value: "${CI_SMTP_USER:-}"
 
 unclassified:
+  # Sin esta URL, BUILD_URL llega vacia y los avisos de fallo salen con 'null'.
+  location:
+    url: "${CI_JENKINS_URL:-http://127.0.0.1:8181/}"
   # HU-11: correo saliente (Gmail con contrasena de aplicacion por defecto).
   mailer:
     smtpHost: "${CI_SMTP_HOST:-smtp.gmail.com}"
