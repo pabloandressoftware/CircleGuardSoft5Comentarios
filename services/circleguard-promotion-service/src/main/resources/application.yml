@@ -5,11 +5,11 @@ spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/circleguard_promotion
     username: ${DB_USERNAME:admin}
-    password: ${DB_PASSWORD:password}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:update}
+      ddl-auto: ${JPA_DDL_AUTO:validate}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -42,5 +42,5 @@ server:
   forward-headers-strategy: native
 
 jwt:
-  secret: ${JWT_SECRET:my-super-secret-dev-key-32-chars-long-12345678}
+  secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:3600000}

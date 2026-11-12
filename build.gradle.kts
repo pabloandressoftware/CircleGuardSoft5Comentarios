@@ -62,6 +62,18 @@ subprojects {
         }
     }
 
+    // HU-07: la configuracion de main ya no trae secretos por defecto; las pruebas usan
+    // valores falsos que solo existen aqui.
+    tasks.withType<Test>().configureEach {
+        environment("JWT_SECRET", "test-jwt-secret-solo-para-pruebas-0123456789")
+        environment("QR_SECRET", "test-qr-secret-solo-para-pruebas-0123456789")
+        environment("DB_PASSWORD", "test-password")
+        environment("LDAP_PASSWORD", "test-password")
+        environment("VAULT_SECRET", "746573742d7365637265742d33322d63686172732d6c6f6e672d313233343536")
+        environment("VAULT_SALT", "deadbeef")
+        environment("VAULT_HASH_SALT", "12345678")
+    }
+
     tasks.withType<Test> {
         useJUnitPlatform()
         // Testcontainers 1.19 usa docker-java con API 1.32 por defecto; Docker

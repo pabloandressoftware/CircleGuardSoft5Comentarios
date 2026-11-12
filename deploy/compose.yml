@@ -36,7 +36,7 @@ x-db-env: &db-env
   DB_PORT: "5432"
   DB_USERNAME: ${DB_USERNAME:?Define DB_USERNAME}
   DB_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD}
-  JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+  JPA_DDL_AUTO: ${JPA_DDL_AUTO:-validate}
 
 x-restart: &restart
   restart: unless-stopped
