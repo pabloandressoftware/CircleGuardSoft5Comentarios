@@ -21,7 +21,7 @@ La Parte 1 lleva el proyecto desde el commit hasta el despliegue: gobierno del r
 
 - **Marco:** Scrum (sprints 0, 1 y 2) con un tablero Kanban en Jira. La justificación completa está en `docs/agil/marco.md`.
 - **Backlog:** 12 épicas, 29 historias de usuario y 144 puntos. Cada HU tiene criterios de aceptación, puntos, responsable e iteración en su descripción, y las HU grandes tienen subtareas.
-- **Alcance acordado del Sprint 1 (esta entrega):** 10 historias y 49 puntos: HU-03, 04, 05, 06, 07, 08, 09, 10, 12 y 15. HU-01 y HU-02 pertenecen al Sprint 0. HU-11, 13, 14 y 16 quedaron **fuera del alcance acordado de esta entrega** y pasan al siguiente sprint. La Parte 2 (Sprint 2) cubre HU-17 a HU-29.
+- **Alcance acordado del Sprint 1 (esta entrega):** 10 historias y 49 puntos: HU-03, 04, 05, 06, 07, 08, 09, 10, 12 y 15. HU-01 y HU-02 pertenecen al Sprint 0. HU-11, 13, 14 y 16 quedaron fuera del alcance acordado inicialmente, pero el enunciado oficial del curso las incluye en la Parte 1 (entregables E1.5, E1.6 y E1.8), así que se cerraron después del 8 de noviembre con un enfoque de producto mínimo viable (sección 5, «Avance posterior al 8 de noviembre»). La Parte 2 (Sprint 2) cubre HU-17 a HU-29.
 - **Fuentes del estado:** Jira (corte de hoy), el repositorio y el documento del equipo «Sprint 1 · Pendientes por persona» (corte del 6 de noviembre). Lo que proviene de ese documento se cita como «según los registros del equipo (corte 6-nov)» y no se presenta como verificado para este informe.
 - **Documentación de sprints:** `docs/agil/sprint-0.md` y `docs/agil/sprint-1.md` (planeación, review y retrospectiva). Sprint 0: 28 de octubre al 1 de noviembre de 2026; Sprint 1: 2 al 8 de noviembre de 2026. Las retrospectivas son un borrador con hechos del repositorio que el equipo confirma; queda pendiente solo la demo del Sprint 1.
 
@@ -115,9 +115,17 @@ Criterios: **verificado** = se ejecutó y se observó el resultado al preparar e
 | HU-01 | Tablero ágil y sprints documentados | 3 | Rodolfo Moreno Gutiérrez | Finalizada | Documentos en `docs/agil/` integrados. Fechas y retrospectivas integradas (#19). Pendientes: la demo del Sprint 1 y confirmar el acceso del docente al tablero. |
 | HU-02 | Proteger `main` y formalizar PR | 3 | Pablo Andrés Guzmán Alarcón | Finalizada | **Verificado:** protección activa en `main` y `dev`, commitlint pasando en GitHub Actions, plantillas y tabla de aprobadores. **Parcial:** el check de Jenkins no se publica aún. |
 
-### Fuera del alcance acordado de esta entrega (pasan al siguiente sprint)
+### Avance posterior al 8 de noviembre (HU-07, 11, 13, 14 y 16)
 
-HU-11 (notificar fallos y rollback), HU-13 (60 % de cobertura en cinco servicios), HU-14 (tres integraciones con Testcontainers) y HU-16 (documentar operación y evidencias). No se implementaron porque no estaban en el alcance acordado. Este informe y los documentos `docs/sprint-1-persona-*.md` son la documentación de operación disponible hoy.
+El enunciado oficial pide en la Parte 1 cosas que el alcance acordado por el equipo había dejado fuera. Se cerraron con producto mínimo viable. Cada ítem indica qué se ejecutó y qué no.
+
+| HU | Qué se hizo | Evidencia |
+| --- | --- | --- |
+| HU-13 · cobertura ≥ 60 % (E1.6) | Regla `jacocoTestCoverageVerification` (líneas ≥ 60 %) en auth, identity, promotion, form y gateway, enganchada a `check` y al paso de calidad de Jenkins; 14 clases de pruebas unitarias nuevas. PR #27. | **Verificado en local** con `gradle check`. Líneas: auth 74,8 %, identity 85,0 %, form 63,3 %, gateway 91,7 %, promotion 78,0 % (antes: 35, 50, 44, 92 y 25 %). La regla mide líneas; las ramas de auth, form y promotion están por debajo de 60 %. No se ha ejecutado en Jenkins. |
+| HU-14 · 3 integraciones con Testcontainers (E1.6) | Identity con PostgreSQL real (identidad cifrada en la base), form con PostgreSQL real (JSONB) y form publicando en un Kafka real el evento que consume promotion. PR #31. | **Verificado en local** con `integrationTest` (3 de 3 pasan). La tercera comprueba el lado productor y el contrato del mensaje; no levanta promotion. Las pruebas de Neo4j siguen pausadas. Pendiente: ejecución en Jenkins. |
+| HU-07 · sin secretos en el código | Se quitaron los valores por defecto de contraseñas y claves, `JPA_DDL_AUTO` por defecto en `validate` (solo dev usa `update`) y se dejó de versionar `services/*/bin/`. PR #30. | `gradle test` pasa salvo una prueba de Neo4j que ya fallaba. **No se probó** `validate` contra una base real de stage o prod. |
+| HU-11 · notificaciones de fallo y rollback (E1.5) | El pipeline avisa por Discord y por correo cuando falla; el job tiene `ROLLBACK_TAG` y `ROLLBACK_ENV` para redesplegar una etiqueta ya publicada con su prueba de humo. PR #29. | Ver «Evidencia de HU-11» más abajo. |
+| HU-16 · documentación (E1.8) | `docs/arquitectura.md` (diagramas Mermaid de aplicación, pipeline e infraestructura), `IAG_REGISTRO.md`, sección de operación en el README y este informe en PDF. | Documentos en el repositorio. |
 
 **Resumen:** al cierre del 8 de noviembre las 12 HU de los sprints 0 y 1 figuran como Finalizadas en Jira (capturas en la sección 2). La columna **Evidencia** indica el nivel real de verificación: solo HU-02, 04 y 06 se verificaron con ejecución propia; el resto tiene código integrado en `dev` y, en algunos casos, evidencia documentada por su responsable. La mayor brecha es que el pipeline unificado no llegó a ejecutarse de punta a punta (se detuvo en pruebas de `promotion` por el arranque lento de Neo4j) y que HU-10 tiene código integrado pero sin evidencia de ejecución.
 
@@ -140,8 +148,8 @@ HU-11 (notificar fallos y rollback), HU-13 (60 % de cobertura en cinco servicios
 - **Pipeline de punta a punta:** el `Jenkinsfile` unificado se ejecutó en un Jenkins local con `BUILD_ALL` y recorrió todas las etapas de calidad, pero se detuvo en 2 pruebas de `promotion` (Neo4j no arrancó a tiempo). Por eso no se alcanzó el análisis de SonarQube, no se probó el gate bloqueando una cobertura menor a 60 % y no corrieron las etapas de web, publicación y despliegue.
 - **AWS:** el modo `--aws` del bootstrap y la publicación en el Nexus de AWS no se probaron. La URL HTTPS de la aplicación por ambiente está pendiente (DNS y TLS).
 - **Dentro del alcance y sin evidencia de ejecución:** HU-10 (despliegue y promoción), porque depende de un tag de release y de las VM de AWS.
-- **Fuera del alcance acordado de esta entrega:** HU-11 (notificaciones y rollback), HU-13 (cobertura de 60 % en cinco servicios), HU-14 (Testcontainers) y HU-16 (documentación de operación).
-- **Deuda conocida:** `file-service` guarda archivos dentro del contenedor; hay carpetas `services/*/bin/` del IDE versionadas.
+- **Sin ejecutar en Jenkins:** HU-13 y HU-14 (verificadas solo en local) y el rollback de HU-11 contra una VM real, porque no hay credenciales de despliegue ni VM disponibles.
+- **Deuda conocida:** `file-service` guarda archivos dentro del contenedor. Los directorios `bin/` ya no se versionan.
 - **Jira:** las 12 HU de los sprints 0 y 1 quedaron en Finalizada el 8 de noviembre. La fuente de verdad sobre qué se ejecutó y comprobó es la columna Evidencia de la sección 5, no el estado del tablero.
 
 ## 8. Contribución individual
