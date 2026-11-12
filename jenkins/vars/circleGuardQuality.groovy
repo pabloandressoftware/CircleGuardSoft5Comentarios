@@ -16,8 +16,11 @@ def call(Map args = [:]) {
 
     try {
         sh 'gradle --no-daemon --continue test jacocoTestReport jacocoTestCoverageVerification'
+        // HU-14: integraciones con Testcontainers (Postgres y Kafka reales). Necesita Docker en el agente.
+        sh 'gradle --no-daemon --continue :services:circleguard-identity-service:integrationTest :services:circleguard-form-service:integrationTest'
     } finally {
         junit testResults: 'services/*/build/test-results/test/*.xml', allowEmptyResults: true
+        junit testResults: 'services/*/build/test-results/integrationTest/*.xml', allowEmptyResults: true
         for (String service : services) {
             String reportDir = "services/circleguard-${service}-service/build/reports/jacoco/test/html"
             if (fileExists("${reportDir}/index.html")) {
