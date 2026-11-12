@@ -1,4 +1,5 @@
 FROM docker:28.5.2-cli AS docker_cli
+FROM docker/buildx-bin:0.29.1 AS buildx
 FROM gradle:8.14.5-jdk21 AS gradle
 FROM node:22-bookworm-slim AS node
 
@@ -23,3 +24,8 @@ ARG PLAYWRIGHT_VERSION=1.61.1
 RUN npx --yes --package="playwright@${PLAYWRIGHT_VERSION}" playwright install-deps chromium && \
     npm cache clean --force && rm -rf /var/lib/apt/lists/*
 USER jenkins
+
+# BuildKit: los Dockerfile de los servicios usan RUN --mount, que el constructor
+# clasico no entiende ('the --mount option requires BuildKit'). Va al final
+# para no rehacer las capas lentas de arriba.
+COPY --from=buildx /buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
