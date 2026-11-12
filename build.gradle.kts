@@ -67,8 +67,24 @@ subprojects {
         // Testcontainers 1.19 usa docker-java con API 1.32 por defecto; Docker
         // 24+ exige 1.40 o superior y devuelve 400 al negociar.
         systemProperty("api.version", "1.43")
+    }
+
+    // HU-13/HU-14: `test` corre solo pruebas unitarias (rapidas); las que levantan
+    // contenedores llevan @Tag("integration") y corren en `integrationTest`.
+    tasks.named<Test>("test") {
+        useJUnitPlatform { excludeTags("integration") }
         // El reporte de cobertura se genera siempre, tambien si una prueba falla
         finalizedBy("jacocoTestReport")
+    }
+
+    tasks.register<Test>("integrationTest") {
+        group = "verification"
+        description = "Pruebas de integracion con Testcontainers (@Tag(\"integration\"))."
+        val testSet = project.the<SourceSetContainer>()["test"]
+        testClassesDirs = testSet.output.classesDirs
+        classpath = testSet.runtimeClasspath
+        useJUnitPlatform { includeTags("integration") }
+        shouldRunAfter("test")
     }
 
     extensions.configure<JacocoPluginExtension> {
@@ -82,6 +98,27 @@ subprojects {
             html.required.set(true) // lo publica Jenkins
             csv.required.set(false)
         }
+    }
+
+    // HU-13: la cobertura de lineas de los cinco servicios del enunciado debe ser >= 60 %.
+    if (name in setOf(
+            "circleguard-auth-service", "circleguard-identity-service", "circleguard-promotion-service",
+            "circleguard-form-service", "circleguard-gateway-service",
+        )
+    ) {
+        tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
+            dependsOn("test")
+            violationRules {
+                rule {
+                    limit {
+                        counter = "LINE"
+                        value = "COVEREDRATIO"
+                        minimum = "0.60".toBigDecimal()
+                    }
+                }
+            }
+        }
+        tasks.named("check") { dependsOn("jacocoTestCoverageVerification") }
     }
 
     extensions.configure<org.sonarqube.gradle.SonarExtension> {

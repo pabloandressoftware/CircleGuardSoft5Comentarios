@@ -18,6 +18,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@org.junit.jupiter.api.Tag("integration")
 @SpringBootTest
 @Testcontainers
 @ActiveProfiles("test")

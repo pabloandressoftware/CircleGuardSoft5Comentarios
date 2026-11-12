@@ -15,7 +15,7 @@ def call(Map args = [:]) {
     List<String> services = ['auth', 'identity', 'promotion', 'form', 'gateway', 'notification', 'file', 'dashboard']
 
     try {
-        sh 'gradle --no-daemon --continue test jacocoTestReport'
+        sh 'gradle --no-daemon --continue test jacocoTestReport jacocoTestCoverageVerification'
     } finally {
         junit testResults: 'services/*/build/test-results/test/*.xml', allowEmptyResults: true
         for (String service : services) {
