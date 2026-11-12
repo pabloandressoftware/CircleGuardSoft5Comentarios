@@ -97,7 +97,7 @@ Criterios: **verificado** = se ejecutó y se observó el resultado al preparar e
 
 | HU | Historia | Pts | Responsable (Jira) | Jira | Evidencia |
 | --- | --- | --- | --- | --- | --- |
-| HU-03 | Versionado y releases | 3 | Daniel Martínez Alvarado | Finalizada | Código integrado (release-please, `version.txt`). Según los registros del equipo: en progreso, verificando el tag SemVer contra el commit; falta integrar release-please en `main` y confirmar el permiso para abrir el PR de release. |
+| HU-03 | Versionado y releases | 3 | Daniel Martínez Alvarado | Finalizada | **Verificado en GitHub el 12 de noviembre:** al unir `dev` en `main`, release-please abrió el PR #37 (versión 1.0.0, con `CHANGELOG.md` agrupado por tipo de commit); al unirlo se creó el tag `v1.0.0` y la release en GitHub. Fallo previo resuelto: el workflow no podía abrir el PR hasta activar «Allow GitHub Actions to create and approve pull requests». El número 1.0.0 lo elige release-please para un primer lanzamiento sin tags previos. |
 | HU-04 | Jenkins, SonarQube y Nexus | 8 | Pablo Andrés Guzmán Alarcón | Finalizada | **Verificado en local:** el bootstrap levanta el stack, dos ejecuciones no duplican recursos, el gate exige 60 % de cobertura nueva, credenciales fuera del repo. Registros del equipo: servidor de CI aprovisionado en EC2 con bootstrap repetido. No probado por mí: modo `--aws` y un análisis que falle el gate. |
 | HU-05 | Ambientes en AWS | 5 | Daniel Martínez Alvarado | Finalizada | Código integrado. Registros del equipo: tres VM en Ohio (`us-east-2`) para dev, stage y prod, bootstrap repetido y aislamiento de PostgreSQL entre dev y prod comprobado. Falta el Compose y los valores de HU-07, los archivos de entorno en Jenkins y las URL HTTPS. |
 | HU-06 | Imágenes Docker | 5 | Pablo Andrés Guzmán Alarcón | Finalizada | **Verificado en local:** 9 imágenes (8 servicios y la web) construidas y publicadas con etiqueta `v0.0.1` en un Nexus local, usuario sin privilegios y HEALTHCHECK en las 9. Registros del equipo: nueve imágenes `v0.0.1` comprobadas en Nexus. |
@@ -154,7 +154,8 @@ Se probó el aviso de fallo en un Jenkins local, con una rama desechable (`demo/
 
 ## 7. Limitaciones y trabajo pendiente
 
-- **Check de Jenkins en `main`:** exigido pero sin publicar. Falta un Jenkins accesible desde internet, un token de GitHub y el webhook. La demostración del webhook de HU-08 usó un túnel smee.io.
+- **Check de Jenkins en `main`:** se **quitó** de los checks obligatorios el 12 de noviembre (`continuous-integration/jenkins/pr-merge`), porque ningún Jenkins accesible desde internet lo publica y `dev` no podía unirse a `main`. `main` sigue exigiendo `commitlint`, 1 aprobación y `enforce_admins`. Para restablecerlo falta un Jenkins con URL pública, un token de GitHub y el webhook (la demostración del webhook de HU-08 usó un túnel smee.io).
+- **Reacción de Jenkins al tag `v1.0.0`:** no verificada desde el Jenkins del equipo; el Jenkins local no tiene máquinas de despliegue.
 - **Pipeline de punta a punta:** el `Jenkinsfile` unificado se ejecutó en un Jenkins local con `BUILD_ALL` y recorrió todas las etapas de calidad, pero se detuvo en 2 pruebas de `promotion` (Neo4j no arrancó a tiempo). Por eso no se alcanzó el análisis de SonarQube, no se probó el gate bloqueando una cobertura menor a 60 % y no corrieron las etapas de web, publicación y despliegue.
 - **AWS:** el modo `--aws` del bootstrap y la publicación en el Nexus de AWS no se probaron. La URL HTTPS de la aplicación por ambiente está pendiente (DNS y TLS).
 - **Dentro del alcance y sin evidencia de ejecución:** HU-10 (despliegue y promoción), porque depende de un tag de release y de las VM de AWS.
