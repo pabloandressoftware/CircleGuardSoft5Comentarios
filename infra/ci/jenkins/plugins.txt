@@ -9,3 +9,4 @@ ssh-agent
 junit
 htmlpublisher
 timestamper
+mailer

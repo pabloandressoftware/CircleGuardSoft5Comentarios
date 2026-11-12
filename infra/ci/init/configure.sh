@@ -117,11 +117,20 @@ configure_e2e_credential() {
     'Cuenta de salud para Playwright en dev'
 }
 
+# HU-11: URL del webhook de Discord (secreto) para avisar fallos y rollbacks.
+configure_discord_credential() {
+  [ -n "${CI_DISCORD_WEBHOOK:-}" ] || return 0
+  configure_user_password_credential \
+    discord-webhook discord "$CI_DISCORD_WEBHOOK" \
+    'Webhook de Discord para notificaciones del pipeline'
+}
+
 wait_until Jenkins request "$jenkins/login"
 jenkins_api "$jenkins/api/json" >/dev/null
 configure_github_credential
 configure_nexus_credential
 configure_e2e_credential
+configure_discord_credential
 wait_until SonarQube sonar_ready
 wait_until Nexus request "$nexus/status"
 
