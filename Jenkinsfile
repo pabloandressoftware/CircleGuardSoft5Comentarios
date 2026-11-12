@@ -326,8 +326,8 @@ pipeline {
         failure {
             script {
                 notifyByMail(
-                    "[CircleGuard] FALLO ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                    "El pipeline fallo.\n\nRama/tag: ${env.BRANCH_NAME ?: env.TAG_NAME}\nEtiqueta: ${env.IMAGE_TAG ?: '-'}\nBuild: ${env.BUILD_URL}\nConsola: ${env.BUILD_URL}console\n\nPara volver a una version anterior, ejecuta el job con ROLLBACK_TAG=vX.Y.Z y ROLLBACK_ENV."
+                    "[CircleGuard] FALLO ${env.JOB_NAME.replace('%2F', '/')} #${env.BUILD_NUMBER}",
+                    "El pipeline fallo.\n\nRama/tag: ${env.BRANCH_NAME ?: env.TAG_NAME}\nEtiqueta: ${env.IMAGE_TAG ?: '-'}\nBuild: ${env.BUILD_URL ?: '(define la URL de Jenkins)'}\nConsola: ${env.BUILD_URL ? env.BUILD_URL + 'console' : '-'}\n\nPara volver a una version anterior, ejecuta el job con ROLLBACK_TAG=vX.Y.Z y ROLLBACK_ENV."
                 )
             }
         }

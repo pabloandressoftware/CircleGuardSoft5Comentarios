@@ -16,6 +16,8 @@ services:
       CI_SMTP_USER: ${CI_SMTP_USER:-}
       CI_SMTP_PASSWORD: ${CI_SMTP_PASSWORD:-}
       CI_NOTIFY_EMAILS: ${CI_NOTIFY_EMAILS:-}
+      # URL con la que se abre Jenkins; las notificaciones la usan para enlazar el build.
+      CI_JENKINS_URL: ${CI_JENKINS_URL:-http://127.0.0.1:${CI_JENKINS_PORT:-8181}/}
       # Testcontainers dentro del agente habla con el daemon del host.
       TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
       TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: /var/run/docker.sock
