@@ -83,7 +83,15 @@ jobs:
         // tambien hay que conservar el disparo automatico de ramas y PR.
         configure { project ->
           def branchSource = project / 'sources' / 'data' / 'jenkins.branch.BranchSource'
+          // Al declarar traits aqui se pierden los de por defecto: hay que pedir
+          // ramas y PR de forma explicita o Jenkins solo vera tags.
           branchSource / 'source' / 'traits' << {
+            'org.jenkinsci.plugins.github__branch__source.BranchDiscoveryTrait' {
+              strategyId(1) // ramas que no tienen PR abierto
+            }
+            'org.jenkinsci.plugins.github__branch__source.OriginPullRequestDiscoveryTrait' {
+              strategyId(1) // PR del mismo repositorio, probados fusionados con su destino
+            }
             'org.jenkinsci.plugins.github__branch__source.TagDiscoveryTrait' { }
           }
           branchSource / 'buildStrategies' << {
