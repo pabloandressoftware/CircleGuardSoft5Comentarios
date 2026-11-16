@@ -1,0 +1,55 @@
+# Valores por defecto. Cada servicio los sobreescribe en deploy/helm/values/<servicio>.yaml
+# y cada ambiente en deploy/helm/envs/<ambiente>.yaml.
+image:
+  repository: 127.0.0.1:5000/circleguard/circleguard-example-service
+  tag: ""            # obligatorio: la etiqueta SemVer (v1.0.0), la misma en todos los ambientes
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+port: 8080
+replicas: 1
+
+# Variables no secretas.
+env: {}
+
+# Variables secretas: NOMBRE_DE_LA_VARIABLE: clave dentro del Secret `secretName`.
+# Los valores nunca estan en el repositorio: el Secret lo crea deploy/k8s/crear-secretos.sh
+# desde Jenkins Credentials (o variables de entorno) en cada namespace.
+secretName: circleguard-secrets
+secretEnv: {}
+
+resources:
+  requests: { cpu: 100m, memory: 256Mi }
+  limits: { cpu: 500m, memory: 512Mi }
+
+probes:
+  liveness:
+    path: /actuator/health/liveness
+    initialDelaySeconds: 60
+    periodSeconds: 15
+    failureThreshold: 6
+  readiness:
+    path: /actuator/health/readiness
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    failureThreshold: 6
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+
+# Escalado horizontal. Umbrales propuestos: 70 % de CPU, de 2 a 5 replicas.
+hpa:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  cpuUtilization: 70
+
+# El Ingress solo publica rutas de la API; /actuator no se expone fuera del cluster.
+ingress:
+  enabled: false
+  className: nginx
+  host: ""           # vacio = cualquier host
+  paths: []
+  annotations: {}
+  tls: []

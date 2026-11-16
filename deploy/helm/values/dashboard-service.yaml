@@ -1,0 +1,17 @@
+# HU-18 · dashboard-service
+image:
+  repository: 127.0.0.1:5000/circleguard/circleguard-dashboard-service
+port: 8084
+env:
+  JAVA_TOOL_OPTIONS: "-Xms64m -Xmx320m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  JPA_DDL_AUTO: validate
+  PROMOTION_SERVICE_URL: http://promotion-service:8088
+secretEnv:
+  DB_USERNAME: DB_USERNAME
+  DB_PASSWORD: DB_PASSWORD
+ingress:
+  enabled: true
+  paths:
+    - /api/v1/analytics

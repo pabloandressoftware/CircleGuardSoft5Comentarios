@@ -1,0 +1,18 @@
+# HU-18 · un namespace por ambiente. Se aplica con: kubectl apply -f deploy/k8s/namespaces.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: circleguard-dev
+  labels: { app.kubernetes.io/part-of: circleguard, circleguard/ambiente: dev }
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: circleguard-stage
+  labels: { app.kubernetes.io/part-of: circleguard, circleguard/ambiente: stage }
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: circleguard-prod
+  labels: { app.kubernetes.io/part-of: circleguard, circleguard/ambiente: prod }
