@@ -18,7 +18,11 @@
 
 - gitleaks sobre los archivos actuales: sin hallazgos. Con un secreto de prueba puesto a propósito: falla (salida 1).
 - Trivy sobre el repositorio encontró un CRITICAL real: `shell-quote` en `mobile/package-lock.json`. Se corrigió con `overrides` en `mobile/package.json` (versión 1.11.0) y las pruebas Jest del cliente web siguen pasando.
-- Falta ver el escaneo de las imágenes en un build real de un tag, y la prueba de que el pipeline se pone en rojo con un CRITICAL.
+- Trivy sobre las imágenes ya construidas (16-nov-2026, `--severity CRITICAL --ignore-unfixed`, el mismo comando de la etapa «Escanear imágenes»):
+  - `web`: 4 CRITICAL (nginx 1.28, brotli, openssl). Se corrigió con la base `nginx-unprivileged:1.30-alpine` más `apk upgrade`: ahora 0 CRITICAL y la imagen responde 200.
+  - `circleguard-gateway-service` (los servicios Java comparten base y versión de Spring Boot): **sigue con CRITICAL** por `tomcat-embed-core` 10.1.19, `netty-handler` 4.1.107 y `spring-webmvc` 6.1.5, todos de Spring Boot 3.2.4 (`build.gradle.kts`).
+- La etapa «Escanear imágenes» corre después de publicar. Mientras los servicios Java sigan con esos CRITICAL, el primer build de un tag fallará en esa etapa (las imágenes ya quedan en Nexus, pero el tag no se considera sano ni se despliega). **Requiere una decisión del equipo**: subir Spring Boot a una versión 3.5.x parcheada (cambia los 8 servicios y hay que volver a correr sus pruebas) o aceptar un riesgo documentado. No se bajó el umbral para que «pase».
+- Falta la prueba de que el pipeline se pone en rojo con un CRITICAL dentro de Jenkins (se comprobó solo con la línea de comandos: salida 1).
 
 ## Secretos que ya estuvieron expuestos
 
