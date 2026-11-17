@@ -61,11 +61,22 @@ Se probó en un cluster kind de un nodo (v1.31) creado en la máquina de desarro
 | `/actuator/prometheus` | 200 con métricas de la JVM |
 | Ingress de gateway | Solo publica `/api/v1/gate` (no `/actuator`) |
 | Pod | Sin escalada de privilegios y sin capacidades extra |
+| `middleware.sh` en kind: PostgreSQL (chart Bitnami), Redis, Neo4j (chart oficial), OpenLDAP y Kafka | Los cinco `1/1 Running` (tras los ajustes de abajo) |
+| `identity-service` y `auth-service` con la imagen reconstruida desde esta rama, contra PostgreSQL, Redis y OpenLDAP del cluster | `1/1 Running`; `/actuator/health/liveness`, `/readiness` y `/actuator/prometheus` responden 200 |
+| metrics-server (`--kubelet-insecure-tls`) y HPA de gateway con 6 pods generando carga | CPU 3 % → 480 %; escaló de 2 a 5 réplicas (el máximo) |
+
+### Hallazgos de la prueba (ya corregidos en esta rama)
+
+- **Kafka:** Bitnami retiró de Docker Hub las imágenes con etiqueta fija (`bitnami/kafka:4.0.0-debian-12-r10` da `not found`), así que el chart no sirve. Se reemplazó por `deploy/k8s/kafka.yaml` con `apache/kafka:3.9.0` en modo KRaft, un nodo y datos en `emptyDir`.
+- **Neo4j:** el chart exige como mínimo 2 Gi de memoria (con 1 Gi no instala) y en disco lento tarda más de 8 min; el timeout subió a 15 min.
+- **PostgreSQL:** con disco lento el liveness por defecto lo reiniciaba durante la inicialización; se agregaron retrasos y `startupProbe`.
+- **Servicios Spring:** arrancan en 35–110 s según la carga de la máquina. Se agregó `startupProbe` (hasta 5 min) y `timeoutSeconds: 5` a todas las sondas del chart; con ello `identity-service` dejó de reiniciarse.
+- **Imágenes `v1.0.0`:** son anteriores a Actuator, por lo que no tienen `/actuator/health` y fallan las sondas. Los servicios solo funcionan en el cluster con imágenes construidas desde un commit que incluya esta HU (la primera etiqueta tras el merge).
 
 **No se probó todavía:**
-- PostgreSQL, Kafka, Neo4j y OpenLDAP con `middleware.sh`, ni los otros 7 servicios en el cluster (solo se renderizaron y pasaron `helm lint`).
-- El HPA: el objeto se crea con 70 % de CPU y de 2 a 5 réplicas, pero kind no trae metrics-server, así que no escaló. En el cluster de HU-17 hay que tener metrics-server.
+- Los servicios `promotion`, `form`, `notification`, `file` y `dashboard` y el cliente `web` dentro del cluster: solo se renderizaron y pasaron `helm lint`. Reconstruir cada imagen tarda unos 35 min en la máquina de desarrollo (disco duro y 19 de carga).
 - Un controlador de Ingress (nginx): el objeto Ingress se creó pero no hay controlador en kind.
+- Persistencia de Kafka y alta disponibilidad de la base de datos: esta HU deja un nodo por componente.
 
 ## Pendiente (otras HU)
 
