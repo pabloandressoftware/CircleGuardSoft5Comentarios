@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# HU-18 · Middleware con charts de Helm existentes: PostgreSQL, Redis, Kafka y Neo4j.
-# OpenLDAP no tiene chart oficial estable: se aplica deploy/k8s/openldap.yaml.
+# HU-18 · Middleware con charts de Helm existentes: PostgreSQL, Redis y Neo4j.
+# Kafka y OpenLDAP se aplican con manifiestos propios (kafka.yaml, openldap.yaml): Bitnami
+# retiro las imagenes de Kafka con etiqueta fija y OpenLDAP no tiene chart oficial estable.
 #
 #   bash deploy/k8s/middleware.sh dev
 #
@@ -35,15 +36,12 @@ helm upgrade --install redis oci://registry-1.docker.io/bitnamicharts/redis -n "
   --set fullnameOverride=redis --set architecture=standalone \
   --set auth.existingSecret=circleguard-secrets --set auth.existingSecretPasswordKey=REDIS_PASSWORD
 
-helm upgrade --install kafka oci://registry-1.docker.io/bitnamicharts/kafka -n "$ns" --wait --timeout 8m \
-  --set fullnameOverride=kafka --set controller.replicaCount=1 \
-  --set listeners.client.protocol=PLAINTEXT --set listeners.interbroker.protocol=PLAINTEXT \
-  --set controller.resourcesPreset=small
+kubectl -n "$ns" apply -f "$aqui/kafka.yaml"
 
-helm upgrade --install neo4j neo4j/neo4j -n "$ns" --wait --timeout 8m \
+helm upgrade --install neo4j neo4j/neo4j -n "$ns" --wait --timeout 15m \
   --set neo4j.name=neo4j --set neo4j.edition=community --set neo4j.acceptLicenseAgreement=yes \
   --set neo4j.password="$(secreto NEO4J_PASSWORD)" --set volumes.data.mode=defaultStorageClass \
-  --set neo4j.resources.requests.memory=1Gi --set neo4j.resources.limits.memory=1Gi
+  --set neo4j.resources.memory=2Gi
 
 kubectl -n "$ns" apply -f "$aqui/openldap.yaml"
 echo "Middleware listo en $ns"

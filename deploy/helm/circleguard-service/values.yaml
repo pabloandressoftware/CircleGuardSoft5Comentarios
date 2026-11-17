@@ -23,14 +23,20 @@ resources:
   limits: { cpu: 500m, memory: 512Mi }
 
 probes:
+  timeoutSeconds: 5
+  # Spring Boot tarda 35-50 s en arrancar en kind con disco lento: la sonda de arranque
+  # (hasta 5 min) evita que liveness reinicie el pod antes de tiempo.
+  startup:
+    periodSeconds: 10
+    failureThreshold: 30
   liveness:
     path: /actuator/health/liveness
-    initialDelaySeconds: 60
+    initialDelaySeconds: 0
     periodSeconds: 15
     failureThreshold: 6
   readiness:
     path: /actuator/health/readiness
-    initialDelaySeconds: 30
+    initialDelaySeconds: 0
     periodSeconds: 10
     failureThreshold: 6
 
