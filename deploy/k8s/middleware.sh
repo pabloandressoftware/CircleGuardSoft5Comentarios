@@ -27,7 +27,9 @@ helm upgrade --install postgres oci://registry-1.docker.io/bitnamicharts/postgre
   --set auth.existingSecret=circleguard-secrets \
   --set auth.secretKeys.adminPasswordKey=DB_PASSWORD --set auth.secretKeys.userPasswordKey=DB_PASSWORD \
   --set primary.initdb.scriptsConfigMap=postgres-init \
-  --set primary.resources.requests.memory=128Mi
+  --set primary.resources.requests.memory=128Mi \
+  --set primary.livenessProbe.initialDelaySeconds=120 --set primary.readinessProbe.initialDelaySeconds=60 \
+  --set primary.startupProbe.enabled=true --set primary.startupProbe.failureThreshold=60
 
 helm upgrade --install redis oci://registry-1.docker.io/bitnamicharts/redis -n "$ns" --wait --timeout 5m \
   --set fullnameOverride=redis --set architecture=standalone \
