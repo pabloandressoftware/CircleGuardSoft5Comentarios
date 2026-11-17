@@ -41,7 +41,7 @@ kubectl -n "$ns" apply -f "$aqui/kafka.yaml"
 helm upgrade --install neo4j neo4j/neo4j -n "$ns" --wait --timeout 15m \
   --set neo4j.name=neo4j --set neo4j.edition=community --set neo4j.acceptLicenseAgreement=yes \
   --set neo4j.password="$(secreto NEO4J_PASSWORD)" --set volumes.data.mode=defaultStorageClass \
-  --set neo4j.resources.memory=2Gi
+  --set neo4j.resources.memory=2Gi --set services.neo4j.enabled=false
 
 kubectl -n "$ns" apply -f "$aqui/openldap.yaml"
 echo "Middleware listo en $ns"

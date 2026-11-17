@@ -62,7 +62,9 @@ Se probó en un cluster kind de un nodo (v1.31) creado en la máquina de desarro
 | Ingress de gateway | Solo publica `/api/v1/gate` (no `/actuator`) |
 | Pod | Sin escalada de privilegios y sin capacidades extra |
 | `middleware.sh` en kind: PostgreSQL (chart Bitnami), Redis, Neo4j (chart oficial), OpenLDAP y Kafka | Los cinco `1/1 Running` (tras los ajustes de abajo) |
-| `identity-service` y `auth-service` con la imagen reconstruida desde esta rama, contra PostgreSQL, Redis y OpenLDAP del cluster | `1/1 Running`; `/actuator/health/liveness`, `/readiness` y `/actuator/prometheus` responden 200 |
+| Los 8 servicios Java con imágenes reconstruidas desde esta rama (`desplegar.sh`), contra PostgreSQL, Redis, Kafka, Neo4j y OpenLDAP del cluster | `1/1 Running` los 8; `/actuator/health/liveness`, `/readiness` y `/actuator/prometheus` responden 200 en todos. `promotion` conectó con Kafka |
+| `middleware.sh` y `desplegar.sh` repetidos sobre un cluster ya desplegado | Idempotentes: todos los releases quedan `deployed` |
+| Apagar la máquina y volver a encenderla (17-nov) | El cluster y los datos sobrevivieron; hubo que borrar 4 pods atascados (`failed to reserve container name`, problema de containerd con disco lento) y los controladores los recrearon |
 | metrics-server (`--kubelet-insecure-tls`) y HPA de gateway con 6 pods generando carga | CPU 3 % → 480 %; escaló de 2 a 5 réplicas (el máximo) |
 
 ### Hallazgos de la prueba (ya corregidos en esta rama)
@@ -70,13 +72,17 @@ Se probó en un cluster kind de un nodo (v1.31) creado en la máquina de desarro
 - **Kafka:** Bitnami retiró de Docker Hub las imágenes con etiqueta fija (`bitnami/kafka:4.0.0-debian-12-r10` da `not found`), así que el chart no sirve. Se reemplazó por `deploy/k8s/kafka.yaml` con `apache/kafka:3.9.0` en modo KRaft, un nodo y datos en `emptyDir`.
 - **Neo4j:** el chart exige como mínimo 2 Gi de memoria (con 1 Gi no instala) y en disco lento tarda más de 8 min; el timeout subió a 15 min.
 - **PostgreSQL:** con disco lento el liveness por defecto lo reiniciaba durante la inicialización; se agregaron retrasos y `startupProbe`.
+- **Neo4j y `--wait`:** el chart crea un Service `LoadBalancer` que en kind nunca recibe IP externa, y `helm --wait` no terminaba (release `failed` aunque el pod estaba `1/1`). Se desactivó con `services.neo4j.enabled=false`; el servicio interno `neo4j` basta.
+- **Timeout de Helm en servicios:** con el disco lento los servicios tardan más de 5 min en quedar listos; `desplegar.sh` ahora espera hasta 10 min.
+- **HPA durante el arranque:** `promotion-service` subió a 5 réplicas con 18 % de CPU porque las réplicas nuevas aún no reportaban métricas y el arranque de la JVM consume mucha CPU; bajó a 2 solo. Si molesta en el cluster real, se puede agregar `behavior.scaleUp.stabilizationWindowSeconds` al HPA.
 - **Servicios Spring:** arrancan en 35–110 s según la carga de la máquina. Se agregó `startupProbe` (hasta 5 min) y `timeoutSeconds: 5` a todas las sondas del chart; con ello `identity-service` dejó de reiniciarse.
 - **Imágenes `v1.0.0`:** son anteriores a Actuator, por lo que no tienen `/actuator/health` y fallan las sondas. Los servicios solo funcionan en el cluster con imágenes construidas desde un commit que incluya esta HU (la primera etiqueta tras el merge).
 
 **No se probó todavía:**
-- Los servicios `promotion`, `form`, `notification`, `file` y `dashboard` y el cliente `web` dentro del cluster: solo se renderizaron y pasaron `helm lint`. Reconstruir cada imagen tarda unos 35 min en la máquina de desarrollo (disco duro y 19 de carga).
+- El cliente `web` dentro del cluster (su imagen nueva está en la rama de HU-20; la `v1.0.0` tiene CVE críticos).
 - Un controlador de Ingress (nginx): el objeto Ingress se creó pero no hay controlador en kind.
 - Persistencia de Kafka y alta disponibilidad de la base de datos: esta HU deja un nodo por componente.
+- Las pruebas funcionales entre servicios (flujo de encuesta → Kafka → promotion): solo se comprobó que cada servicio arranca, se conecta y responde sus rutas de salud.
 
 ## Pendiente (otras HU)
 

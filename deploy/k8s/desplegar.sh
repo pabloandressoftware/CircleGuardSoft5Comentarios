@@ -21,5 +21,5 @@ fi
 for s in "${servicios[@]}"; do
   helm upgrade --install "$s" "$aqui/circleguard-service" -n "$ns" \
     -f "$aqui/values/$s.yaml" -f "$aqui/envs/$ambiente.yaml" \
-    --set image.tag="$etiqueta" --wait --timeout 5m
+    --set image.tag="$etiqueta" --wait --timeout 10m
 done
