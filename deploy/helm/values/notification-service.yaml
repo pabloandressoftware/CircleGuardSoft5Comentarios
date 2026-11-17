@@ -1,0 +1,20 @@
+# HU-18 · notification-service
+image:
+  repository: 127.0.0.1:5000/circleguard/circleguard-notification-service
+port: 8082
+env:
+  JAVA_TOOL_OPTIONS: "-Xms64m -Xmx320m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
+  KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  AUTH_API_URL: http://auth-service:8180
+  IDENTITY_SERVICE_URL: http://identity-service:8083
+  SMTP_HOST: localhost
+  SMTP_PORT: "25"
+  SMTP_AUTH: "false"
+  SMTP_STARTTLS: "false"
+secretEnv:
+  JWT_SECRET: JWT_SECRET
+  QR_SECRET: QR_SECRET
+ingress:
+  enabled: false
+  paths:
+    []

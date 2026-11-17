@@ -1,0 +1,27 @@
+# HU-18 · cliente web (nginx sin root, sin actuator: las sondas piden "/")
+image:
+  repository: 127.0.0.1:5000/circleguard/web
+port: 8080
+env: {}
+secretEnv: {}
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 101
+resources:
+  requests: { cpu: 50m, memory: 64Mi }
+  limits: { cpu: 200m, memory: 128Mi }
+probes:
+  liveness:
+    path: /
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    failureThreshold: 6
+  readiness:
+    path: /
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 6
+ingress:
+  enabled: true
+  paths:
+    - /
