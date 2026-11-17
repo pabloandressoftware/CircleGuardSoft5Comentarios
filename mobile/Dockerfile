@@ -10,7 +10,10 @@ RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
 COPY . .
 RUN npx --no-install expo export --platform web --output-dir dist
 
-FROM nginxinc/nginx-unprivileged:1.28-alpine
+FROM nginxinc/nginx-unprivileged:1.30-alpine
+# HU-20: parchea los paquetes de Alpine con CVE criticos corregidos (Trivy bloquea la etiqueta si no).
+USER root
+RUN apk upgrade --no-cache
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/ /usr/share/nginx/html/
 EXPOSE 8080
