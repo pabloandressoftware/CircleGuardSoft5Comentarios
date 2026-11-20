@@ -1,6 +1,7 @@
 package com.circleguard.auth.controller;
 
 import com.circleguard.auth.client.IdentityClient;
+import com.circleguard.auth.client.IdentityUnavailableException;
 import com.circleguard.auth.service.JwtTokenService;
 import com.circleguard.auth.service.CustomUserDetailsService;
 import com.circleguard.auth.security.SecurityConfig;
@@ -63,5 +64,27 @@ public class LoginControllerTest {
                 .andExpect(jsonPath("$.token").value(token))
                 .andExpect(jsonPath("$.anonymousId").value(anonymousId.toString()))
                 .andExpect(jsonPath("$.type").value("Bearer"));
+    }
+
+    @Test
+    void shouldReturnControlledErrorWhenIdentityIsUnavailable() throws Exception {
+        // HU-22: con identity caido (o su circuito abierto) el login responde 503, no 500
+        Authentication auth = Mockito.mock(Authentication.class);
+        Mockito.when(authManager.authenticate(Mockito.any(UsernamePasswordAuthenticationToken.class)))
+                .thenReturn(auth);
+        Mockito.when(identityClient.getAnonymousId("testuser"))
+                .thenThrow(new IdentityUnavailableException("identity-service no disponible",
+                        new RuntimeException("Connection refused")));
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"testuser\", \"password\": \"password123\"}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(header().string("Retry-After", "10"))
+                .andExpect(jsonPath("$.code").value("IDENTITY_UNAVAILABLE"))
+                .andExpect(jsonPath("$.message").value("El servicio de identidad no esta disponible. Intenta de nuevo en unos segundos."))
+                .andExpect(jsonPath("$.token").doesNotExist());
+
+        Mockito.verify(jwtService, Mockito.never()).generateToken(Mockito.any(), Mockito.any());
     }
 }

@@ -2,9 +2,11 @@ package com.circleguard.auth.client;
 
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,7 +27,8 @@ class IdentityClientTest {
         server.start();
         try {
             // la barra final se normaliza
-            IdentityClient client = new IdentityClient("http://127.0.0.1:" + server.getAddress().getPort() + "/");
+            IdentityClient client = new IdentityClient("http://127.0.0.1:" + server.getAddress().getPort() + "/",
+                    Duration.ofMillis(200), Duration.ofMillis(250), new RestTemplateBuilder());
             assertEquals(expected, client.getAnonymousId("ana@icesi.edu.co"));
         } finally {
             server.stop(0);

@@ -2,7 +2,11 @@ package com.circleguard.auth.controller;
 
 import com.circleguard.auth.service.JwtTokenService;
 import com.circleguard.auth.client.IdentityClient;
+import com.circleguard.auth.client.IdentityUnavailableException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
@@ -17,6 +21,10 @@ public class LoginController {
     private final AuthenticationManager authManager;
     private final JwtTokenService jwtService;
     private final IdentityClient identityClient;
+
+    /** HU-22: el cliente puede reintentar cuando el circuito de identity pase a semiabierto. */
+    @Value("${resilience4j.circuitbreaker.instances.identity.wait-duration-in-open-state:10s}")
+    private java.time.Duration identityRetryAfter = java.time.Duration.ofSeconds(10);
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, String>> login(@RequestBody Map<String, String> request) {
@@ -47,6 +55,14 @@ public class LoginController {
         } catch (org.springframework.security.core.AuthenticationException e) {
             System.err.println("Authentication failed for " + username + ": " + e.getMessage());
             return ResponseEntity.status(401).body(Map.of("message", "Invalid username or password"));
+        } catch (IdentityUnavailableException e) {
+            // HU-22: identity caido o con el circuito abierto -> error controlado y rapido, no un 500
+            System.err.println("Login degradado para " + username + ": " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .header(HttpHeaders.RETRY_AFTER, String.valueOf(identityRetryAfter.toSeconds()))
+                    .body(Map.of(
+                            "message", "El servicio de identidad no esta disponible. Intenta de nuevo en unos segundos.",
+                            "code", "IDENTITY_UNAVAILABLE"));
         } catch (Exception e) {
             System.err.println("Unexpected error during login for " + username + ":");
             e.printStackTrace();
