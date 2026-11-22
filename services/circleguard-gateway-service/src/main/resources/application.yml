@@ -24,6 +24,10 @@ server:
 # HU-18: sondas de Kubernetes (/actuator/health/liveness y /readiness) y metricas
 # (/actuator/prometheus). El Ingress no publica /actuator; solo se usa dentro del cluster.
 management:
+  metrics:
+    tags:
+      # HU-24: agrupa las metricas por servicio en Prometheus/Grafana.
+      application: ${spring.application.name}
   endpoints:
     web:
       exposure:

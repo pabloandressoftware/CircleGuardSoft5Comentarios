@@ -3,6 +3,7 @@ package com.circleguard.gateway.service;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -22,6 +23,7 @@ public class QrValidationServiceTest {
 
     private QrValidationService service;
     private ValueOperations<String, String> valueOps;
+    private SimpleMeterRegistry registry;
     private final String secret = "my-super-secret-test-key-32-chars-long";
 
     @BeforeEach
@@ -31,7 +33,8 @@ public class QrValidationServiceTest {
         valueOps = Mockito.mock(ValueOperations.class);
         Mockito.when(redisTemplate.opsForValue()).thenReturn(valueOps);
 
-        service = new QrValidationService(redisTemplate);
+        registry = new SimpleMeterRegistry();
+        service = new QrValidationService(redisTemplate, registry);
         ReflectionTestUtils.setField(service, "qrSecret", secret);
     }
 
@@ -102,6 +105,20 @@ public class QrValidationServiceTest {
 
         assertFalse(result.valid());
         assertEquals("Invalid or Expired Token", result.message());
+    }
+
+    @Test
+    void recordsGreenAndRedValidationCounters() {
+        String anonymousId = UUID.randomUUID().toString();
+        Mockito.when(valueOps.get("user:status:" + anonymousId)).thenReturn("ACTIVE");
+
+        service.validateToken(tokenFor(anonymousId, 60_000));
+        service.validateToken("token-invalido");
+
+        assertEquals(1.0, registry.get("circleguard.gate.validations")
+                .tag("result", "GREEN").counter().count());
+        assertEquals(1.0, registry.get("circleguard.gate.validations")
+                .tag("result", "RED").counter().count());
     }
 
     @Test
