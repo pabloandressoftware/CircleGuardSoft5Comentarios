@@ -1,0 +1,13 @@
+# HU-20 · Configuracion de gitleaks.
+# Parte de las reglas por defecto y solo exime claves que son datos de prueba
+# (tests) o plantillas de ejemplo; nunca codigo de produccion ni configuracion real.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Claves de prueba y ejemplos"
+paths = [
+  '''src/test/''',
+  '''(^|/)\.env\.example$''',
+  '''docs/''',
+]

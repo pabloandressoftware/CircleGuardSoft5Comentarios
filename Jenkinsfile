@@ -21,6 +21,7 @@ def publish
 def deploy
 def e2e
 def smoke
+def security
 def zap
 def changed = []
 
@@ -109,6 +110,7 @@ pipeline {
                     deploy = load 'jenkins/vars/circleGuardDeploy.groovy'
                     e2e = load 'jenkins/vars/circleGuardE2E.groovy'
                     smoke = load 'jenkins/vars/circleGuardSmoke.groovy'
+                    security = load 'jenkins/vars/circleGuardSecurity.groovy'
                     zap = load 'jenkins/vars/circleGuardZap.groovy'
                 }
             }
@@ -136,6 +138,18 @@ pipeline {
             }
             steps {
                 script { quality.call() }
+            }
+        }
+
+        // HU-20: gitleaks falla si hay un secreto; Trivy falla con hallazgos CRITICAL
+        // en dependencias e IaC. No corre en un rollback (no construye nada nuevo).
+        stage('Seguridad') {
+            when { expression { !params.ROLLBACK_TAG } }
+            steps {
+                script {
+                    security.secrets()
+                    security.filesystem()
+                }
             }
         }
 
@@ -193,6 +207,19 @@ pipeline {
             }
             steps {
                 script { env.IMAGE_TAG = publish.call() }
+            }
+        }
+
+        // HU-20: Trivy sobre las imagenes ya construidas; CRITICAL bloquea antes de desplegar.
+        stage('Escanear imagenes') {
+            when {
+                allOf {
+                    buildingTag()
+                    tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                }
+            }
+            steps {
+                script { security.images(tag: env.IMAGE_TAG) }
             }
         }
 
