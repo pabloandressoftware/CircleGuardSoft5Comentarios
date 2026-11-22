@@ -165,3 +165,9 @@ En ambos casos, actualiza `REGISTRY` en los `.env` de Jenkins.
 - [ ] `REGISTRY` en `circleguard-env-*` es alcanzable desde k3s.
 - [ ] `SITE_ADDRESS` apunta al Ingress de cada ambiente.
 - [ ] Trivy (`security.filesystem()`) no reporta hallazgos CRITICAL en el IaC.
+
+## Otros pendientes entre HU
+
+El estado consolidado de HU-18, HU-19, HU-20, HU-21 y HU-24, el orden de
+integración y los riesgos de fusión están en
+[pendientes-integracion.md](pendientes-integracion.md).

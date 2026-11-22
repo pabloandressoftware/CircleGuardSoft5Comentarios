@@ -104,3 +104,9 @@ actualizarse si cambia el registro o el host del Ingress.
   y TLS operativos.
 - El registro debe ser alcanzable por k3s. Si es Nexus HTTP, hace falta
   configuración adicional de containerd.
+
+## Pendientes de integración
+
+La lista completa de pendientes de HU-18, HU-19, HU-20, HU-21 y HU-24, junto al
+contrato resumido de HU-17, está en
+[pendientes-integracion.md](pendientes-integracion.md).
