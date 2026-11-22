@@ -84,9 +84,16 @@ Se probó en un cluster kind de un nodo (v1.31) creado en la máquina de desarro
 - Persistencia de Kafka y alta disponibilidad de la base de datos: esta HU deja un nodo por componente.
 - Las pruebas funcionales entre servicios (flujo de encuesta → Kafka → promotion): solo se comprobó que cada servicio arranca, se conecta y responde sus rutas de salud.
 
+## Observabilidad (HU-24)
+
+Los 8 servicios Java exponen `/actuator/prometheus`; kube-prometheus-stack los
+recolecta con un `ServiceMonitor`, y Grafana tiene tableros técnico y de negocio.
+La instalación, los dashboards y las alertas están en
+[observabilidad.md](observabilidad.md).
+
 ## Pendiente (otras HU)
 
 - HU-17 crea el cluster real con Terraform; esta HU solo depende de que exista.
 - HU-19 llama a `desplegar.sh` desde Jenkins.
 - HU-21 agrega TLS, RBAC y autenticación de rutas.
-- HU-24 y HU-25 consumen `/actuator/prometheus` y los logs.
+- HU-25 consume los logs centralizados.

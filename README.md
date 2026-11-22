@@ -250,6 +250,7 @@ Documentos: [arquitectura y pipeline (diagramas)](docs/arquitectura.md) ·
 | Publicar y desplegar | Un tag `vX.Y.Z` (lo crea Release Please al unir su PR en `main`) recorre dev, E2E, stage, aprobación y prod. |
 | **Rollback** | Ejecutar el job con `ROLLBACK_TAG=vX.Y.Z` y `ROLLBACK_ENV=dev|stage|prod`. Redespliega esa etiqueta ya publicada y corre la prueba de humo; prod pide la aprobación del usuario `aprobador`. |
 | **Notificaciones de fallo** | El pipeline avisa por Discord (credencial `discord-webhook`) y por correo (`CI_SMTP_*` y `CI_NOTIFY_EMAILS` del `ci.env`). |
+| **Observabilidad (HU-24)** | `CI_DISCORD_WEBHOOK=... GRAFANA_ADMIN_PASSWORD=... bash observability/instalar.sh`. Grafana/Prometheus/Alertmanager se abren con `kubectl port-forward`. Ver [docs/observabilidad.md](docs/observabilidad.md). |
 
 **Secretos.** Ningún servicio trae contraseñas ni claves por defecto: se inyectan por variables de entorno
 (`deploy/new-env.sh` genera las de cada ambiente). Para correr un servicio en local hay que exportar
