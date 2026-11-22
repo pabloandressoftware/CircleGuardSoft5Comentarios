@@ -1,0 +1,93 @@
+# HU-24 · Pruebas de las reglas con promtool.
+#
+#   promtool test rules observability/alerts/tests.yaml
+#
+# No sustituyen la evidencia real en un cluster, pero verifican que las
+# expresiones disparan con las series esperadas.
+rule_files:
+  - rules.yaml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'up{job="circleguard-dev/identity-service"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: CircleguardServiceDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              team: circleguard
+              job: circleguard-dev/identity-service
+            exp_annotations:
+              summary: "Servicio CircleGuard caido"
+              description: "circleguard-dev/identity-service no responde a Prometheus desde hace mas de 1 minuto."
+
+  - interval: 1m
+    input_series:
+      - series: 'http_server_requests_seconds_count{status="500"}'
+        values: '0+60x10'
+      - series: 'http_server_requests_seconds_count{status="200"}'
+        values: '0+60x10'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: CircleguardHigh5xxRate
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              team: circleguard
+            exp_annotations:
+              summary: "Errores 5xx por encima del 5 %"
+              description: "CircleGuard supera el 5 % de respuestas 5xx en los ultimos 5 minutos."
+
+  - interval: 1m
+    input_series:
+      - series: 'circleguard_gate_validations_total{result="RED"}'
+        values: '0+120x10'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: CircleguardGateDenialSpike
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              team: circleguard
+            exp_annotations:
+              summary: "Pico de accesos denegados en la puerta"
+              description: "Las validaciones RED superan 1 por segundo durante 2 minutos."
+
+  - interval: 1m
+    input_series:
+      - series: 'circleguard_containment_seconds_bucket{le="10"}'
+        values: '0+0x10'
+      - series: 'circleguard_containment_seconds_bucket{le="60"}'
+        values: '0+0x10'
+      - series: 'circleguard_containment_seconds_bucket{le="120"}'
+        values: '0+1x10'
+      - series: 'circleguard_containment_seconds_bucket{le="+Inf"}'
+        values: '0+1x10'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: CircleguardContainmentSlaBreach
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              team: circleguard
+            exp_annotations:
+              summary: "Tiempo de contencion superior a 60 s"
+              description: "El p95 del tiempo CONFIRMED -> ACTIVE/RECOVERED supera la meta de 60 s."
+
+  - interval: 1m
+    input_series:
+      - series: 'up{job="circleguard-dev/identity-service"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: CircleguardAvailabilityLow
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              team: circleguard
+            exp_annotations:
+              summary: "Disponibilidad por debajo de 99,5 %"
+              description: "La disponibilidad de los servicios cae por debajo de la meta en horario 7:00-22:00 (Colombia)."
