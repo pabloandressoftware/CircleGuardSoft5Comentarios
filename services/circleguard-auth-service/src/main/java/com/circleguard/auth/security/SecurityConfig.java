@@ -15,7 +15,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.ldap.authentication.BindAuthenticator;
 import org.springframework.security.ldap.authentication.LdapAuthenticationProvider;
 import org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopulator;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 
 @Configuration
 @EnableWebSecurity
@@ -38,16 +40,26 @@ public class SecurityConfig {
     private String ldapPassword;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter,
+                                                   InternalApiKeyFilter internalApiKeyFilter) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .cors(org.springframework.security.config.Customizer.withDefaults())
             .headers(headers -> headers.frameOptions(frame -> frame.disable()))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/auth/login", "/api/v1/auth/qr/verify").permitAll()
+                // HU-21: solo el login, la verificacion de QR y el handoff de visitantes son publicos.
+                .requestMatchers("/api/v1/auth/login", "/api/v1/auth/qr/verify",
+                                 "/api/v1/auth/visitor/handoff").permitAll()
+                .requestMatchers("/actuator/health/**", "/actuator/prometheus").permitAll()
+                // HU-21: endpoint interno, sin Ingress; exige la clave de servicio.
+                .requestMatchers("/api/v1/users/permissions/**").hasAuthority(InternalApiKeyFilter.AUTHORITY)
                 .requestMatchers("/api/v1/auth/qr/generate").authenticated()
-                .anyRequest().permitAll())
-            .addFilterBefore(jwtFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+                .anyRequest().authenticated())
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+            )
+            .addFilterBefore(jwtFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(internalApiKeyFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

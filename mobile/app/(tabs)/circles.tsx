@@ -20,7 +20,7 @@ import axios from 'axios';
 import { IDENTITY_BASE_URL } from '@/constants/Config';
 
 export default function CirclesScreen() {
-  const { anonymousId } = useAuth();
+  const { anonymousId, token } = useAuth();
   const { circles, loading, error, fetchCircles, createCircle, joinCircle, addMember } = useCircles(anonymousId || '');
   
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
@@ -88,9 +88,11 @@ export default function CirclesScreen() {
   const handleSearch = async () => {
     if (!searchEmail.trim()) return;
     try {
-      const response = await axios.post(`${IDENTITY_BASE_URL}/api/v1/identities/map`, {
-        realIdentity: searchEmail.toLowerCase()
-      });
+      const response = await axios.post(
+        `${IDENTITY_BASE_URL}/api/v1/identities/map`,
+        { realIdentity: searchEmail.toLowerCase() },
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+      );
       setFoundUser(response.data.anonymousId);
     } catch (err: any) {
       Alert.alert('Not Found', 'User not found in the identity mesh.');

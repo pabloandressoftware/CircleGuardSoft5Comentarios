@@ -7,6 +7,10 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
@@ -33,6 +37,7 @@ public class PriorityAlertListenerTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         ReflectionTestUtils.setField(priorityAlertListener, "authApiUrl", "http://localhost:8080");
+        ReflectionTestUtils.setField(priorityAlertListener, "internalApiKey", "test-internal-key");
         ReflectionTestUtils.setField(priorityAlertListener, "restTemplate", restTemplate);
     }
 
@@ -48,8 +53,10 @@ public class PriorityAlertListenerTest {
             Map.of("email", "admin@university.edu", "username", "admin1")
         );
         
-        when(restTemplate.getForObject("http://localhost:8080/api/v1/users/permissions/alert:receive_priority", List.class))
-            .thenReturn(mockAdmins);
+        when(restTemplate.exchange(
+                eq("http://localhost:8080/api/v1/users/permissions/alert:receive_priority"),
+                eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+            .thenReturn(new ResponseEntity<>(mockAdmins, HttpStatus.OK));
 
         priorityAlertListener.handlePriorityAlert(message);
 
@@ -64,8 +71,10 @@ public class PriorityAlertListenerTest {
         when(objectMapper.readValue(eq(message), ArgumentMatchers.<com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>>any()))
             .thenReturn(payload);
 
-        when(restTemplate.getForObject("http://localhost:8080/api/v1/users/permissions/alert:receive_priority", List.class))
-            .thenReturn(null);
+        when(restTemplate.exchange(
+                eq("http://localhost:8080/api/v1/users/permissions/alert:receive_priority"),
+                eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+            .thenReturn(new ResponseEntity<>(null, HttpStatus.OK));
 
         priorityAlertListener.handlePriorityAlert(message);
 

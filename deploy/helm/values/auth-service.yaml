@@ -19,8 +19,8 @@ secretEnv:
   LDAP_PASSWORD: LDAP_PASSWORD
   JWT_SECRET: JWT_SECRET
   QR_SECRET: QR_SECRET
+  INTERNAL_API_KEY: INTERNAL_API_KEY
 ingress:
   enabled: true
   paths:
     - /api/v1/auth
-    - /api/v1/users

@@ -7,6 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
@@ -24,6 +27,10 @@ public class PriorityAlertListener {
     @Value("${auth.api.url:http://circleguard-auth-service:8080}")
     private String authApiUrl;
 
+    // HU-21: /api/v1/users/permissions/** ya no es publico; se autentica como servicio.
+    @Value("${circleguard.internal.api-key:}")
+    private String internalApiKey;
+
     @KafkaListener(topics = "alert.priority", groupId = "notification-priority-group")
     public void handlePriorityAlert(String message) {
         log.info("Received alert.priority event: {}", message);
@@ -36,8 +43,11 @@ public class PriorityAlertListener {
 
             // Fetch users with the alert:receive_priority permission
             String url = authApiUrl + "/api/v1/users/permissions/alert:receive_priority";
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-Internal-Api-Key", internalApiKey);
             @SuppressWarnings("unchecked")
-            List<Map<String, String>> admins = restTemplate.getForObject(url, List.class);
+            List<Map<String, String>> admins = restTemplate.exchange(
+                    url, HttpMethod.GET, new HttpEntity<>(headers), List.class).getBody();
             
             if (admins != null && !admins.isEmpty()) {
                 for (Map<String, String> admin : admins) {
