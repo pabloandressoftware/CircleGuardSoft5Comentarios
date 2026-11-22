@@ -6,6 +6,14 @@ image:
   pullPolicy: IfNotPresent
 imagePullSecrets: []
 
+# HU-21: una ServiceAccount por release, sin token montado. Los servicios no
+# necesitan hablar con la API de Kubernetes, asi que no tienen RoleBindings.
+serviceAccount:
+  create: true
+  name: ""
+  automount: false
+  annotations: {}
+
 port: 8080
 replicas: 1
 
