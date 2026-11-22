@@ -22,6 +22,7 @@ def deploy
 def e2e
 def smoke
 def security
+def zap
 def changed = []
 
 // HU-11: avisos por Discord (webhook en la credencial 'discord-webhook') y por correo.
@@ -110,6 +111,7 @@ pipeline {
                     e2e = load 'jenkins/vars/circleGuardE2E.groovy'
                     smoke = load 'jenkins/vars/circleGuardSmoke.groovy'
                     security = load 'jenkins/vars/circleGuardSecurity.groovy'
+                    zap = load 'jenkins/vars/circleGuardZap.groovy'
                 }
             }
         }
@@ -294,6 +296,20 @@ pipeline {
             }
             steps {
                 script { smoke.call(env.STAGE_HOST) }
+            }
+        }
+
+        // HU-26: baseline scan de OWASP ZAP contra stage. Las alertas FAIL rompen el build.
+        stage('ZAP stage') {
+            when {
+                allOf {
+                    buildingTag()
+                    tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.SKIP_DEPLOY }
+                }
+            }
+            steps {
+                script { zap.call(host: env.STAGE_HOST) }
             }
         }
 

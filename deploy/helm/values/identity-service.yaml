@@ -1,0 +1,20 @@
+# HU-18 · identity-service
+image:
+  repository: 127.0.0.1:5000/circleguard/circleguard-identity-service
+port: 8083
+env:
+  JAVA_TOOL_OPTIONS: "-Xms64m -Xmx320m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  JPA_DDL_AUTO: validate
+secretEnv:
+  DB_USERNAME: DB_USERNAME
+  DB_PASSWORD: DB_PASSWORD
+  VAULT_SECRET: VAULT_SECRET
+  VAULT_SALT: VAULT_SALT
+  VAULT_HASH_SALT: VAULT_HASH_SALT
+  JWT_SECRET: JWT_SECRET
+ingress:
+  enabled: true
+  paths:
+    - /api/v1/identities
