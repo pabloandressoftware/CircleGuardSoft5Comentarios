@@ -23,8 +23,10 @@ Preparar (detecta cambios en infra/)
 - En un **tag `vX.Y.Z`** se aplica la infraestructura y se promueve la **misma
   etiqueta** de imagen por los tres ambientes.
 - `SKIP_DEPLOY=true` omite applies y despliegues, pero conserva el plan.
-- Un **rollback** (`ROLLBACK_TAG` + `ROLLBACK_ENV`) usa el mismo destino de
-  despliegue y pide aprobación si el ambiente es `prod`.
+- Un **rollback** (`ROLLBACK_TAG` + `ROLLBACK_ENV`) pide aprobación en `prod`.
+  Con Helm, HU-27 restaura revisiones existentes mediante `helm rollback` y
+  registra antes/después y tiempo. Compose conserva el redespliegue anterior.
+  Ver [HU-27](hu-27-versiones-rollback.md).
 - Un fallo dispara los avisos de HU-11 (Discord y correo) desde `post.failure`.
 
 ## Parámetros nuevos
@@ -93,6 +95,8 @@ actualizarse si cambia el registro o el host del Ingress.
 - `approval-prod.txt` con el usuario que aprobó prod (HU-10).
 - Salida de `kubectl rollout status` en la consola del build.
 - Avisos de fallo por Discord y correo.
+- `.local-evidence/hu-27/**`: inventario y evidencia de rollback sanitizada.
+- `release-notes.md`: notas verificadas antes de publicar imágenes.
 
 ## Limitaciones conocidas
 

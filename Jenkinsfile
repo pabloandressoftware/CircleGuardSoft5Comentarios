@@ -129,6 +129,7 @@ pipeline {
                     zap = load 'jenkins/vars/circleGuardZap.groovy'
                     terraform = load 'jenkins/vars/circleGuardTerraform.groovy'
                     helm = load 'jenkins/vars/circleGuardHelm.groovy'
+                    sh 'node --test deploy/k8s/releases.test.mjs scripts/check-release-notes.test.mjs'
 
                     String baseRef = env.CHANGE_TARGET
                         ? "origin/${env.CHANGE_TARGET}"
@@ -175,9 +176,12 @@ pipeline {
         // Corre cuando algun modulo cambio y siempre en tags de release.
         stage('Calidad de servicios') {
             when {
-                anyOf {
-                    expression { !changed.isEmpty() }
-                    buildingTag()
+                allOf {
+                    expression { !params.ROLLBACK_TAG }
+                    anyOf {
+                        expression { !changed.isEmpty() }
+                        buildingTag()
+                    }
                 }
             }
             steps {
@@ -229,16 +233,18 @@ pipeline {
                             ok: 'Hacer rollback en prod'
                         )
                         echo "Rollback de prod aprobado por ${approver}"
+                        writeFile file: 'approval-prod-rollback.txt',
+                            text: "env=prod\ntag=${tag}\napprover=${approver}\nbuild=${env.BUILD_URL}\n"
                     }
                     String host = params.DEPLOY_TARGET == 'compose'
                         ? deploy.call(params.ROLLBACK_ENV, imageTag: tag)
-                        : helm.call(params.ROLLBACK_ENV, imageTag: tag, deployMiddleware: params.DEPLOY_MIDDLEWARE)
+                        : helm.rollback(params.ROLLBACK_ENV, tag)
                     smoke.call(host)
                     writeFile file: 'deploy-rollback.txt',
                         text: "env=${params.ROLLBACK_ENV}\ntag=${tag}\nhost=${host}\nbuild=${env.BUILD_URL}\n"
                     notifyByMail(
                         "[CircleGuard] ROLLBACK ${params.ROLLBACK_ENV} a ${tag}",
-                        "Se redesplego ${tag} en ${params.ROLLBACK_ENV} (${host}) y paso la prueba de humo.\nBuild: ${env.BUILD_URL}"
+                        "Se restauro ${tag} en ${params.ROLLBACK_ENV} (${host}) y paso la prueba de humo.\nBuild: ${env.BUILD_URL}"
                     )
                 }
             }
@@ -249,6 +255,7 @@ pipeline {
                 allOf {
                     buildingTag()
                     tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.ROLLBACK_TAG }
                 }
             }
             steps {
@@ -262,6 +269,7 @@ pipeline {
                 allOf {
                     buildingTag()
                     tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.ROLLBACK_TAG }
                 }
             }
             steps {
@@ -275,6 +283,7 @@ pipeline {
                 allOf {
                     buildingTag()
                     tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.ROLLBACK_TAG }
                     expression { !params.SKIP_DEPLOY && !params.ROLLBACK_TAG && terraform.available() }
                 }
             }
@@ -289,6 +298,7 @@ pipeline {
                 allOf {
                     buildingTag()
                     tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.ROLLBACK_TAG }
                     expression { !params.SKIP_DEPLOY }
                 }
             }
@@ -306,6 +316,7 @@ pipeline {
                 allOf {
                     buildingTag()
                     tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.ROLLBACK_TAG }
                     expression { !params.SKIP_DEPLOY }
                 }
             }
@@ -318,11 +329,12 @@ pipeline {
         stage('E2E dev') {
             when {
                 allOf {
-                    expression { !params.SKIP_DEPLOY }
+                    expression { !params.SKIP_DEPLOY && !params.ROLLBACK_TAG }
                     anyOf {
                         allOf {
                             buildingTag()
                             tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                            expression { !params.ROLLBACK_TAG }
                         }
                         allOf {
                             branch 'dev'
@@ -342,6 +354,7 @@ pipeline {
                 allOf {
                     buildingTag()
                     tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.ROLLBACK_TAG }
                     expression { !params.SKIP_DEPLOY && !params.ROLLBACK_TAG && terraform.available() }
                 }
             }
@@ -356,6 +369,7 @@ pipeline {
                 allOf {
                     buildingTag()
                     tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.ROLLBACK_TAG }
                     expression { !params.SKIP_DEPLOY }
                 }
             }
@@ -373,6 +387,7 @@ pipeline {
                 allOf {
                     buildingTag()
                     tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.ROLLBACK_TAG }
                     expression { !params.SKIP_DEPLOY }
                 }
             }
@@ -387,6 +402,7 @@ pipeline {
                 allOf {
                     buildingTag()
                     tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.ROLLBACK_TAG }
                     expression { !params.SKIP_DEPLOY }
                 }
             }
@@ -401,6 +417,7 @@ pipeline {
                 allOf {
                     buildingTag()
                     tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.ROLLBACK_TAG }
                     expression { !params.SKIP_DEPLOY }
                 }
             }
@@ -426,6 +443,7 @@ pipeline {
                 allOf {
                     buildingTag()
                     tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.ROLLBACK_TAG }
                     expression { !params.SKIP_DEPLOY && !params.ROLLBACK_TAG && terraform.available() }
                 }
             }
@@ -439,6 +457,7 @@ pipeline {
                 allOf {
                     buildingTag()
                     tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.ROLLBACK_TAG }
                     expression { !params.SKIP_DEPLOY }
                 }
             }
@@ -456,11 +475,25 @@ pipeline {
                 allOf {
                     buildingTag()
                     tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.ROLLBACK_TAG }
                     expression { !params.SKIP_DEPLOY }
                 }
             }
             steps {
                 script { smoke.call(env.PROD_HOST) }
+            }
+        }
+
+        stage('Versiones por ambiente') {
+            when {
+                expression { !params.SKIP_DEPLOY && params.DEPLOY_TARGET == 'helm' }
+                anyOf {
+                    expression { params.ROLLBACK_TAG?.trim() }
+                    tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                }
+            }
+            steps {
+                script { helm.inventory() }
             }
         }
     }
@@ -477,6 +510,7 @@ pipeline {
         always {
             archiveArtifacts artifacts: 'services/*/build/reports/tests/test/**', allowEmptyArchive: true
             archiveArtifacts artifacts: 'deploy-*.txt', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'approval-prod-rollback.txt,.local-evidence/hu-27/**', allowEmptyArchive: true
         }
     }
 }

@@ -64,3 +64,10 @@ neo4jdata/
 tfplan
 crash.log
 crash.*.log
+
+# Evidencia local y credenciales de operación (HU-27).
+.local-evidence/
+.tools/
+*.kubeconfig
+kubeconfig-*
+release-notes.md
