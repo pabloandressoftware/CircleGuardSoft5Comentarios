@@ -4,3 +4,10 @@ env:
   CORS_ALLOWED_ORIGINS: "https://stage.circleguard.local"
 ingress:
   host: stage.circleguard.local
+  # HU-21: cert-manager emite el certificado autofirmado para este Ingress.
+  annotations:
+    cert-manager.io/cluster-issuer: circleguard-selfsigned
+  tls:
+    - secretName: circleguard-stage-tls
+      hosts:
+        - stage.circleguard.local

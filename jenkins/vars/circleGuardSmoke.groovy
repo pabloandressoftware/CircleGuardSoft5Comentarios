@@ -26,6 +26,15 @@ def call(String host) {
                         ;;
                 esac
             done
+
+            # HU-21: confirma que el Ingress sirve un certificado TLS real.
+            if command -v openssl >/dev/null 2>&1; then
+                echo "--- certificado TLS de $SMOKE_HOST ---"
+                echo | openssl s_client -servername "$SMOKE_HOST" -connect "$SMOKE_HOST:443" 2>/dev/null \
+                    | openssl x509 -noout -subject -issuer -dates
+            else
+                echo 'AVISO: openssl no esta instalado; se omite la lectura del certificado TLS.'
+            fi
         '''
     }
 }

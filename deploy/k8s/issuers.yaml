@@ -1,0 +1,11 @@
+# HU-21 · Emisor autofirmado para los Ingress de CircleGuard.
+#
+# No requiere dominio publico ni ACME. Los navegadores no confian en esta CA,
+# por eso las pruebas usan curl -k mientras no exista un dominio con TLS real.
+# Para produccion se puede agregar un Issuer/ClusterIssuer de Let's Encrypt.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: circleguard-selfsigned
+spec:
+  selfSigned: {}
