@@ -50,3 +50,16 @@ Todo resultado fue revisado por el equipo antes de integrarse mediante PR con ap
 - Anunció HU-11, 13, 14 y 16 como pendientes cuando no estaban en el alcance acordado; se corrigió al leer el documento del equipo.
 - Abrió el PR de HU-14 apuntando a la rama de HU-13; al unirse HU-13 primero, HU-14 no llegó a `dev` y hubo que abrir un PR correctivo (#31).
 - Al corregir el descubrimiento de ramas, Jenkins consultó todas las ramas viejas y agotó el límite anónimo de la API de GitHub; se canceló lo que no hacía falta.
+
+## Parte 2 · HU-17 (22-nov-2026)
+
+Asistente: Codex (OpenAI). Prompt reformulado: «Leer la documentación y los
+pendientes de integración; crear hu-17 desde HU-19 e implementar los cinco
+módulos Terraform, los ambientes y las verificaciones del backend».
+
+Se implementaron módulos, composición compartida, bootstrap S3/DynamoDB,
+configuración k3s/Nexus, scripts de evidencia y runbook. Se validaron los cinco
+roots con Terraform 1.9.8 y tres pruebas con proveedor simulado. El operador
+informó que su Free plan AWS agotó los créditos: no se ejecutaron operaciones
+AWS ni apply/destroy. Cuenta, costos y evidencia real quedan pendientes de
+revisión del equipo; la revisión humana y el PR no se dan por realizados.

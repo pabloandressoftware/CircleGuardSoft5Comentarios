@@ -96,8 +96,9 @@ actualizarse si cambia el registro o el host del Ingress.
 
 ## Limitaciones conocidas
 
-- HU-17 no está implementada: no hay `.tf` en el repositorio. La etapa de
-  Terraform está cableada pero se omite hasta que exista el código.
+- HU-17 aporta los `.tf` en la rama `hu-17`. La cuenta, las plantillas de
+  configuración y las credenciales deben prepararse antes de ejecutar el pipeline.
+  La infraestructura AWS y el bloqueo real todavía no se han demostrado.
 - El middleware se despliega solo con `DEPLOY_MIDDLEWARE=true`; no se reinstala
   en cada release.
 - El humo/E2E siguen usando HTTPS contra `SITE_ADDRESS`; requieren Ingress, DNS

@@ -18,7 +18,7 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
 # Se fijan versiones para que un rebuild no cambie el comportamiento del job.
 ARG TERRAFORM_VERSION=1.9.8
 ARG HELM_VERSION=3.16.4
-ARG KUBECTL_VERSION=1.31.4
+ARG KUBECTL_VERSION=1.34.13
 ARG AWSCLI_VERSION=2.19.1
 RUN set -eux; \
     apt-get update; \

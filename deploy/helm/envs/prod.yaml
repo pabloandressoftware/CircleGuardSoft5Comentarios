@@ -3,4 +3,5 @@
 env:
   CORS_ALLOWED_ORIGINS: "https://prod.circleguard.local"
 ingress:
+  className: traefik
   host: prod.circleguard.local

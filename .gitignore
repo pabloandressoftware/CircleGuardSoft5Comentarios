@@ -64,3 +64,12 @@ neo4jdata/
 tfplan
 crash.log
 crash.*.log
+
+# Credenciales y evidencias locales de operación (HU-17/HU-27).
+*.kubeconfig
+kubeconfig-*
+*.pem
+.tools/
+.local-evidence/
+infra/terraform/**/terraform-plan.txt
+infra/terraform/**/terraform-no-changes.txt
