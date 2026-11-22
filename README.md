@@ -211,10 +211,12 @@ environment secret files before running a release tag:
    - `circleguard-env-stage` → `bash deploy/new-env.sh stage <PublicDns-stage> [IP]`
    - `circleguard-env-prod` → `bash deploy/new-env.sh prod <PublicDns-prod> [IP]`
    - Validate each one with `bash deploy/check-env.sh <file>`.
-5. **Set the approver.** Define `CI_APPROVER_USER` (default `aprobador`) and
-   `CI_APPROVER_PASSWORD` in the CI `ci.env`. The local
-   `C:\Users\Rodol\circleguard-ci.env` already has a generated password; set
-   your own on a new CI host.
+5. **Set the approver and the developer.** Define `CI_APPROVER_USER`
+   (default `aprobador`), `CI_APPROVER_PASSWORD`, `CI_DEVELOPER_USER`
+   (default `desarrollador`) and `CI_DEVELOPER_PASSWORD` in the CI `ci.env`.
+   The local `C:\Users\Rodol\circleguard-ci.env` already has a generated
+   approver password; set your own on a new CI host. The developer user only
+   builds jobs and cannot administer Jenkins (HU-21).
 6. **Baseline Sonar (recommended).** Run one analysis from `main`/`dev` before
    the first release tag so the 60 % new-coverage gate has a baseline.
 7. **Release.** Merge `hu-10-deploy` into `dev`, merge `dev` into `main`, merge
@@ -250,6 +252,9 @@ Documentos: [arquitectura y pipeline (diagramas)](docs/arquitectura.md) ·
 | Publicar y desplegar | Un tag `vX.Y.Z` (lo crea Release Please al unir su PR en `main`) recorre dev, E2E, stage, aprobación y prod. |
 | **Rollback** | Ejecutar el job con `ROLLBACK_TAG=vX.Y.Z` y `ROLLBACK_ENV=dev|stage|prod`. Redespliega esa etiqueta ya publicada y corre la prueba de humo; prod pide la aprobación del usuario `aprobador`. |
 | **Notificaciones de fallo** | El pipeline avisa por Discord (credencial `discord-webhook`) y por correo (`CI_SMTP_*` y `CI_NOTIFY_EMAILS` del `ci.env`). |
+| **Roles de Jenkins (HU-21)** | `admin` = `CI_JENKINS_USER`, `developer` = `CI_DEVELOPER_USER`, `approver` = `CI_APPROVER_USER`. Define `CI_DEVELOPER_PASSWORD` en el `ci.env` y reconstruye el CI. |
+| **TLS de Kubernetes (HU-21)** | `bash deploy/k8s/cert-manager.sh` instala cert-manager y el emisor autofirmado; los Ingress de dev/stage/prod piden su certificado. Verifica con `bash deploy/k8s/verificar-tls.sh <host>`. |
+| **Acceso a servicios (HU-21)** | auth-service queda cerrado por defecto; `/identities/map` exige JWT o clave interna y `/admin/**` exige `dashboard:view`. Ver [docs/seguridad-k8s.md](docs/seguridad-k8s.md). |
 
 **Secretos.** Ningún servicio trae contraseñas ni claves por defecto: se inyectan por variables de entorno
 (`deploy/new-env.sh` genera las de cada ambiente). Para correr un servicio en local hay que exportar

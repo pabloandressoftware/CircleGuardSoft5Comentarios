@@ -27,7 +27,7 @@ Actuator y Micrometer están en el build raíz (`build.gradle.kts`) para todos l
 
 ## Qué incluye cada ambiente
 
-- **Namespace** por ambiente, con un Secret `circleguard-secrets` (10 claves) que crea `crear-secretos.sh`. Los valores vienen de Jenkins Credentials y no están en el repositorio.
+- **Namespace** por ambiente, con un Secret `circleguard-secrets` (11 claves, incluida `INTERNAL_API_KEY` de HU-21) que crea `crear-secretos.sh`. Los valores vienen de Jenkins Credentials y no están en el repositorio.
 - **Ingress** por servicio con los mismos prefijos que usa el proxy de Docker Compose (`deploy/Caddyfile`).
 - **HPA** en `gateway-service` y `promotion-service`: 70 % de CPU, de 2 a 5 réplicas (valores propuestos, por confirmar).
 - **Imagen inmutable:** la misma etiqueta SemVer (`vX.Y.Z`) en dev, stage y prod.
@@ -38,7 +38,7 @@ Actuator y Micrometer están en el build raíz (`build.gradle.kts`) para todos l
 ```bash
 kubectl apply -f deploy/k8s/namespaces.yaml
 
-# 10 variables de entorno con los secretos (ver el encabezado del script)
+# 11 variables de entorno con los secretos (ver el encabezado del script)
 bash deploy/k8s/crear-secretos.sh dev
 
 bash deploy/k8s/middleware.sh dev
@@ -84,9 +84,19 @@ Se probó en un cluster kind de un nodo (v1.31) creado en la máquina de desarro
 - Persistencia de Kafka y alta disponibilidad de la base de datos: esta HU deja un nodo por componente.
 - Las pruebas funcionales entre servicios (flujo de encuesta → Kafka → promotion): solo se comprobó que cada servicio arranca, se conecta y responde sus rutas de salud.
 
+## Seguridad (HU-21)
+
+- Cada release crea una `ServiceAccount` sin token montado y sin permisos sobre
+  la API de Kubernetes.
+- Los Ingress piden certificados a cert-manager (`circleguard-selfsigned`) y se
+  verifican con `curl -k`.
+- auth-service queda cerrado por defecto; `/identities/map` y `/admin/**`
+  exigen autenticación.
+
+Detalles y comandos: [HU-21 · RBAC, TLS y acceso](seguridad-k8s.md).
+
 ## Pendiente (otras HU)
 
-- HU-17 crea el cluster real con Terraform; esta HU solo depende de que exista.
+- HU-17 crea el cluster real con Terraform y entrega los kubeconfigs.
 - HU-19 llama a `desplegar.sh` desde Jenkins.
-- HU-21 agrega TLS, RBAC y autenticación de rutas.
 - HU-24 y HU-25 consumen `/actuator/prometheus` y los logs.

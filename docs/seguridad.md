@@ -38,3 +38,7 @@ Regla: los valores nuevos solo viven en Jenkins Credentials y en Secrets de Kube
 ## Secretos en Kubernetes
 
 Los Secrets de cada namespace se crean con HU-18 (Helm). Los valores salen de Jenkins Credentials y se inyectan al desplegar; el chart solo referencia el nombre del Secret.
+
+HU-21 agrega `INTERNAL_API_KEY` para llamadas entre servicios y documenta los
+roles de Jenkins, las ServiceAccounts, TLS con cert-manager y la política de
+rutas en [seguridad-k8s.md](seguridad-k8s.md).
