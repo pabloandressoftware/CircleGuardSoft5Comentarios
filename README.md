@@ -227,6 +227,13 @@ missing by design: `circleguard-env-ssh` and `circleguard-env-dev/stage/prod`.
 Until those exist, use `SKIP_DEPLOY=true` to validate the pipeline without
 touching any VM.
 
+HU-19 adds two optional paths: `kubeconfig-dev/stage/prod` (Kubernetes/k3s) and
+`aws-terraform` (Terraform). Rebuild the Jenkins image to get `terraform`,
+`helm`, `kubectl` and the AWS CLI. The expected Terraform layout, registry
+requirements and Ingress/DNS steps are in
+[docs/hu-19-pipeline.md](docs/hu-19-pipeline.md) and
+[docs/hu-17-terraform-contrato.md](docs/hu-17-terraform-contrato.md).
+
 Expected evidence after a real run: `published-images.txt`, the image digests,
 `docker compose ps` per environment, smoke output, the Playwright report,
 `deploy-<env>.txt` and `approval-prod.txt`.
@@ -248,6 +255,9 @@ Documentos: [arquitectura y pipeline (diagramas)](docs/arquitectura.md) ·
 | Pruebas de integración con Testcontainers (PostgreSQL y Kafka reales, requiere Docker) | `gradle :services:circleguard-identity-service:integrationTest :services:circleguard-form-service:integrationTest` |
 | Probar el pipeline sin tocar ninguna VM | Ejecutar el job con `SKIP_DEPLOY=true` |
 | Publicar y desplegar | Un tag `vX.Y.Z` (lo crea Release Please al unir su PR en `main`) recorre dev, E2E, stage, aprobación y prod. |
+| **Terraform (HU-19)** | Un PR que toca `infra/` ejecuta `terraform plan`; un tag aplica dev/stage y, tras la aprobación, prod. Requiere la credencial `aws-terraform` y `infra/terraform/envs/<ambiente>` (HU-17). |
+| **Kubernetes (HU-19)** | `DEPLOY_TARGET=helm` despliega con Helm en k3s y espera `kubectl rollout status`; `compose` conserva el despliegue por SSH. Credenciales `kubeconfig-dev/stage/prod`. |
+| **Middleware en k3s** | Ejecutar el tag con `DEPLOY_MIDDLEWARE=true` para instalar PostgreSQL, Redis, Kafka, Neo4j y OpenLDAP en el namespace antes de los servicios. |
 | **Rollback** | Ejecutar el job con `ROLLBACK_TAG=vX.Y.Z` y `ROLLBACK_ENV=dev|stage|prod`. Redespliega esa etiqueta ya publicada y corre la prueba de humo; prod pide la aprobación del usuario `aprobador`. |
 | **Notificaciones de fallo** | El pipeline avisa por Discord (credencial `discord-webhook`) y por correo (`CI_SMTP_*` y `CI_NOTIFY_EMAILS` del `ci.env`). |
 
