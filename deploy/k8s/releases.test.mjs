@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { rollback, snapshot, table } from './releases.mjs';
 
-function fixture({ missing = null, fail = null, unhealthy = false } = {}) {
-  const tags = { web: 'v1.1.0', 'auth-service': 'v1.1.0' };
+function fixture({ missing = null, fail = null, unhealthy = false, versions = {} } = {}) {
+  const tags = { web: 'v1.1.0', 'auth-service': 'v1.1.0', ...versions };
   const mutations = [];
   const run = (_environment, binary, args) => {
     if (args[0] === 'config') return 'kind-test';
@@ -100,10 +100,10 @@ test('un cambio concurrente del historial detiene el rollback', async () => with
 }));
 
 test('el reporte muestra mezclas de versiones y ambientes no consultados', () => {
-  const f = fixture();
-  const entry = snapshot('dev', ['web'], f.run);
+  const f = fixture({ versions: { 'auth-service': 'v1.0.0' } });
+  const entry = snapshot('dev', ['web', 'auth-service'], f.run);
   const report = table([entry]);
-  assert.match(report, /\| dev \| v1\.1\.0/);
+  assert.match(report, /\| dev \| v1\.1\.0, v1\.0\.0/);
   assert.match(report, /\| prod \| no consultado/);
   assert.ok(!JSON.stringify(entry).includes('secretEnv'));
 });
