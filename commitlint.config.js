@@ -5,5 +5,7 @@ module.exports = {
     // Los asuntos van en español y suelen empezar con siglas o nombres propios
     // (URLs, JaCoCo, QR, SonarQube), que la regla por defecto rechaza.
     'subject-case': [0],
+    // Los cuerpos descriptivos en español necesitan algo más de margen.
+    'body-max-line-length': [2, 'always', 150],
   },
 };
