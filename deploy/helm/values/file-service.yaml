@@ -1,0 +1,12 @@
+# HU-18 · file-service
+image:
+  repository: 127.0.0.1:5000/circleguard/circleguard-file-service
+port: 8085
+env:
+  JAVA_TOOL_OPTIONS: "-Xms64m -Xmx320m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
+secretEnv:
+  {}
+ingress:
+  enabled: true
+  paths:
+    - /api/v1/files

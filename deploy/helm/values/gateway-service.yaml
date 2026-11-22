@@ -1,0 +1,22 @@
+# HU-18 · gateway-service
+image:
+  repository: 127.0.0.1:5000/circleguard/circleguard-gateway-service
+port: 8087
+env:
+  JAVA_TOOL_OPTIONS: "-Xms64m -Xmx320m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  QR_EXPIRATION: "60000"
+secretEnv:
+  REDIS_PASSWORD: REDIS_PASSWORD
+  JWT_SECRET: JWT_SECRET
+  QR_SECRET: QR_SECRET
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  cpuUtilization: 70
+ingress:
+  enabled: true
+  paths:
+    - /api/v1/gate
