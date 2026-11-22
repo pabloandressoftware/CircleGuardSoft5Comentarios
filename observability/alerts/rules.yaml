@@ -13,21 +13,21 @@ groups:
         expr: |
           avg_over_time(
             (
-              sum(up{job=~"circleguard-.*"})
+              sum(up{namespace=~"circleguard-(dev|stage|prod)"})
               /
-              clamp_min(count(up{job=~"circleguard-.*"}), 1)
+              clamp_min(count(up{namespace=~"circleguard-(dev|stage|prod)"}), 1)
             )[5m:15s]
           )
 
       - alert: CircleguardServiceDown
-        expr: up{job=~"circleguard-.*"} == 0
+        expr: up{namespace=~"circleguard-(dev|stage|prod)"} == 0
         for: 1m
         labels:
           severity: critical
           team: circleguard
         annotations:
           summary: "Servicio CircleGuard caido"
-          description: "{{ $labels.job }} no responde a Prometheus desde hace mas de 1 minuto."
+          description: "{{ $labels.namespace }} ({{ $labels.job }}) no responde a Prometheus desde hace mas de 1 minuto."
 
       - alert: CircleguardHigh5xxRate
         expr: |

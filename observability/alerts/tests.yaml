@@ -10,7 +10,7 @@ evaluation_interval: 1m
 tests:
   - interval: 1m
     input_series:
-      - series: 'up{job="circleguard-dev/identity-service"}'
+      - series: 'up{namespace="circleguard-dev", job="identity-service"}'
         values: '0x10'
     alert_rule_test:
       - eval_time: 2m
@@ -19,10 +19,11 @@ tests:
           - exp_labels:
               severity: critical
               team: circleguard
-              job: circleguard-dev/identity-service
+              namespace: circleguard-dev
+              job: identity-service
             exp_annotations:
               summary: "Servicio CircleGuard caido"
-              description: "circleguard-dev/identity-service no responde a Prometheus desde hace mas de 1 minuto."
+              description: "circleguard-dev (identity-service) no responde a Prometheus desde hace mas de 1 minuto."
 
   - interval: 1m
     input_series:
@@ -79,7 +80,7 @@ tests:
 
   - interval: 1m
     input_series:
-      - series: 'up{job="circleguard-dev/identity-service"}'
+      - series: 'up{namespace="circleguard-dev", job="identity-service"}'
         values: '0x10'
     alert_rule_test:
       - eval_time: 6m
