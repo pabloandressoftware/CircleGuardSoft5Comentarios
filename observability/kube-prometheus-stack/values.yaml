@@ -31,32 +31,11 @@ prometheus:
       limits: { cpu: 1000m, memory: 2Gi }
 
 alertmanager:
-  config:
-    global:
-      resolve_timeout: 5m
-    route:
-      receiver: discord
-      group_by: [alertname, namespace]
-      group_wait: 10s
-      group_interval: 5m
-      repeat_interval: 4h
-      routes:
-        - matchers:
-            - severity="critical"
-          receiver: discord
-    receivers:
-      - name: discord
-        discord_configs:
-          # El mismo webhook de Spidey que usa Jenkins (credencial discord-webhook).
-          - webhook_url_file: /etc/alertmanager/secrets/alertmanager-discord/webhook-url
-            send_resolved: true
-            title: '{{ .CommonAnnotations.summary }}'
-            message: |
-              {{ range .Alerts }}{{ .Annotations.description }}
-              {{ end }}
+  # HU-24: la configuracion completa vive en un Secret (`alertmanager-config`) para
+  # poder usar `webhook_url`. El chart 65.5.1 trae Alertmanager v0.27.0, que falla
+  # al validar `webhook_url_file` ("no discord webhook URL provided").
   alertmanagerSpec:
-    secrets:
-      - alertmanager-discord
+    configSecret: alertmanager-config
     resources:
       requests: { cpu: 50m, memory: 64Mi }
       limits: { cpu: 200m, memory: 256Mi }

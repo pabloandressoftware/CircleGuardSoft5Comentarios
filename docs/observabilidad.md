@@ -40,8 +40,10 @@ bash observability/instalar.sh
 ```
 
 El webhook es el mismo de **Spidey**, el bot que ya usa Jenkins en la credencial
-`discord-webhook` (`CI_DISCORD_WEBHOOK` en `ci.env`). El script lo guarda en el
-Secret `alertmanager-discord` y no lo escribe en el repositorio.
+`discord-webhook` (`CI_DISCORD_WEBHOOK` en `ci.env`). El script lo guarda dentro
+del Secret `alertmanager-config` y no lo escribe en el repositorio. Se usa
+`webhook_url` (no `webhook_url_file`) porque Alertmanager v0.27.0, el que trae el
+chart 65.5.1, rechaza esa variante.
 
 El script instala el stack, aplica `observability/servicemonitors.yaml`, las
 reglas de `observability/alerts/` y los dashboards de `observability/grafana/`.
@@ -54,10 +56,10 @@ kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
 # http://127.0.0.1:3000  (admin / GRAFANA_ADMIN_PASSWORD)
 
 # Prometheus
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-kube-prometheus-prometheus 9090:9090
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
 
 # Alertmanager
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-kube-prometheus-alertmanager 9093:9093
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-alertmanager 9093:9093
 ```
 
 ## Dashboards

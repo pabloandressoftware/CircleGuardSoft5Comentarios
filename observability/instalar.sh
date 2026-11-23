@@ -7,7 +7,7 @@
 #   bash observability/instalar.sh
 #
 # El webhook es el mismo de Spidey que usa Jenkins (credencial discord-webhook).
-# Nunca se escribe en el repositorio: se guarda en el Secret alertmanager-discord.
+# Nunca se escribe en el repositorio: se guarda en el Secret alertmanager-config.
 set -euo pipefail
 
 raiz="$(cd "$(dirname "$0")/.." && pwd)"
@@ -32,8 +32,14 @@ kubectl -n "$monitoring_ns" create secret generic grafana-admin \
   --from-literal=admin-password="$GRAFANA_ADMIN_PASSWORD" \
   --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 
-kubectl -n "$monitoring_ns" create secret generic alertmanager-discord \
-  --from-literal=webhook-url="$webhook" \
+# Alertmanager v0.27.0 no acepta `webhook_url_file`; se genera una configuracion
+# completa con `webhook_url` y se guarda en un Secret (nunca en el repo).
+alertmanager_config="$(mktemp)"
+trap 'rm -f "$alertmanager_config"' EXIT
+sed "s|__DISCORD_WEBHOOK__|${webhook}|g" \
+  "$raiz/observability/alertmanager.yaml.tmpl" > "$alertmanager_config"
+kubectl -n "$monitoring_ns" create secret generic alertmanager-config \
+  --from-file=alertmanager.yaml="$alertmanager_config" \
   --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts >/dev/null
@@ -78,8 +84,8 @@ kube-prometheus-stack $version instalado en $monitoring_ns.
 
 Grafana:     kubectl -n $monitoring_ns port-forward svc/$release-grafana 3000:80
              http://127.0.0.1:3000  (usuario admin)
-Prometheus:  kubectl -n $monitoring_ns port-forward svc/$release-kube-prometheus-prometheus 9090:9090
-Alertmanager:kubectl -n $monitoring_ns port-forward svc/$release-kube-prometheus-alertmanager 9093:9093
+Prometheus:  kubectl -n $monitoring_ns port-forward svc/kube-prometheus-stack-prometheus 9090:9090
+Alertmanager:kubectl -n $monitoring_ns port-forward svc/kube-prometheus-stack-alertmanager 9093:9093
 
 El ServiceMonitor recolecta los 8 servicios Java de los 3 ambientes.
 EOF
