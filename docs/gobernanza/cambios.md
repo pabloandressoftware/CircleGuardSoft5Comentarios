@@ -70,4 +70,6 @@ El autor del PR nunca aprueba el suyo.
 - El tag `v*` dispara el build de release en Jenkins (publica las imagenes con esa version
   y sigue hacia stage y prod con aprobacion manual).
 - Primera release: `v1.0.0` (PR #37).
-- Volver atras: ejecutar el pipeline con `ROLLBACK_TAG` y `ROLLBACK_ENV` (ver README).
+- Volver atras: ejecutar el pipeline con `ROLLBACK_TAG` y `ROLLBACK_ENV`. En
+  Kubernetes se restauran revisiones Helm y se conserva evidencia (ver
+  [HU-27](../hu-27-versiones-rollback.md)). Prod mantiene aprobación manual.

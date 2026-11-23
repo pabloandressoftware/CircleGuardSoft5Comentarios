@@ -63,3 +63,17 @@ roots con Terraform 1.9.8 y tres pruebas con proveedor simulado. El operador
 informó que su Free plan AWS agotó los créditos: no se ejecutaron operaciones
 AWS ni apply/destroy. Cuenta, costos y evidencia real quedan pendientes de
 revisión del equipo; la revisión humana y el PR no se dan por realizados.
+
+## Parte 2 · HU-27 (22-nov-2026)
+
+Asistente: Codex (OpenAI). Prompt reformulado: «Implementar notas de versiones,
+una tabla de lo que corre por ambiente y demostrar helm rollback con antes,
+después y tiempo, en una rama separada que reutilice HU-03/HU-19».
+
+Se implementaron inventario, validación de notas de GitHub Release y rollback
+por revisión Helm. Se aprobaron diez pruebas automáticas. Se verificaron las
+notas públicas de v1.0.0 y se ejecutó un rollback real en kind del chart web con
+imágenes sintéticas: v0.2.0 a v0.1.0 en 12.717 s hasta HTTP 200. Se guardaron
+revisiones, imágenes, digests y respuestas HTTP sin Secrets. No se publicaron
+tags/releases ni se usó AWS. Jenkins integrado y rollback de los nueve
+servicios reales quedan pendientes; el equipo debe revisar y aprobar el PR.

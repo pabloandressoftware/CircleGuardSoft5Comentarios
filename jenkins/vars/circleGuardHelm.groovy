@@ -71,6 +71,9 @@ def call(String environment, Map args = [:]) {
                 REGISTRY="$registry" bash deploy/k8s/desplegar.sh \
                     "$HELM_ENV" "$HELM_IMAGE_TAG"
 
+                node deploy/k8s/releases.mjs snapshot "$HELM_ENV" \
+                    ".local-evidence/hu-27/$HELM_ENV/deploy"
+
                 host=$(printf '%s' "${SITE_ADDRESS:-}" | cut -d, -f1 | xargs)
                 printf '%s' "$host" > ".helm-host-${HELM_ENV}.txt"
             '''
@@ -87,6 +90,43 @@ def call(String environment, Map args = [:]) {
     archiveArtifacts artifacts: "deploy-helm-${environment}.txt", allowEmptyArchive: true
     echo "${imageTag} desplegado con Helm en ${environment}: https://${host}"
     return host
+}
+
+// HU-27: restaura revisiones existentes; no reconstruye imágenes, aplica
+// Terraform, actualiza Secrets ni reinstala middleware.
+def rollback(String environment, String imageTag) {
+    if (!(environment in ['dev', 'stage', 'prod']) ||
+        !(imageTag ==~ /^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/)) {
+        error('Ambiente o etiqueta de rollback inválidos')
+    }
+    withCredentials([
+        file(credentialsId: "kubeconfig-${environment}", variable: 'KUBECONFIG'),
+        file(credentialsId: "circleguard-env-${environment}", variable: 'CIRCLE_ENV_FILE'),
+    ]) {
+        withEnv(["HELM_ENV=${environment}", "HELM_IMAGE_TAG=${imageTag}"]) {
+            sh '''#!/bin/bash
+                set -euo pipefail
+                set -a
+                . "$CIRCLE_ENV_FILE"
+                set +a
+                host=$(printf '%s' "${SITE_ADDRESS:?Falta SITE_ADDRESS}" | cut -d, -f1 | xargs)
+                node deploy/k8s/releases.mjs rollback "$HELM_ENV" "$HELM_IMAGE_TAG" \
+                    "https://$host/" ".local-evidence/hu-27/$HELM_ENV/rollback"
+                printf '%s' "$host" > ".helm-host-${HELM_ENV}.txt"
+            '''
+        }
+    }
+    return readFile(".helm-host-${environment}.txt").trim()
+}
+
+def inventory() {
+    withCredentials([
+        file(credentialsId: 'kubeconfig-dev', variable: 'KUBECONFIG_DEV'),
+        file(credentialsId: 'kubeconfig-stage', variable: 'KUBECONFIG_STAGE'),
+        file(credentialsId: 'kubeconfig-prod', variable: 'KUBECONFIG_PROD'),
+    ]) {
+        sh 'node deploy/k8s/releases.mjs snapshot all .local-evidence/hu-27/overview'
+    }
 }
 
 // Permite cargar este paso con "load" desde el Jenkinsfile

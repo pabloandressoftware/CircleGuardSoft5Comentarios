@@ -270,6 +270,14 @@ anterior; las URL HTTPS de la aplicación estarán disponibles cuando se complet
 
 ---
 
+## Versiones por ambiente y rollback (HU-27)
+
+El [runbook HU-27](docs/hu-27-versiones-rollback.md) explica las notas de release,
+el inventario observado de dev/stage/prod y la restauración mediante `helm rollback`.
+Jenkins archiva las imágenes/revisiones antes y después y el tiempo hasta superar
+el humo. La [demostración local](docs/evidencias/hu-27/README.md) restauró web de
+v0.2.0 a v0.1.0 en 12.717 s; los ambientes reales siguen pendientes.
+
 ## Privacy & Compliance
 
 - **FERPA Compliance**: Student identities are never stored in the contact graph.

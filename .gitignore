@@ -71,5 +71,6 @@ kubeconfig-*
 *.pem
 .tools/
 .local-evidence/
+release-notes.md
 infra/terraform/**/terraform-plan.txt
 infra/terraform/**/terraform-no-changes.txt
