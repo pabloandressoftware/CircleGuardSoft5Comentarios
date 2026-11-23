@@ -47,7 +47,7 @@ start_forward() {
 
 alertmanager_url="${ALERTMANAGER_URL:-}"
 if [[ -z "$alertmanager_url" ]]; then
-  kubectl -n monitoring port-forward svc/kube-prometheus-stack-kube-prometheus-alertmanager 19093:9093 >/dev/null 2>&1 &
+  kubectl -n monitoring port-forward svc/kube-prometheus-stack-alertmanager 19093:9093 >/dev/null 2>&1 &
   pids+=("$!")
   alertmanager_url="http://127.0.0.1:19093"
   sleep 2
