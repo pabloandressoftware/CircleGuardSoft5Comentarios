@@ -64,13 +64,20 @@ def apply(String environment, Map args = [:]) {
     String region = args.get('region', env.AWS_REGION ?: 'us-east-2')
     String credentialsId = args.get('credentialsId', 'aws-terraform')
 
-    withAws(credentialsId, region) {
-        dir(dir) {
-            sh '''#!/bin/bash
-                set -euo pipefail
-                terraform apply -input=false -lock-timeout=5m -auto-approve tfplan
-            '''
+    try {
+        withAws(credentialsId, region) {
+            dir(dir) {
+                sh '''#!/bin/bash
+                    set -euo pipefail
+                    terraform apply -input=false -lock-timeout=5m -auto-approve tfplan
+                    # HU-17: exit 2 (cambios) o 1 (error) bloquea el despliegue.
+                    terraform plan -input=false -lock-timeout=5m -detailed-exitcode -no-color \
+                        > terraform-no-changes.txt 2>&1
+                '''
+            }
         }
+    } finally {
+        archiveArtifacts artifacts: "${dir}/terraform-no-changes.txt", allowEmptyArchive: true
     }
     echo "Terraform apply de ${environment} completado."
     return true

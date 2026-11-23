@@ -65,9 +65,12 @@ tfplan
 crash.log
 crash.*.log
 
-# Evidencia local y credenciales de operación (HU-27).
-.local-evidence/
-.tools/
+# Credenciales y evidencias locales de operación (HU-17/HU-27).
 *.kubeconfig
 kubeconfig-*
+*.pem
+.tools/
+.local-evidence/
 release-notes.md
+infra/terraform/**/terraform-plan.txt
+infra/terraform/**/terraform-no-changes.txt

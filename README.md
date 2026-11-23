@@ -283,3 +283,12 @@ v0.2.0 a v0.1.0 en 12.717 s; los ambientes reales siguen pendientes.
 - **FERPA Compliance**: Student identities are never stored in the contact graph.
 - **Right to be Forgotten**: Users can trigger complete data purging via the Identity Vault.
 - **Temporal Privacy**: All contact edges are automatically purged after 14 days.
+
+## Infraestructura Terraform (HU-17)
+
+Los ambientes dev/stage/prod reutilizan los módulos `network`, `cluster`,
+`registry`, `storage` y `observability`. El [runbook HU-17](docs/hu-17-terraform.md)
+explica cuenta/cuotas, bootstrap S3/DynamoDB, k3s, kubeconfigs, bloqueo,
+idempotencia y apagado/destroy. La [evidencia](docs/evidencias/hu-17.md) distingue
+validación local de aprovisionamiento real pendiente. Las configuraciones AWS
+son plantillas que requieren cuenta y presupuesto confirmados.

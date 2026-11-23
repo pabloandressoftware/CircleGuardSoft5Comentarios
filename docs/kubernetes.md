@@ -102,8 +102,9 @@ El contrato que debe cumplir Terraform: [HU-17 · contrato](hu-17-terraform-cont
 
 ## Pendiente (otras HU)
 
-- HU-17 crea el cluster real con Terraform y entrega los kubeconfigs; el
-  pipeline ya está cableado y omite las etapas mientras no exista
-  `infra/terraform/envs/<ambiente>`.
+- HU-17 implementa Terraform en `infra/terraform/envs/<ambiente>`; el
+  aprovisionamiento y los kubeconfigs reales siguen pendientes por cuenta y
+  presupuesto. k3s usa Traefik y los values por ambiente declaran su IngressClass.
+  Ver [operación HU-17](hu-17-terraform.md).
 - HU-21 agrega TLS, RBAC y autenticación de rutas.
 - HU-24 y HU-25 consumen `/actuator/prometheus` y los logs.

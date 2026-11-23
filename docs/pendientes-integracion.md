@@ -31,13 +31,22 @@ Fecha de este estado: 22 de noviembre de 2026.
 
 Referencia: `docs/kubernetes.md`.
 
+### HU-17 · Terraform
+
+- Código implementado en `hu-17`, creada desde HU-19; ver
+  [runbook](hu-17-terraform.md) y [evidencias](evidencias/hu-17.md).
+- Cuenta del operador sin créditos en Free plan: no se aprovisionó AWS.
+- Completar cuenta, AMI, CIDR, Nexus y backend antes de plan/apply reales.
+- Demostrar bloqueo DynamoDB y plan sin cambios después del apply.
+- k3s usa Traefik: HU-21 debe usar ese IngressClass en cert-manager.
+
 ### HU-19 · Terraform y Helm en Jenkins
 
 - Crear el PR de `feat/hu-19-pipeline-terraform-helm` a `dev` y fusionarlo.
 - Reconstruir la imagen de Jenkins para tener `terraform`, `helm`, `kubectl` y
   AWS CLI (`infra/ci/jenkins/Dockerfile`).
-- Esperar el código de HU-17; mientras no exista `infra/terraform/envs/<ambiente>`,
-  `Terraform plan` se omite con un aviso.
+- Integrar `hu-17` después de HU-19. Su código ya existe; faltan la cuenta
+  autorizada, la configuración real y las credenciales para ejecutar Terraform.
 - Cargar `aws-terraform` y `kubeconfig-dev/stage/prod` en Jenkins.
 - Hacer alcanzable `REGISTRY` desde k3s y actualizar los `circleguard-env-*`.
 - Configurar `SITE_ADDRESS` con el Ingress y HTTPS reales.
@@ -104,10 +113,12 @@ El contrato detallado está en `docs/hu-17-terraform-contrato.md`. En resumen:
 ```
 infra/terraform/
 ├── modules/
-│   ├── red/                 # VPC, subredes, IGW, security groups
-│   ├── computo/             # EC2 k3s (o EKS)
-│   ├── registro/            # ECR o integración con Nexus
-│   └── observabilidad/      # almacenamiento/logs, si aplica
+│   ├── network/             # VPC, subredes, IGW, security groups
+│   ├── cluster/             # EC2 k3s
+│   ├── registry/            # integración con Nexus
+│   ├── storage/             # EBS cifrado para k3s/PVC
+│   ├── observability/       # logs CloudWatch; dashboards en HU-24
+│   └── environment/         # composición compartida de los cinco módulos
 └── envs/
     ├── dev/
     │   ├── main.tf
@@ -187,6 +198,8 @@ Cada ambiente debe ser un root module independiente que reutilice `modules/`.
   de Kubernetes; no debe quedar en Git.
 
 ## 6. Checklist final
+
+- [x] Código HU-17 con cinco módulos y composición compartida en su rama.
 
 - [ ] HU-17 fusionada y `terraform plan/apply` ejecutado en dev, stage y prod.
 - [ ] `kubeconfig-*` y `aws-terraform` cargados en Jenkins.

@@ -1,9 +1,10 @@
 # Contrato de Terraform para HU-17
 
 Este documento es para quien implemente **HU-17 (Terraform)**. HU-19 ya dejó el
-pipeline listo para ejecutar `terraform plan` y `terraform apply`, pero **no hay
-archivos `.tf` en el repositorio todavía**. Si HU-17 no respeta esta estructura,
-sus etapas de Terraform se omitirán o fallarán en Jenkins.
+pipeline listo para ejecutar `terraform plan` y `terraform apply`. La rama
+`hu-17` implementa este contrato; la configuración AWS y sus evidencias reales
+siguen pendientes. Ver [operación HU-17](hu-17-terraform.md) y
+[evidencias](evidencias/hu-17.md).
 
 ## Qué espera el pipeline
 
@@ -37,10 +38,12 @@ terraform apply -input=false -lock-timeout=5m -auto-approve tfplan
 ```
 infra/terraform/
 ├── modules/
-│   ├── red/                 # VPC, subredes, IGW, security groups
-│   ├── computo/             # EC2 k3s (o EKS, si se decide después)
-│   ├── registro/            # ECR o integración con Nexus
-│   └── observabilidad/      # almacenamiento/logs, si aplica
+│   ├── network/             # VPC, subredes, IGW, security groups
+│   ├── cluster/             # EC2 k3s
+│   ├── registry/            # integración con Nexus
+│   ├── storage/             # EBS cifrado para k3s/PVC
+│   ├── observability/       # logs CloudWatch; dashboards en HU-24
+│   └── environment/         # composición compartida de los cinco módulos
 └── envs/
     ├── dev/
     │   ├── main.tf
@@ -155,11 +158,11 @@ En ambos casos, actualiza `REGISTRY` en los `.env` de Jenkins.
 
 ## Checklist de compatibilidad con HU-19
 
-- [ ] Existe `infra/terraform/envs/dev|stage|prod/` con un root module válido.
-- [ ] `terraform fmt -check -recursive` pasa en `infra/terraform`.
-- [ ] `terraform validate` pasa en los tres ambientes.
+- [x] Existe `infra/terraform/envs/dev|stage|prod/` con un root module válido.
+- [x] `terraform fmt -check -recursive` pasa en `infra/terraform`.
+- [x] `terraform validate` pasa en los tres ambientes (init sin backend; sin AWS).
 - [ ] `terraform plan` funciona con la credencial `aws-terraform` y sin TTY.
-- [ ] `backend.hcl` usa S3 + DynamoDB y una clave distinta por ambiente.
+- [x] `backend.hcl` define S3 + DynamoDB y una clave distinta por ambiente (cuenta pendiente).
 - [ ] `terraform apply` es idempotente y no pide confirmación.
 - [ ] El kubeconfig de cada ambiente está cargado como credencial de Jenkins.
 - [ ] `REGISTRY` en `circleguard-env-*` es alcanzable desde k3s.
