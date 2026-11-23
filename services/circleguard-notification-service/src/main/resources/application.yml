@@ -56,6 +56,34 @@ qr:
   secret: ${QR_SECRET}
   expiration: ${QR_EXPIRATION:60000}
 
+circleguard:
+  # HU-21: cabecera de servicio para consultar permisos en auth-service.
+  internal:
+    api-key: ${INTERNAL_API_KEY:}
+
 server:
   port: 8082
   forward-headers-strategy: native
+
+# HU-18: sondas de Kubernetes (/actuator/health/liveness y /readiness) y metricas
+# (/actuator/prometheus). El Ingress no publica /actuator; solo se usa dentro del cluster.
+management:
+  metrics:
+    tags:
+      # HU-24: agrupa las metricas por servicio en Prometheus/Grafana.
+      application: ${spring.application.name}
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
+# HU-25: el agente de OpenTelemetry pone trace_id y span_id en el MDC; se imprimen para que
+# Loki permita filtrar por traceId. Sin el agente (Compose, pruebas) quedan vacios.
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},trace_id=%X{trace_id:-},span_id=%X{span_id:-}]"

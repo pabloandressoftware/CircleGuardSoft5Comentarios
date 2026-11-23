@@ -1,0 +1,31 @@
+# HU-25 · Orígenes de datos de Grafana para Loki y Jaeger. El sidecar de Grafana de
+# kube-prometheus-stack (HU-24) carga los ConfigMap con la etiqueta grafana_datasource.
+# En Loki, el trace_id de cada log se vuelve un enlace a la traza en Jaeger.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: circleguard-datasources-trazas-logs
+  namespace: monitoring
+  labels:
+    grafana_datasource: "1"
+    app.kubernetes.io/part-of: circleguard
+data:
+  trazas-logs.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Jaeger
+        uid: jaeger
+        type: jaeger
+        access: proxy
+        url: http://jaeger.monitoring.svc:16686
+      - name: Loki
+        uid: loki
+        type: loki
+        access: proxy
+        url: http://loki.monitoring.svc:3100
+        jsonData:
+          derivedFields:
+            - name: traceId
+              matcherRegex: "trace_id=(\\w+)"
+              url: "$${__value.raw}"
+              datasourceUid: jaeger

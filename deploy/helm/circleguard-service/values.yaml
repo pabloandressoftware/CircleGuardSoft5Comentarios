@@ -1,0 +1,77 @@
+# Valores por defecto. Cada servicio los sobreescribe en deploy/helm/values/<servicio>.yaml
+# y cada ambiente en deploy/helm/envs/<ambiente>.yaml.
+image:
+  repository: 127.0.0.1:5000/circleguard/circleguard-example-service
+  tag: ""            # obligatorio: la etiqueta SemVer (v1.0.0), la misma en todos los ambientes
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+# HU-21: una ServiceAccount por release, sin token montado. Los servicios no
+# necesitan hablar con la API de Kubernetes, asi que no tienen RoleBindings.
+serviceAccount:
+  create: true
+  name: ""
+  automount: false
+  annotations: {}
+
+port: 8080
+replicas: 1
+
+# Variables no secretas.
+env: {}
+
+# Variables secretas: NOMBRE_DE_LA_VARIABLE: clave dentro del Secret `secretName`.
+# Los valores nunca estan en el repositorio: el Secret lo crea deploy/k8s/crear-secretos.sh
+# desde Jenkins Credentials (o variables de entorno) en cada namespace.
+secretName: circleguard-secrets
+secretEnv: {}
+
+resources:
+  requests: { cpu: 100m, memory: 256Mi }
+  limits: { cpu: 500m, memory: 512Mi }
+
+# HU-25: trazas con el agente Java de OpenTelemetry hacia Jaeger (ver observability/trazas-logs/).
+# Apagado por defecto; lo activan los servicios del flujo de encuestas en deploy/helm/values/.
+otel:
+  enabled: false
+  agentImage: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.10.0
+  # OTLP/HTTP del Jaeger que instala observability/trazas-logs/instalar.sh en el namespace monitoring.
+  endpoint: http://jaeger.monitoring.svc:4318
+
+probes:
+  timeoutSeconds: 5
+  # Spring Boot tarda 35-50 s en arrancar en kind con disco lento: la sonda de arranque
+  # (hasta 5 min) evita que liveness reinicie el pod antes de tiempo.
+  startup:
+    periodSeconds: 10
+    failureThreshold: 30
+  liveness:
+    path: /actuator/health/liveness
+    initialDelaySeconds: 0
+    periodSeconds: 15
+    failureThreshold: 6
+  readiness:
+    path: /actuator/health/readiness
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    failureThreshold: 6
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+
+# Escalado horizontal. Umbrales propuestos: 70 % de CPU, de 2 a 5 replicas.
+hpa:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  cpuUtilization: 70
+
+# El Ingress solo publica rutas de la API; /actuator no se expone fuera del cluster.
+ingress:
+  enabled: false
+  className: nginx
+  host: ""           # vacio = cualquier host
+  paths: []
+  annotations: {}
+  tls: []

@@ -53,3 +53,24 @@ ci.env
 *_data/
 pgdata/
 neo4jdata/
+
+# Terraform (HU-19): estado local, planes y cache no se versionan.
+# Si se versionan los .tfvars y se conserva .terraform.lock.hcl.
+.terraform/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+crash.*.log
+
+# Credenciales y evidencias locales de operación (HU-17/HU-27).
+*.kubeconfig
+kubeconfig-*
+*.pem
+.tools/
+.local-evidence/
+release-notes.md
+infra/terraform/**/terraform-plan.txt
+infra/terraform/**/terraform-no-changes.txt

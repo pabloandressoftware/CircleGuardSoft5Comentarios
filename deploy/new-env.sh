@@ -50,7 +50,7 @@ CORS_ALLOWED_ORIGINS=https://${host}
 DB_USERNAME=circleguard
 DB_PASSWORD=$(rand 32)
 # Solo dev crea tablas solo; stage y prod validan contra las migraciones de Flyway.
-if [[ $environment == dev ]]; then JPA_DDL_AUTO=update; else JPA_DDL_AUTO=validate; fi
+JPA_DDL_AUTO=$([[ $environment == dev ]] && echo update || echo validate)
 
 # --- Tokens (auth, gateway, identity, promotion, notification) -------------
 # JWT_SECRET y QR_SECRET: minimo 32 caracteres (HMAC-SHA256)
@@ -66,6 +66,11 @@ QR_EXPIRATION=60000
 VAULT_SECRET=$(hex 32)
 VAULT_SALT=$(hex 8)
 VAULT_HASH_SALT=$(hex 8)
+
+# --- Llamadas internas entre servicios (HU-21) ------------------------------
+# auth-service e identity-service la usan para /identities/map durante el login;
+# notification-service la usa para consultar permisos en auth-service.
+INTERNAL_API_KEY=$(rand 48)
 
 # --- Middleware --------------------------------------------------------------
 NEO4J_PASSWORD=$(rand 24)

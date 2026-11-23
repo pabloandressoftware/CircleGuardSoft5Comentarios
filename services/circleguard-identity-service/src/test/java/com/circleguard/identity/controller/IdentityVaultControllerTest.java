@@ -11,14 +11,18 @@ import java.util.UUID;
 import org.springframework.kafka.core.KafkaTemplate;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.TestPropertySource;
 import com.circleguard.identity.config.SecurityConfig;
 
 @WebMvcTest(IdentityVaultController.class)
 @Import(SecurityConfig.class)
+@TestPropertySource(properties = "circleguard.internal.api-key=test-internal-key")
 class IdentityVaultControllerTest {
 
     @Autowired
@@ -29,6 +33,42 @@ class IdentityVaultControllerTest {
 
     @MockBean
     private KafkaTemplate<String, Object> kafkaTemplate;
+
+    @Test
+    void mapIdentity_Unauthenticated_Returns401() throws Exception {
+        mockMvc.perform(post("/api/v1/identities/map")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"realIdentity\":\"user@example.com\"}"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(vaultService);
+    }
+
+    @Test
+    @WithMockUser
+    void mapIdentity_Authenticated_ReturnsAnonymousId() throws Exception {
+        UUID anonymousId = UUID.randomUUID();
+        when(vaultService.getOrCreateAnonymousId("user@example.com")).thenReturn(anonymousId);
+
+        mockMvc.perform(post("/api/v1/identities/map")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"realIdentity\":\"user@example.com\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.anonymousId").value(anonymousId.toString()));
+    }
+
+    @Test
+    void mapIdentity_WithInternalApiKey_ReturnsAnonymousId() throws Exception {
+        UUID anonymousId = UUID.randomUUID();
+        when(vaultService.getOrCreateAnonymousId("user@example.com")).thenReturn(anonymousId);
+
+        mockMvc.perform(post("/api/v1/identities/map")
+                        .header("X-Internal-Api-Key", "test-internal-key")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"realIdentity\":\"user@example.com\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.anonymousId").value(anonymousId.toString()));
+    }
 
     @Test
     @WithMockUser(authorities = "identity:lookup")

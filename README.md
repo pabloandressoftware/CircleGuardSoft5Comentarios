@@ -211,10 +211,12 @@ environment secret files before running a release tag:
    - `circleguard-env-stage` → `bash deploy/new-env.sh stage <PublicDns-stage> [IP]`
    - `circleguard-env-prod` → `bash deploy/new-env.sh prod <PublicDns-prod> [IP]`
    - Validate each one with `bash deploy/check-env.sh <file>`.
-5. **Set the approver.** Define `CI_APPROVER_USER` (default `aprobador`) and
-   `CI_APPROVER_PASSWORD` in the CI `ci.env`. The local
-   `C:\Users\Rodol\circleguard-ci.env` already has a generated password; set
-   your own on a new CI host.
+5. **Set the approver and the developer.** Define `CI_APPROVER_USER`
+   (default `aprobador`), `CI_APPROVER_PASSWORD`, `CI_DEVELOPER_USER`
+   (default `desarrollador`) and `CI_DEVELOPER_PASSWORD` in the CI `ci.env`.
+   The local `C:\Users\Rodol\circleguard-ci.env` already has a generated
+   approver password; set your own on a new CI host. The developer user only
+   builds jobs and cannot administer Jenkins (HU-21).
 6. **Baseline Sonar (recommended).** Run one analysis from `main`/`dev` before
    the first release tag so the 60 % new-coverage gate has a baseline.
 7. **Release.** Merge `hu-10-deploy` into `dev`, merge `dev` into `main`, merge
@@ -226,6 +228,13 @@ Already created automatically: `nexus-registry` and `circleguard-e2e-health`
 missing by design: `circleguard-env-ssh` and `circleguard-env-dev/stage/prod`.
 Until those exist, use `SKIP_DEPLOY=true` to validate the pipeline without
 touching any VM.
+
+HU-19 adds two optional paths: `kubeconfig-dev/stage/prod` (Kubernetes/k3s) and
+`aws-terraform` (Terraform). Rebuild the Jenkins image to get `terraform`,
+`helm`, `kubectl` and the AWS CLI. The expected Terraform layout, registry
+requirements and Ingress/DNS steps are in
+[docs/hu-19-pipeline.md](docs/hu-19-pipeline.md) and
+[docs/hu-17-terraform-contrato.md](docs/hu-17-terraform-contrato.md).
 
 Expected evidence after a real run: `published-images.txt`, the image digests,
 `docker compose ps` per environment, smoke output, the Playwright report,
@@ -248,8 +257,15 @@ Documentos: [arquitectura y pipeline (diagramas)](docs/arquitectura.md) ·
 | Pruebas de integración con Testcontainers (PostgreSQL y Kafka reales, requiere Docker) | `gradle :services:circleguard-identity-service:integrationTest :services:circleguard-form-service:integrationTest` |
 | Probar el pipeline sin tocar ninguna VM | Ejecutar el job con `SKIP_DEPLOY=true` |
 | Publicar y desplegar | Un tag `vX.Y.Z` (lo crea Release Please al unir su PR en `main`) recorre dev, E2E, stage, aprobación y prod. |
+| **Terraform (HU-19)** | Un PR que toca `infra/` ejecuta `terraform plan`; un tag aplica dev/stage y, tras la aprobación, prod. Requiere la credencial `aws-terraform` y `infra/terraform/envs/<ambiente>` (HU-17). |
+| **Kubernetes (HU-19)** | `DEPLOY_TARGET=helm` despliega con Helm en k3s y espera `kubectl rollout status`; `compose` conserva el despliegue por SSH. Credenciales `kubeconfig-dev/stage/prod`. |
+| **Middleware en k3s** | Ejecutar el tag con `DEPLOY_MIDDLEWARE=true` para instalar PostgreSQL, Redis, Kafka, Neo4j y OpenLDAP en el namespace antes de los servicios. |
 | **Rollback** | Ejecutar el job con `ROLLBACK_TAG=vX.Y.Z` y `ROLLBACK_ENV=dev|stage|prod`. Redespliega esa etiqueta ya publicada y corre la prueba de humo; prod pide la aprobación del usuario `aprobador`. |
 | **Notificaciones de fallo** | El pipeline avisa por Discord (credencial `discord-webhook`) y por correo (`CI_SMTP_*` y `CI_NOTIFY_EMAILS` del `ci.env`). |
+| **Observabilidad (HU-24)** | `CI_DISCORD_WEBHOOK=... GRAFANA_ADMIN_PASSWORD=... bash observability/instalar.sh`. Grafana/Prometheus/Alertmanager se abren con `kubectl port-forward`. Ver [docs/observabilidad.md](docs/observabilidad.md). |
+| **Roles de Jenkins (HU-21)** | `admin` = `CI_JENKINS_USER`, `developer` = `CI_DEVELOPER_USER`, `approver` = `CI_APPROVER_USER`. Define `CI_DEVELOPER_PASSWORD` en el `ci.env` y reconstruye el CI. |
+| **TLS de Kubernetes (HU-21)** | `bash deploy/k8s/cert-manager.sh` instala cert-manager y el emisor autofirmado; los Ingress de dev/stage/prod piden su certificado. Verifica con `bash deploy/k8s/verificar-tls.sh <host>`. |
+| **Acceso a servicios (HU-21)** | auth-service queda cerrado por defecto; `/identities/map` exige JWT o clave interna y `/admin/**` exige `dashboard:view`. Ver [docs/seguridad-k8s.md](docs/seguridad-k8s.md). |
 
 **Secretos.** Ningún servicio trae contraseñas ni claves por defecto: se inyectan por variables de entorno
 (`deploy/new-env.sh` genera las de cada ambiente). Para correr un servicio en local hay que exportar
@@ -260,8 +276,25 @@ anterior; las URL HTTPS de la aplicación estarán disponibles cuando se complet
 
 ---
 
+## Versiones por ambiente y rollback (HU-27)
+
+El [runbook HU-27](docs/hu-27-versiones-rollback.md) explica las notas de release,
+el inventario observado de dev/stage/prod y la restauración mediante `helm rollback`.
+Jenkins archiva las imágenes/revisiones antes y después y el tiempo hasta superar
+el humo. La [demostración local](docs/evidencias/hu-27/README.md) restauró web de
+v0.2.0 a v0.1.0 en 12.717 s; los ambientes reales siguen pendientes.
+
 ## Privacy & Compliance
 
 - **FERPA Compliance**: Student identities are never stored in the contact graph.
 - **Right to be Forgotten**: Users can trigger complete data purging via the Identity Vault.
 - **Temporal Privacy**: All contact edges are automatically purged after 14 days.
+
+## Infraestructura Terraform (HU-17)
+
+Los ambientes dev/stage/prod reutilizan los módulos `network`, `cluster`,
+`registry`, `storage` y `observability`. El [runbook HU-17](docs/hu-17-terraform.md)
+explica cuenta/cuotas, bootstrap S3/DynamoDB, k3s, kubeconfigs, bloqueo,
+idempotencia y apagado/destroy. La [evidencia](docs/evidencias/hu-17.md) distingue
+validación local de aprovisionamiento real pendiente. Las configuraciones AWS
+son plantillas que requieren cuenta y presupuesto confirmados.

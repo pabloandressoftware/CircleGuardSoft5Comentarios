@@ -1,0 +1,27 @@
+# HU-18 · form-service
+image:
+  repository: 127.0.0.1:5000/circleguard/circleguard-form-service
+port: 8086
+env:
+  JAVA_TOOL_OPTIONS: "-Xms64m -Xmx320m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  JPA_DDL_AUTO: validate
+  KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+secretEnv:
+  DB_USERNAME: DB_USERNAME
+  DB_PASSWORD: DB_PASSWORD
+ingress:
+  enabled: true
+  paths:
+    - /api/v1/questionnaires
+    - /api/v1/surveys
+    - /api/v1/certificates
+    - /api/v1/attachments
+# HU-25: trazas con el agente de OpenTelemetry. El agente suma memoria fuera del heap
+# (-Xmx320m), por eso el limite sube de 512Mi a 768Mi para evitar OOMKilled.
+otel:
+  enabled: true
+resources:
+  limits:
+    memory: 768Mi

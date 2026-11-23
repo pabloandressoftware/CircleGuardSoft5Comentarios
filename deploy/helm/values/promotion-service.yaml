@@ -1,0 +1,45 @@
+# HU-18 · promotion-service
+image:
+  repository: 127.0.0.1:5000/circleguard/circleguard-promotion-service
+port: 8088
+env:
+  JAVA_TOOL_OPTIONS: "-Xms64m -Xmx320m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  JPA_DDL_AUTO: validate
+  NEO4J_URI: bolt://neo4j:7687
+  NEO4J_USERNAME: neo4j
+  KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+secretEnv:
+  DB_USERNAME: DB_USERNAME
+  DB_PASSWORD: DB_PASSWORD
+  NEO4J_PASSWORD: NEO4J_PASSWORD
+  REDIS_PASSWORD: REDIS_PASSWORD
+  JWT_SECRET: JWT_SECRET
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  cpuUtilization: 70
+ingress:
+  enabled: true
+  paths:
+    - /api/v1/health
+    - /api/v1/circles
+    - /api/v1/encounters
+    - /api/v1/buildings
+    - /api/v1/floors
+    - /api/v1/access-points
+    - /api/v1/admin/settings
+    - /api/v1/location
+    - /api/v1/mesh
+    - /api/v1/sessions
+# HU-25: trazas con el agente de OpenTelemetry. El agente suma memoria fuera del heap
+# (-Xmx320m), por eso el limite sube de 512Mi a 768Mi para evitar OOMKilled.
+otel:
+  enabled: true
+resources:
+  limits:
+    memory: 768Mi

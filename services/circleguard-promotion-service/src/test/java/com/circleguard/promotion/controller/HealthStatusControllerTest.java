@@ -63,12 +63,12 @@ class HealthStatusControllerTest {
     }
 
     @Test
-    void resolve_Unauthenticated_Returns403() throws Exception {
+    void resolve_Unauthenticated_Returns401() throws Exception {
         String json = "{\"anonymousId\": \"user-1\"}";
 
         mockMvc.perform(post("/api/v1/health/resolve")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 }

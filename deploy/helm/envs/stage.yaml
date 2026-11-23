@@ -1,0 +1,14 @@
+# HU-18 · valores del ambiente stage (se pasan despues del values del servicio).
+# La etiqueta de imagen la pone el pipeline con --set image.tag=vX.Y.Z (la misma en todos).
+env:
+  CORS_ALLOWED_ORIGINS: "https://stage.circleguard.local"
+ingress:
+  className: traefik
+  host: stage.circleguard.local
+  # HU-21: cert-manager emite el certificado autofirmado para este Ingress.
+  annotations:
+    cert-manager.io/cluster-issuer: circleguard-selfsigned
+  tls:
+    - secretName: circleguard-stage-tls
+      hosts:
+        - stage.circleguard.local

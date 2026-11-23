@@ -1,0 +1,26 @@
+# HU-18 · auth-service
+image:
+  repository: 127.0.0.1:5000/circleguard/circleguard-auth-service
+port: 8180
+env:
+  JAVA_TOOL_OPTIONS: "-Xms64m -Xmx320m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  JPA_DDL_AUTO: validate
+  LDAP_URL: ldap://openldap:389
+  LDAP_BASE: dc=circleguard,dc=edu
+  LDAP_USERNAME: cn=admin,dc=circleguard,dc=edu
+  JWT_EXPIRATION: "3600000"
+  QR_EXPIRATION: "60000"
+  IDENTITY_SERVICE_URL: http://identity-service:8083
+secretEnv:
+  DB_USERNAME: DB_USERNAME
+  DB_PASSWORD: DB_PASSWORD
+  LDAP_PASSWORD: LDAP_PASSWORD
+  JWT_SECRET: JWT_SECRET
+  QR_SECRET: QR_SECRET
+  INTERNAL_API_KEY: INTERNAL_API_KEY
+ingress:
+  enabled: true
+  paths:
+    - /api/v1/auth
