@@ -32,6 +32,9 @@ qr:
 circleguard:
   identity-service:
     url: ${IDENTITY_SERVICE_URL:http://localhost:8083}
+  # HU-21: clave compartida entre servicios para llamadas internas sin JWT.
+  internal:
+    api-key: ${INTERNAL_API_KEY:}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8081,http://localhost:8080}
 
@@ -42,6 +45,10 @@ server:
 # HU-18: sondas de Kubernetes (/actuator/health/liveness y /readiness) y metricas
 # (/actuator/prometheus). El Ingress no publica /actuator; solo se usa dentro del cluster.
 management:
+  metrics:
+    tags:
+      # HU-24: agrupa las metricas por servicio en Prometheus/Grafana.
+      application: ${spring.application.name}
   endpoints:
     web:
       exposure:

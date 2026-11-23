@@ -5,3 +5,10 @@ env:
 ingress:
   className: traefik
   host: dev.circleguard.local
+  # HU-21: cert-manager emite el certificado autofirmado para este Ingress.
+  annotations:
+    cert-manager.io/cluster-issuer: circleguard-selfsigned
+  tls:
+    - secretName: circleguard-dev-tls
+      hosts:
+        - dev.circleguard.local

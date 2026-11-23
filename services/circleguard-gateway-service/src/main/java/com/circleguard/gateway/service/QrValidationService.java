@@ -3,17 +3,22 @@ package com.circleguard.gateway.service;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import java.security.Key;
+import java.time.Duration;
 import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class QrValidationService {
     private final StringRedisTemplate redisTemplate;
+    private final MeterRegistry meterRegistry;
 
     @Value("${qr.secret}")
     private String qrSecret;
@@ -28,6 +33,8 @@ public class QrValidationService {
     static final Set<String> ALLOWED_STATUSES = Set.of("ACTIVE", "RECOVERED");
 
     public ValidationResult validateToken(String token) {
+        long start = System.nanoTime();
+        ValidationResult result;
         try {
             Key key = Keys.hmacShaKeyFor(qrSecret.getBytes());
             Claims claims = Jwts.parserBuilder()
@@ -40,11 +47,13 @@ public class QrValidationService {
 
             // Estado de salud vigente, escrito por promotion-service
             String status = redisTemplate.opsForValue().get(STATUS_KEY_PREFIX + anonymousId);
-            return decide(status);
+            result = decide(status);
 
         } catch (Exception e) {
-            return new ValidationResult(false, "RED", "Invalid or Expired Token");
+            result = new ValidationResult(false, "RED", "Invalid or Expired Token");
         }
+        recordValidation(result, start);
+        return result;
     }
 
     /**
@@ -60,6 +69,34 @@ public class QrValidationService {
             return new ValidationResult(false, "RED", "Access Denied: Health Risk Detected");
         }
         return new ValidationResult(false, "RED", "Access Denied: Unknown Health Status");
+    }
+
+    /** HU-24: cuenta validaciones GREEN/RED y su duracion para el tablero de negocio. */
+    private void recordValidation(ValidationResult result, long startNanos) {
+        Counter.builder("circleguard.gate.validations")
+                .description("Validaciones de QR en la puerta")
+                .tag("result", result.status())
+                .tag("reason", reason(result))
+                .register(meterRegistry)
+                .increment();
+        Timer.builder("circleguard.gate.validation")
+                .description("Duracion de la validacion de QR")
+                .publishPercentileHistogram()
+                .register(meterRegistry)
+                .record(Duration.ofNanos(System.nanoTime() - startNanos));
+    }
+
+    private static String reason(ValidationResult result) {
+        if (result.valid()) {
+            return "allowed";
+        }
+        if (result.message().contains("Invalid or Expired")) {
+            return "invalid_token";
+        }
+        if (result.message().contains("Health Risk")) {
+            return "health_risk";
+        }
+        return "unknown_status";
     }
 
     public record ValidationResult(boolean valid, String status, String message) {}

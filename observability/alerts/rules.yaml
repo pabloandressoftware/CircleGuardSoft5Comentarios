@@ -1,0 +1,81 @@
+# HU-24 · Grupos de reglas de CircleGuard.
+#
+# Este archivo es la fuente para promtool. observability/instalar.sh lo envuelve
+# en un PrometheusRule (CRD de Prometheus Operator).
+#
+# Horario de negocio: 7:00 a 22:00 en Colombia (UTC-5) = 12:00 a 03:00 UTC.
+# La expresion hour() de PromQL usa UTC.
+groups:
+  - name: circleguard.critical
+    interval: 30s
+    rules:
+      - record: circleguard:availability:ratio5m
+        expr: |
+          avg_over_time(
+            (
+              sum(up{namespace=~"circleguard-(dev|stage|prod)"})
+              /
+              clamp_min(count(up{namespace=~"circleguard-(dev|stage|prod)"}), 1)
+            )[5m:15s]
+          )
+
+      - alert: CircleguardServiceDown
+        expr: up{namespace=~"circleguard-(dev|stage|prod)"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: circleguard
+        annotations:
+          summary: "Servicio CircleGuard caido"
+          description: "{{ $labels.namespace }} ({{ $labels.job }}) no responde a Prometheus desde hace mas de 1 minuto."
+
+      - alert: CircleguardHigh5xxRate
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 0.001)
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          team: circleguard
+        annotations:
+          summary: "Errores 5xx por encima del 5 %"
+          description: "CircleGuard supera el 5 % de respuestas 5xx en los ultimos 5 minutos."
+
+      - alert: CircleguardGateDenialSpike
+        expr: sum(rate(circleguard_gate_validations_total{result="RED"}[5m])) > 1
+        for: 2m
+        labels:
+          severity: critical
+          team: circleguard
+        annotations:
+          summary: "Pico de accesos denegados en la puerta"
+          description: "Las validaciones RED superan 1 por segundo durante 2 minutos."
+
+      - alert: CircleguardContainmentSlaBreach
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(circleguard_containment_seconds_bucket[10m]))
+          ) > 60
+        for: 5m
+        labels:
+          severity: critical
+          team: circleguard
+        annotations:
+          summary: "Tiempo de contencion superior a 60 s"
+          description: "El p95 del tiempo CONFIRMED -> ACTIVE/RECOVERED supera la meta de 60 s."
+
+      - alert: CircleguardAvailabilityLow
+        expr: |
+          circleguard:availability:ratio5m < 0.995
+          and (hour() >= 12 or hour() < 3)
+        for: 5m
+        labels:
+          severity: critical
+          team: circleguard
+        annotations:
+          summary: "Disponibilidad por debajo de 99,5 %"
+          description: "La disponibilidad de los servicios cae por debajo de la meta en horario 7:00-22:00 (Colombia)."

@@ -20,6 +20,7 @@ import org.springframework.http.HttpStatus;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
+    private final InternalApiKeyFilter internalApiKeyFilter;
 
     // HU-07: origenes permitidos externalizados (CORS_ALLOWED_ORIGINS)
     @Value("${circleguard.cors.allowed-origins:http://localhost:8081,http://localhost:8080}")
@@ -37,7 +38,8 @@ public class SecurityConfig {
             }))
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/identities/visitor", "/api/v1/identities/map").permitAll()
+                // HU-21: el registro de visitantes sigue publico; /map exige JWT o clave interna.
+                .requestMatchers("/api/v1/identities/visitor").permitAll()
                 // HU-18: sondas de Kubernetes y metricas (el Ingress no publica /actuator)
                 .requestMatchers("/actuator/health/**", "/actuator/prometheus").permitAll()
                 .anyRequest().authenticated()
@@ -45,7 +47,8 @@ public class SecurityConfig {
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
             )
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(internalApiKeyFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }

@@ -56,6 +56,11 @@ qr:
   secret: ${QR_SECRET}
   expiration: ${QR_EXPIRATION:60000}
 
+circleguard:
+  # HU-21: cabecera de servicio para consultar permisos en auth-service.
+  internal:
+    api-key: ${INTERNAL_API_KEY:}
+
 server:
   port: 8082
   forward-headers-strategy: native
@@ -63,6 +68,10 @@ server:
 # HU-18: sondas de Kubernetes (/actuator/health/liveness y /readiness) y metricas
 # (/actuator/prometheus). El Ingress no publica /actuator; solo se usa dentro del cluster.
 management:
+  metrics:
+    tags:
+      # HU-24: agrupa las metricas por servicio en Prometheus/Grafana.
+      application: ${spring.application.name}
   endpoints:
     web:
       exposure:

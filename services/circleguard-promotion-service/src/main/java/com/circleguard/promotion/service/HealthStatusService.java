@@ -2,6 +2,9 @@ package com.circleguard.promotion.service;
 
 import com.circleguard.promotion.exception.FenceException;
 import com.circleguard.promotion.repository.graph.UserNodeRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -23,8 +26,10 @@ public class HealthStatusService {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final com.circleguard.promotion.repository.jpa.SystemSettingsRepository systemSettingsRepository;
     private final com.circleguard.promotion.repository.graph.CircleNodeRepository circleNodeRepository;
+    private final MeterRegistry meterRegistry;
 
     private static final String STATUS_KEY_PREFIX = "user:status:";
+    private static final String CONFIRMED_AT_KEY_PREFIX = "user:confirmed_at:";
     private static final String TOPIC_STATUS_CHANGED = "promotion.status.changed";
 
     /**
@@ -96,6 +101,10 @@ public class HealthStatusService {
         if (result.isPresent()) {
             Map<String, String> cacheUpdates = new HashMap<>();
             cacheUpdates.put(STATUS_KEY_PREFIX + anonymousId, status);
+            recordPromotion(status, adminOverride);
+            if ("CONFIRMED".equals(status)) {
+                markConfirmed(anonymousId);
+            }
             
             @SuppressWarnings("unchecked")
             List<Map<String, String>> affected = (List<Map<String, String>>) result.get().get("affectedContacts");
@@ -103,6 +112,7 @@ public class HealthStatusService {
                 affected.forEach(m -> {
                     if (m != null && m.get("id") != null) {
                         cacheUpdates.put(STATUS_KEY_PREFIX + m.get("id"), m.get("status"));
+                        recordPromotion(m.get("status"), adminOverride);
                     }
                 });
             }
@@ -190,6 +200,9 @@ public class HealthStatusService {
         if (!adminOverride) {
             checkFenceWindow(anonymousId);
         }
+
+        recordPromotion("ACTIVE", adminOverride);
+        recordContainment(anonymousId);
 
         // 1. Resolve source
         neo4jClient.query("MATCH (u:User {anonymousId: $id}) SET u.status = 'ACTIVE', u.statusUpdatedAt = timestamp()")
@@ -281,7 +294,52 @@ public class HealthStatusService {
         // Immunize in Redis for 30 days
         redisTemplate.opsForValue().set(STATUS_KEY_PREFIX + anonymousId, "RECOVERED");
         redisTemplate.expire(STATUS_KEY_PREFIX + anonymousId, java.time.Duration.ofDays(30));
+        recordPromotion("RECOVERED", false);
     }
+
+    /** HU-24: cuenta las promociones por estado para el tablero de negocio. */
+    private void recordPromotion(String status, boolean adminOverride) {
+        if (status == null) {
+            return;
+        }
+        Counter.builder("circleguard.promotions")
+                .description("Promociones de estado de salud")
+                .tag("status", status)
+                .tag("admin_override", Boolean.toString(adminOverride))
+                .register(meterRegistry)
+                .increment();
+    }
+
+    /** HU-24: guarda el instante de la confirmacion para medir contencion. */
+    private void markConfirmed(String anonymousId) {
+        String key = CONFIRMED_AT_KEY_PREFIX + anonymousId;
+        redisTemplate.opsForValue().set(key, Long.toString(System.currentTimeMillis()));
+        redisTemplate.expire(key, java.time.Duration.ofDays(30));
+    }
+
+    /** HU-24: registra el tiempo CONFIRMED -> ACTIVE/RECOVERED como un Timer. */
+    private void recordContainment(String anonymousId) {
+        String key = CONFIRMED_AT_KEY_PREFIX + anonymousId;
+        String confirmedAt = redisTemplate.opsForValue().get(key);
+        if (confirmedAt == null) {
+            return;
+        }
+        try {
+            long elapsed = System.currentTimeMillis() - Long.parseLong(confirmedAt);
+            if (elapsed >= 0) {
+                Timer.builder("circleguard.containment")
+                        .description("Segundos desde CONFIRMED hasta ACTIVE/RECOVERED")
+                        .publishPercentileHistogram()
+                        .register(meterRegistry)
+                        .record(java.time.Duration.ofMillis(elapsed));
+            }
+        } catch (NumberFormatException e) {
+            log.warn("Valor invalido en {}: {}", key, confirmedAt);
+        } finally {
+            redisTemplate.delete(key);
+        }
+    }
+
     private void checkFenceWindow(String anonymousId) {
         var userOpt = userNodeRepository.findById(anonymousId);
         if (userOpt.isPresent()) {

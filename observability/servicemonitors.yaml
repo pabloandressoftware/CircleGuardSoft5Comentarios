@@ -1,0 +1,31 @@
+# HU-24 · Un solo ServiceMonitor para los 8 servicios Java de los 3 ambientes.
+#
+# El chart de HU-18 etiqueta cada Service con app.kubernetes.io/part-of=circleguard
+# y expone el puerto http. El cliente web no tiene Actuator, por eso se excluye.
+# La etiqueta release coincide con el selector de kube-prometheus-stack.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: circleguard-services
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - circleguard-dev
+      - circleguard-stage
+      - circleguard-prod
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: circleguard
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: NotIn
+        values:
+          - web
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: 30s
+      scrapeTimeout: 10s

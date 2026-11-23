@@ -10,3 +10,4 @@ junit
 htmlpublisher
 timestamper
 mailer
+role-strategy

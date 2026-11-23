@@ -11,9 +11,42 @@ jenkins:
         # HU-10: unico usuario autorizado a aprobar el despliegue a prod.
         - id: "${CI_APPROVER_USER}"
           password: "${CI_APPROVER_PASSWORD}"
+        # HU-21: usuario con permisos de build, sin administracion.
+        - id: "${CI_DEVELOPER_USER}"
+          password: "${CI_DEVELOPER_PASSWORD}"
+  # HU-21: roles admin, developer y approver. Los aprobadores solo pueden leer
+  # y construir jobs; no administran Jenkins ni cambian credenciales.
   authorizationStrategy:
-    loggedInUsersCanDoAnything:
-      allowAnonymousRead: false
+    roleBased:
+      roles:
+        global:
+          - name: "admin"
+            description: "Administradores de Jenkins"
+            permissions:
+              - "Overall/Administer"
+            entries:
+              - user: "${CI_JENKINS_USER}"
+          - name: "developer"
+            description: "Desarrolladores que ejecutan builds"
+            permissions:
+              - "Overall/Read"
+              - "Job/Read"
+              - "Job/Build"
+              - "Job/Cancel"
+              - "Job/Workspace"
+              - "Run/Replay"
+              - "SCM/Tag"
+            entries:
+              - user: "${CI_DEVELOPER_USER}"
+          - name: "approver"
+            description: "Aprueban el despliegue a prod"
+            permissions:
+              - "Overall/Read"
+              - "Job/Read"
+              - "Job/Build"
+              - "Run/Replay"
+            entries:
+              - user: "${CI_APPROVER_USER}"
   # HU-11: destinatarios de las notificaciones de fallo (los define quien opera el CI, no el repo).
   globalNodeProperties:
     - envVars:
