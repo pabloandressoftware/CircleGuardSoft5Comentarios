@@ -1,0 +1,27 @@
+{
+  "environment": "dev",
+  "namespace": "circleguard-dev",
+  "context": "kind-circleguard-hu27",
+  "capturedAt": "2026-11-22T22:05:53.365Z",
+  "status": "saludable",
+  "rows": [
+    {
+      "service": "web",
+      "image": "circleguard/rollback-demo:v0.1.0",
+      "version": "v0.1.0",
+      "revision": 3,
+      "helmStatus": "deployed",
+      "replicas": 1,
+      "readyPods": 1,
+      "healthy": true,
+      "pods": [
+        {
+          "pod": "web-55dc7784cf-bw5fq",
+          "image": "circleguard/rollback-demo:v0.1.0",
+          "imageID": "docker.io/library/import-2026-11-22@sha256:d3d6a52f727e70193d053412d7acb3d90a0b8c13537cc0645304e75aa3343fa2",
+          "ready": true
+        }
+      ]
+    }
+  ]
+}

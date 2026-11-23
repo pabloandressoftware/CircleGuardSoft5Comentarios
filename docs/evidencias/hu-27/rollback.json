@@ -1,0 +1,22 @@
+{
+  "environment": "dev",
+  "targetTag": "v0.1.0",
+  "startedAt": "2026-11-22T22:05:40.719Z",
+  "status": "succeeded",
+  "recoverySeconds": 12.717,
+  "completed": [
+    {
+      "service": "web",
+      "revision": 1,
+      "image": "circleguard/rollback-demo:v0.1.0"
+    }
+  ],
+  "build": null,
+  "commit": null,
+  "smoke": {
+    "url": "http://127.0.0.1:18128/api/v1/namespaces/circleguard-dev/services/web:8080/proxy/",
+    "httpStatus": 200
+  },
+  "finishedAt": "2026-11-22T22:05:53.438Z",
+  "elapsedSeconds": 12.718
+}
