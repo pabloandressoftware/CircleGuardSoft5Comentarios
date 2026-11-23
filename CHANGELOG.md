@@ -1,5 +1,41 @@
 # Changelog
 
+## [1.1.0](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/compare/v1.0.0...v1.1.0) (2026-11-23)
+
+
+### Features
+
+* **alerts:** agregar alertas criticas y evidencia para Spidey (HU-24) ([f5720e4](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/f5720e4abcc766266cea49e9139cf95da9d7160c))
+* **ci:** agregar plan y apply de Terraform al pipeline (HU-19) ([c03db63](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/c03db634be07b68037b99b954feb267fbff48d46))
+* **ci:** definir roles admin, desarrollador y aprobador en Jenkins (HU-21) ([7fbe947](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/7fbe947d60fbe605ac293ce444c70787f22d44b8))
+* **ci:** integrar Terraform y Helm al Jenkinsfile con promocion (HU-19) ([f35c218](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/f35c2188fba284557f0fb4faba59453032eb2b36))
+* **grafana:** agregar tableros tecnico y de negocio (HU-24) ([b5e9ae9](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/b5e9ae9e21dd8de212fb74bc07e462720b44efdc))
+* **infra:** implementar ambientes Terraform reutilizables (HU-17) ([f7438f3](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/f7438f3b9747cbad34348f12688377fc8693d75e))
+* **k8s:** chart Helm generico, sondas Actuator y middleware (HU-18) ([702d15f](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/702d15f00c1f5f48ac9c84e939cd74f53a5b38e2))
+* **k8s:** chart Helm generico, sondas Actuator y middleware para Kubernetes (HU-18) ([2b537f0](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/2b537f043e48d529528927d49483304f1a709fc9))
+* **k8s:** crear ServiceAccounts sin token por defecto (HU-21) ([74eafc2](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/74eafc2142b27bace0a98aabe32899b22ec8f9f4))
+* **k8s:** desplegar por ambiente con Helm y esperar rollout status (HU-19) ([4bc47d2](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/4bc47d2b8c6d042dbd11312f02e6a390738308c1))
+* **k8s:** habilitar TLS con cert-manager y verificarlo con curl (HU-21) ([6553be9](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/6553be986b009f78aa33b5fac2c14ee8c9bb335d))
+* **metrics:** instrumentar promociones, contencion y validaciones (HU-24) ([43af99d](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/43af99d1bf9bc47e4f957bfced845e5a2a6db9e2))
+* **observabilidad:** agente OpenTelemetry en el chart y logs con traceId (HU-25) ([68456f7](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/68456f7a11921463041f7e2726af264d7a2436c4))
+* **observabilidad:** Jaeger y Loki con Promtail para trazas y logs (HU-25) ([43e92ee](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/43e92eee2b1d4e07f2f756a55e14f7c5fcbe43b4))
+* **observability:** desplegar kube-prometheus-stack y ServiceMonitor (HU-24) ([ac10f6e](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/ac10f6ed99ca10b64f39aaef011c30cda3ee872e))
+* **releases:** registrar versiones y medir rollback Helm (HU-27) ([85c9429](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/85c9429dc73183d1ba96cf238e7d85df7994a5d7))
+* **security:** cerrar auth por defecto y proteger map y admin (HU-21) ([bf49d52](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/bf49d527a4589735de5d7687918fa995b0c286da))
+
+
+### Bug Fixes
+
+* **ci:** Jenkins incluye buildx para publicar imagenes ([06bbc69](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/06bbc699a58823303eb08852293c7ff7ce66980c))
+* **ci:** Jenkins incluye buildx para que los Dockerfile con --mount compilen ([b41714c](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/b41714c8fb11b863bc8d5b029a1248ea35445879))
+* **infra:** conservar LF en cloud-init de k3s ([b54eeca](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/b54eecaa0627ca4e2496cebbb6e40c067ba7ac99))
+* **k8s:** dar mas tiempo de arranque a PostgreSQL en middleware.sh (HU-18) ([9e3a766](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/9e3a76649216030e67aac3ac44e7bc9bcf45e15e))
+* **k8s:** Kafka con imagen oficial, Neo4j 2Gi y sondas de arranque (HU-18) ([44d5284](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/44d5284036d78a0b6313529074ed0258974d8ee0))
+* **k8s:** los 8 servicios probados en kind; neo4j sin LoadBalancer y timeout de 10 min (HU-18) ([e1ef29b](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/e1ef29b756d647cf6b147561b1b4e634e1a927f7))
+* **observability:** seleccionar targets por namespace en las alertas (HU-24) ([5bdf733](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/5bdf7330d3f5f746b521c26a628332916aca6b7c))
+* **promotion:** serializar eventos de Kafka como JSON para que lleguen a notification (HU-25) ([5decf7a](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/5decf7ad4aa6be2bf58434c72614ff2f133cab73))
+* **web:** base nginx 1.30 y apk upgrade para dejar la imagen sin CVE criticos (HU-20) ([4b7599b](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/4b7599b7182aa8a93fc46c50fffa78139ba67a17))
+
 ## 1.0.0 (2026-11-12)
 
 
