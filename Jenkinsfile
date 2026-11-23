@@ -7,6 +7,8 @@
 // HU-09 (rol D): calidad (JaCoCo, SonarQube, quality gate bloqueante) y publicacion.
 // HU-10 (rol C): despliegue en dev, E2E, promocion de la misma etiqueta a stage
 //                y aprobacion manual para prod.
+// HU-19 (rol C): Terraform plan/apply por ambiente y despliegue Helm con espera
+//                de rollout status; Compose queda como respaldo (DEPLOY_TARGET).
 //
 // Los pasos de HU-09/HU-10 viven en jenkins/vars/ y se cargan con "load" desde
 // el mismo commit del build, asi un PR prueba su propia version de los pasos.
@@ -23,7 +25,10 @@ def e2e
 def smoke
 def security
 def zap
+def terraform
+def helm
 def changed = []
+def infraChanged = false
 
 // HU-11: avisos por Discord (webhook en la credencial 'discord-webhook') y por correo.
 // Un fallo al avisar nunca cambia el resultado del build.
@@ -89,13 +94,23 @@ pipeline {
             defaultValue: false,
             description: 'En la rama dev, probar el ambiente ya desplegado con Playwright.'
         )
+        choice(
+            name: 'DEPLOY_TARGET',
+            choices: ['helm', 'compose'],
+            description: 'HU-19: destino oficial de dev/stage/prod. helm = Kubernetes (k3s); compose = respaldo en las VM actuales.'
+        )
+        booleanParam(
+            name: 'DEPLOY_MIDDLEWARE',
+            defaultValue: false,
+            description: 'HU-19: desplegar PostgreSQL, Redis, Kafka, Neo4j y OpenLDAP en el namespace antes de los servicios. Solo para el primer despliegue de un cluster.'
+        )
     }
 
     options {
         buildDiscarder(logRotator(numToKeepStr: '20'))
         disableConcurrentBuilds()
-        // Holgado: incluye la espera de la aprobacion de prod.
-        timeout(time: 180, unit: 'MINUTES')
+        // Holgado: incluye Terraform, el middleware y la aprobacion de prod.
+        timeout(time: 300, unit: 'MINUTES')
         timestamps()
     }
 
@@ -112,6 +127,16 @@ pipeline {
                     smoke = load 'jenkins/vars/circleGuardSmoke.groovy'
                     security = load 'jenkins/vars/circleGuardSecurity.groovy'
                     zap = load 'jenkins/vars/circleGuardZap.groovy'
+                    terraform = load 'jenkins/vars/circleGuardTerraform.groovy'
+                    helm = load 'jenkins/vars/circleGuardHelm.groovy'
+
+                    String baseRef = env.CHANGE_TARGET
+                        ? "origin/${env.CHANGE_TARGET}"
+                        : (env.BRANCH_NAME == 'dev' ? 'HEAD^' : 'origin/dev')
+                    infraChanged = sh(
+                        script: "git diff --name-only \"${baseRef}...HEAD\" -- infra/ | grep -q .",
+                        returnStatus: true
+                    ) == 0
                 }
             }
         }
@@ -123,6 +148,25 @@ pipeline {
                     changed = circleGuardChanges(buildAll: params.BUILD_ALL, baseBranch: 'dev')
                     writeFile file: 'changed-services.txt', text: (changed ? changed.join('\n') : '')
                     archiveArtifacts artifacts: 'changed-services.txt', allowEmptyArchive: true
+                }
+            }
+        }
+
+        // HU-19: cada PR que toca infra/ (o cada tag) revisa los tres ambientes con
+        // terraform plan. Los applies van mas adelante, antes del despliegue de cada
+        // ambiente y despues de la aprobacion correspondiente. Si HU-17 aun no
+        // agrego infra/terraform, el paso lo avisa y no rompe el build.
+        stage('Terraform plan') {
+            when {
+                expression { !params.ROLLBACK_TAG }
+                expression { terraform.available() }
+                expression { infraChanged || buildingTag() }
+            }
+            steps {
+                script {
+                    for (String ambiente : ['dev', 'stage', 'prod']) {
+                        terraform.plan(ambiente)
+                    }
                 }
             }
         }
@@ -186,7 +230,9 @@ pipeline {
                         )
                         echo "Rollback de prod aprobado por ${approver}"
                     }
-                    String host = deploy.call(params.ROLLBACK_ENV, imageTag: tag)
+                    String host = params.DEPLOY_TARGET == 'compose'
+                        ? deploy.call(params.ROLLBACK_ENV, imageTag: tag)
+                        : helm.call(params.ROLLBACK_ENV, imageTag: tag, deployMiddleware: params.DEPLOY_MIDDLEWARE)
                     smoke.call(host)
                     writeFile file: 'deploy-rollback.txt',
                         text: "env=${params.ROLLBACK_ENV}\ntag=${tag}\nhost=${host}\nbuild=${env.BUILD_URL}\n"
@@ -223,6 +269,20 @@ pipeline {
             }
         }
 
+        // HU-19: la infraestructura de dev se aplica antes de desplegar la aplicacion.
+        stage('Terraform apply dev') {
+            when {
+                allOf {
+                    buildingTag()
+                    tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.SKIP_DEPLOY && !params.ROLLBACK_TAG && terraform.available() }
+                }
+            }
+            steps {
+                script { terraform.apply('dev') }
+            }
+        }
+
         // HU-10: dev recibe la etiqueta recien publicada y debe superar el humo.
         stage('Desplegar dev') {
             when {
@@ -233,7 +293,11 @@ pipeline {
                 }
             }
             steps {
-                script { env.DEV_HOST = deploy.call('dev') }
+                script {
+                    env.DEV_HOST = params.DEPLOY_TARGET == 'compose'
+                        ? deploy.call('dev')
+                        : helm.call('dev', deployMiddleware: params.DEPLOY_MIDDLEWARE)
+                }
             }
         }
 
@@ -272,6 +336,20 @@ pipeline {
             }
         }
 
+        // HU-19: la infraestructura de stage se aplica antes de promover la misma etiqueta.
+        stage('Terraform apply stage') {
+            when {
+                allOf {
+                    buildingTag()
+                    tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.SKIP_DEPLOY && !params.ROLLBACK_TAG && terraform.available() }
+                }
+            }
+            steps {
+                script { terraform.apply('stage') }
+            }
+        }
+
         // Promocion: MISMA etiqueta ya validada en dev, sin reconstruir imagenes.
         stage('Desplegar stage') {
             when {
@@ -282,7 +360,11 @@ pipeline {
                 }
             }
             steps {
-                script { env.STAGE_HOST = deploy.call('stage') }
+                script {
+                    env.STAGE_HOST = params.DEPLOY_TARGET == 'compose'
+                        ? deploy.call('stage')
+                        : helm.call('stage', deployMiddleware: params.DEPLOY_MIDDLEWARE)
+                }
             }
         }
 
@@ -338,6 +420,20 @@ pipeline {
             }
         }
 
+        // HU-19: el apply de prod ocurre despues de la aprobacion del usuario aprobador.
+        stage('Terraform apply prod') {
+            when {
+                allOf {
+                    buildingTag()
+                    tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.SKIP_DEPLOY && !params.ROLLBACK_TAG && terraform.available() }
+                }
+            }
+            steps {
+                script { terraform.apply('prod') }
+            }
+        }
+
         stage('Desplegar prod') {
             when {
                 allOf {
@@ -347,7 +443,11 @@ pipeline {
                 }
             }
             steps {
-                script { env.PROD_HOST = deploy.call('prod') }
+                script {
+                    env.PROD_HOST = params.DEPLOY_TARGET == 'compose'
+                        ? deploy.call('prod')
+                        : helm.call('prod', deployMiddleware: params.DEPLOY_MIDDLEWARE)
+                }
             }
         }
 

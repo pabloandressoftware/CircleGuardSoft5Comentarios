@@ -1,0 +1,93 @@
+/**
+ * HU-19 · Despliegue y promocion con Helm sobre Kubernetes (k3s).
+ *
+ *   circleGuardHelm('dev')
+ *   circleGuardHelm('prod', imageTag: 'v1.2.3')
+ *
+ * Requiere tres credenciales de Jenkins:
+ *   - kubeconfig-<ambiente>       (Secret file con el kubeconfig del cluster)
+ *   - circleguard-env-<ambiente>  (Secret file con el .env del ambiente)
+ *   - nexus-registry              (usuario y contrasena del registro)
+ *
+ * El .env aporta REGISTRY y SITE_ADDRESS. El paso crea el namespace, el
+ * imagePullSecret del registro, el Secret de la aplicacion y ejecuta
+ * deploy/k8s/desplegar.sh, que hace helm upgrade --install y espera el
+ * rollout status de cada Deployment. La misma etiqueta SemVer se usa en los
+ * tres ambientes; no se reconstruyen imagenes al promover.
+ */
+
+def call(String environment, Map args = [:]) {
+    if (!(environment in ['dev', 'stage', 'prod'])) {
+        error("Ambiente Helm invalido: ${environment}")
+    }
+
+    String imageTag = args.get('imageTag', env.IMAGE_TAG)
+    if (!imageTag || !(imageTag ==~ /^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/)) {
+        error("Falta una etiqueta SemVer vX.Y.Z valida (recibido: ${imageTag})")
+    }
+
+    String kubeconfigId = args.get('kubeconfigCredentialId', "kubeconfig-${environment}")
+    String envCredentialId = args.get('envCredentialId', "circleguard-env-${environment}")
+    String nexusCredentialId = args.get('nexusCredentialId', 'nexus-registry')
+    String timeout = args.get('timeout', '10m')
+    boolean middleware = args.get('deployMiddleware', false)
+
+    withCredentials([
+        file(credentialsId: kubeconfigId, variable: 'KUBECONFIG'),
+        file(credentialsId: envCredentialId, variable: 'CIRCLE_ENV_FILE'),
+        usernamePassword(credentialsId: nexusCredentialId,
+            usernameVariable: 'NX_USER', passwordVariable: 'NX_PASS'),
+    ]) {
+        withEnv([
+            "HELM_ENV=${environment}",
+            "HELM_IMAGE_TAG=${imageTag}",
+            "HELM_TIMEOUT=${timeout}",
+            "DEPLOY_MIDDLEWARE=${middleware}",
+        ]) {
+            sh '''#!/bin/bash
+                set -euo pipefail
+                set -a
+                . "$CIRCLE_ENV_FILE"
+                set +a
+
+                registry="${REGISTRY:-127.0.0.1:5000}"
+                ns="circleguard-${HELM_ENV}"
+
+                kubectl apply -f deploy/k8s/namespaces.yaml >/dev/null
+
+                kubectl -n "$ns" create secret docker-registry nexus-registry \
+                    --docker-server="$registry" \
+                    --docker-username="$NX_USER" \
+                    --docker-password="$NX_PASS" \
+                    --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+
+                bash deploy/k8s/crear-secretos.sh "$HELM_ENV"
+
+                if [[ "$DEPLOY_MIDDLEWARE" == "true" ]]; then
+                    echo "Desplegando middleware en ${HELM_ENV} (puede tardar varios minutos)..."
+                    bash deploy/k8s/middleware.sh "$HELM_ENV"
+                fi
+
+                REGISTRY="$registry" bash deploy/k8s/desplegar.sh \
+                    "$HELM_ENV" "$HELM_IMAGE_TAG"
+
+                host=$(printf '%s' "${SITE_ADDRESS:-}" | cut -d, -f1 | xargs)
+                printf '%s' "$host" > ".helm-host-${HELM_ENV}.txt"
+            '''
+        }
+    }
+
+    String host = readFile(".helm-host-${environment}.txt").trim()
+    if (!(host ==~ /^[A-Za-z0-9][A-Za-z0-9.-]*$/)) {
+        error("SITE_ADDRESS invalido en circleguard-env-${environment} (recibido: '${host}')")
+    }
+
+    writeFile file: "deploy-helm-${environment}.txt",
+        text: "env=${environment}\ntag=${imageTag}\nhost=${host}\ntarget=helm\nbuild=${env.BUILD_URL}\n"
+    archiveArtifacts artifacts: "deploy-helm-${environment}.txt", allowEmptyArchive: true
+    echo "${imageTag} desplegado con Helm en ${environment}: https://${host}"
+    return host
+}
+
+// Permite cargar este paso con "load" desde el Jenkinsfile
+return this
