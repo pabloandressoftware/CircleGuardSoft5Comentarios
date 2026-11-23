@@ -54,7 +54,8 @@ if [[ -z "$alertmanager_url" ]]; then
 fi
 
 capture() {
-  local name=$1 dir="$out/$name"
+  local name=$1
+  local dir="$out/$name"
   mkdir -p "$dir"
   kubectl -n "$ns" get pods -o wide > "$dir/pods.txt" 2>&1 || true
   curl -fsS "$alertmanager_url/api/v2/alerts" > "$dir/alerts.json" 2>&1 || true
