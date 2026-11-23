@@ -32,6 +32,9 @@ qr:
 circleguard:
   identity-service:
     url: ${IDENTITY_SERVICE_URL:http://localhost:8083}
+  # HU-21: clave compartida entre servicios para llamadas internas sin JWT.
+  internal:
+    api-key: ${INTERNAL_API_KEY:}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8081,http://localhost:8080}
 

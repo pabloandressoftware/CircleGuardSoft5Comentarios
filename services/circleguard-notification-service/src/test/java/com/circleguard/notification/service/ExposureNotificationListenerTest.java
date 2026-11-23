@@ -22,8 +22,9 @@ class ExposureNotificationListenerTest {
     @MockBean
     private NotificationDispatcher dispatcher;
 
+    // El health contributor de Boot 3.2 exige JavaMailSenderImpl, no la interfaz.
     @MockBean
-    private org.springframework.mail.javamail.JavaMailSender mailSender;
+    private org.springframework.mail.javamail.JavaMailSenderImpl mailSender;
 
     @MockBean
     private org.springframework.web.reactive.function.client.WebClient.Builder webClientBuilder;

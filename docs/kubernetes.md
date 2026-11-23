@@ -27,7 +27,7 @@ Actuator y Micrometer están en el build raíz (`build.gradle.kts`) para todos l
 
 ## Qué incluye cada ambiente
 
-- **Namespace** por ambiente, con un Secret `circleguard-secrets` (10 claves) que crea `crear-secretos.sh`. Los valores vienen de Jenkins Credentials y no están en el repositorio.
+- **Namespace** por ambiente, con un Secret `circleguard-secrets` (11 claves, incluida `INTERNAL_API_KEY` de HU-21) que crea `crear-secretos.sh`. Los valores vienen de Jenkins Credentials y no están en el repositorio.
 - **Ingress** por servicio con los mismos prefijos que usa el proxy de Docker Compose (`deploy/Caddyfile`).
 - **HPA** en `gateway-service` y `promotion-service`: 70 % de CPU, de 2 a 5 réplicas (valores propuestos, por confirmar).
 - **Imagen inmutable:** la misma etiqueta SemVer (`vX.Y.Z`) en dev, stage y prod.
@@ -38,7 +38,7 @@ Actuator y Micrometer están en el build raíz (`build.gradle.kts`) para todos l
 ```bash
 kubectl apply -f deploy/k8s/namespaces.yaml
 
-# 10 variables de entorno con los secretos (ver el encabezado del script)
+# 11 variables de entorno con los secretos (ver el encabezado del script)
 bash deploy/k8s/crear-secretos.sh dev
 
 bash deploy/k8s/middleware.sh dev
@@ -100,6 +100,17 @@ HU-19 integra este despliegue en Jenkins:
 Detalles, credenciales y pasos manuales: [HU-19 · pipeline](hu-19-pipeline.md).
 El contrato que debe cumplir Terraform: [HU-17 · contrato](hu-17-terraform-contrato.md).
 
+## Seguridad (HU-21)
+
+- Cada release crea una `ServiceAccount` sin token montado y sin permisos sobre
+  la API de Kubernetes.
+- Los Ingress piden certificados a cert-manager (`circleguard-selfsigned`) y se
+  verifican con `curl -k`.
+- auth-service queda cerrado por defecto; `/identities/map` y `/admin/**`
+  exigen autenticación.
+
+Detalles y comandos: [HU-21 · RBAC, TLS y acceso](seguridad-k8s.md).
+
 ## Observabilidad (HU-24)
 
 Los 8 servicios Java exponen `/actuator/prometheus`; kube-prometheus-stack los
@@ -113,5 +124,4 @@ La instalación, los dashboards y las alertas están en
   aprovisionamiento y los kubeconfigs reales siguen pendientes por cuenta y
   presupuesto. k3s usa Traefik y los values por ambiente declaran su IngressClass.
   Ver [operación HU-17](hu-17-terraform.md).
-- HU-21 agrega TLS, RBAC y autenticación de rutas.
 - HU-25 consume los logs centralizados.

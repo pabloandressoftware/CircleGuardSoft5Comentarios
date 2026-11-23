@@ -3,6 +3,7 @@
 #
 #   DB_USERNAME=... DB_PASSWORD=... JWT_SECRET=... QR_SECRET=... LDAP_PASSWORD=... \
 #   VAULT_SECRET=... VAULT_SALT=... VAULT_HASH_SALT=... NEO4J_PASSWORD=... REDIS_PASSWORD=... \
+#   INTERNAL_API_KEY=... \
 #   bash deploy/k8s/crear-secretos.sh dev
 #
 # Los valores llegan por variables de entorno (Jenkins Credentials en el pipeline) y
@@ -11,7 +12,7 @@ set -euo pipefail
 
 ambiente="${1:?Uso: crear-secretos.sh <dev|stage|prod>}"
 namespace="circleguard-${ambiente}"
-claves=(DB_USERNAME DB_PASSWORD JWT_SECRET QR_SECRET LDAP_PASSWORD VAULT_SECRET VAULT_SALT VAULT_HASH_SALT NEO4J_PASSWORD REDIS_PASSWORD)
+claves=(DB_USERNAME DB_PASSWORD JWT_SECRET QR_SECRET LDAP_PASSWORD VAULT_SECRET VAULT_SALT VAULT_HASH_SALT NEO4J_PASSWORD REDIS_PASSWORD INTERNAL_API_KEY)
 
 args=()
 for clave in "${claves[@]}"; do

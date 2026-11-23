@@ -6,7 +6,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.concurrent.CompletableFuture;
@@ -21,8 +21,9 @@ public class NotificationRetryTest {
     @Autowired
     private EmailService emailService;
 
+    // El health contributor de Boot 3.2 exige JavaMailSenderImpl, no la interfaz.
     @MockBean
-    private JavaMailSender mailSender;
+    private JavaMailSenderImpl mailSender;
 
     @MockBean
     private KafkaTemplate<String, Object> kafkaTemplate;

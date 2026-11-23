@@ -56,6 +56,11 @@ qr:
   secret: ${QR_SECRET}
   expiration: ${QR_EXPIRATION:60000}
 
+circleguard:
+  # HU-21: cabecera de servicio para consultar permisos en auth-service.
+  internal:
+    api-key: ${INTERNAL_API_KEY:}
+
 server:
   port: 8082
   forward-headers-strategy: native
