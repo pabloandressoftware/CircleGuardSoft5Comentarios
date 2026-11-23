@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator, Platform } from 'react-native';
 import { MeshBackground } from '@/components/MeshBackground';
 import { ShieldAlert, ChevronLeft, CheckCircle2 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { PROMOTION_BASE_URL } from '@/constants/Config';
+import { authHeaders } from '@/utils/apiAuth';
 
 /**
  * Story 4.2: Confirmed Positive Intake
@@ -21,9 +22,17 @@ export default function PositiveIntakeScreen() {
       return;
     }
 
+    const message = `Are you sure you want to promote ID ${anonymousId} to CONFIRMED status? This will trigger a campus-wide containment cascade.`;
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm(message)) {
+        executePromotion();
+      }
+      return;
+    }
+
     Alert.alert(
       'Confirm Action',
-      `Are you sure you want to promote ID ${anonymousId} to CONFIRMED status? This will trigger a campus-wide containment cascade.`,
+      message,
       [
         { text: 'Cancel', style: 'cancel' },
         { 
@@ -38,12 +47,11 @@ export default function PositiveIntakeScreen() {
   const executePromotion = async () => {
     setLoading(true);
     try {
-      // In production, this would use a secure base URL from config
       const response = await fetch(`${PROMOTION_BASE_URL}/api/v1/health/confirmed`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Authentication headers would normally be injected by service-layer
+          ...(await authHeaders()),
         },
         body: JSON.stringify({ anonymousId }),
       });

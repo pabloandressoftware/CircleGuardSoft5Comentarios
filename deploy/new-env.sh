@@ -38,6 +38,8 @@ cat <<EOF
 # --- Compose ---------------------------------------------------------------
 COMPOSE_PROJECT_NAME=circleguard-${environment}
 COMPOSE_FILE=${compose_file}
+# Parte 2: los 8 servicios (incluye notification, file y dashboard).
+COMPOSE_PROFILES=part2
 REGISTRY=127.0.0.1:5000
 # Jenkins la reemplaza en cada despliegue con IMAGE_TAG=vX.Y.Z
 IMAGE_TAG=v0.0.1

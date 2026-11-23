@@ -19,7 +19,11 @@ def call(String host) {
                     "https://$SMOKE_HOST$path" || true)
                 echo "humo $path -> $code"
                 case "$code" in
-                    2??|3??|401|403|404|405) ;;
+                    # 404 significa que el host no coincide con el Ingress (antes se
+                    # aceptaba y ocultaba despliegues rotos). 401/403 son validos en
+                    # rutas que exigen autenticacion.
+                    2??|3??|401|403) ;;
+                    *)
                     *)
                         echo "Prueba de humo fallida en $path ($code)." >&2
                         exit 1

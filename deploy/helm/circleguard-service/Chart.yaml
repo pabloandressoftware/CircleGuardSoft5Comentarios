@@ -3,4 +3,4 @@ name: circleguard-service
 description: Chart generico de CircleGuard (HU-18). Un mismo chart despliega los 8 servicios Java y el cliente web; cada uno aporta su archivo values.
 type: application
 version: 0.1.0
-appVersion: "1.0.0"
+appVersion: "1.1.0"

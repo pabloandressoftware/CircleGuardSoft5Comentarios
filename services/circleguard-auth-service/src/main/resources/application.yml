@@ -1,6 +1,9 @@
 # Configuracion externalizada (HU-07). Cada valor sale de una variable de entorno;
 # el valor por defecto solo sirve para desarrollo local con docker-compose.dev.yml.
 spring:
+  config:
+    # HU-23: umbrales de Circuit Breaker, Retry y endpoints de evidencia
+    import: classpath:resilience.yml
   application:
     name: circleguard-auth-service
   datasource:
@@ -32,6 +35,9 @@ qr:
 circleguard:
   identity-service:
     url: ${IDENTITY_SERVICE_URL:http://localhost:8083}
+    # HU-23: timeouts de la llamada HTTP (peor caso con Retry: 2 x (200 + 250) ms + 50 ms = 950 ms)
+    connect-timeout: ${IDENTITY_CONNECT_TIMEOUT:200ms}
+    read-timeout: ${IDENTITY_READ_TIMEOUT:250ms}
   # HU-21: clave compartida entre servicios para llamadas internas sin JWT.
   internal:
     api-key: ${INTERNAL_API_KEY:}

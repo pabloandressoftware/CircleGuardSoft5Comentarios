@@ -1,6 +1,7 @@
 package com.circleguard.identity.controller;
 
 import com.circleguard.identity.service.IdentityVaultService;
+import com.circleguard.identity.service.VisitorHandoffService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,6 +19,7 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class IdentityVaultController {
     private final IdentityVaultService vaultService;
+    private final VisitorHandoffService visitorHandoffService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     /**
@@ -27,6 +29,10 @@ public class IdentityVaultController {
     @PostMapping("/map")
     public ResponseEntity<Map<String, UUID>> mapIdentity(@RequestBody Map<String, String> request) {
         String realIdentity = request.get("realIdentity");
+        if (isBlank(realIdentity)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "realIdentity es obligatorio");
+        }
         UUID anonymousId = vaultService.getOrCreateAnonymousId(realIdentity);
         return ResponseEntity.ok(Map.of("anonymousId", anonymousId));
     }
@@ -35,16 +41,29 @@ public class IdentityVaultController {
      * Registers a temporary visitor and maps their details to an Anonymous ID.
      */
     @PostMapping("/visitor")
-    public ResponseEntity<Map<String, UUID>> registerVisitor(@RequestBody Map<String, String> request) {
+    public ResponseEntity<?> registerVisitor(@RequestBody Map<String, String> request) {
         String name = request.get("name");
         String email = request.get("email");
         String reason = request.get("reason_for_visit");
-        
+
+        if (isBlank(name) || isBlank(email) || isBlank(reason)) {
+            return ResponseEntity.badRequest().body(Map.of("message", "name, email y reason_for_visit son obligatorios"));
+        }
+
         // Combine details into a single identity string for the vault
-        String realIdentity = "VISITOR|" + email + "|" + name + "|" + reason;
+        String realIdentity = "VISITOR|" + email.trim() + "|" + name.trim() + "|" + reason.trim();
         UUID anonymousId = vaultService.getOrCreateAnonymousId(realIdentity);
-        
-        return ResponseEntity.ok(Map.of("anonymousId", anonymousId));
+
+        // Comprobante firmado: auth-service lo exige antes de emitir el JWT.
+        String handoffToken = visitorHandoffService.issue(anonymousId);
+
+        return ResponseEntity.ok(Map.of(
+                "anonymousId", anonymousId.toString(),
+                "handoffToken", handoffToken));
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     /**
@@ -94,6 +113,10 @@ public class IdentityVaultController {
                         .build())
                 .build();
 
-        kafkaTemplate.send("audit.identity.accessed", event);
+        try {
+            kafkaTemplate.send("audit.identity.accessed", event);
+        } catch (Exception e) {
+            // La auditoria no debe romper una consulta que ya se respondio.
+        }
     }
 }

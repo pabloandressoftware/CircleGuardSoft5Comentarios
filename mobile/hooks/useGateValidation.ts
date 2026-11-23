@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { GATEWAY_BASE_URL } from '@/constants/Config';
-import { useAuth } from './useAuth';
+import { useAuth } from '@/context/AuthContext';
 
 export type ValidationStatus = 'idle' | 'validating' | 'success' | 'error';
 

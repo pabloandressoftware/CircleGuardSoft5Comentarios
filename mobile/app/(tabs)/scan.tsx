@@ -34,13 +34,13 @@ export default function ScannerScreen() {
     };
 
     if (!permission) {
-        return <View style={styles.container}><MeshBackground /></View>;
+        return <View style={styles.container}><MeshBackground confirmedCount={0} unconfirmedCount={0} /></View>;
     }
 
     if (!permission.granted) {
         return (
             <View style={styles.container}>
-                <MeshBackground />
+                <MeshBackground confirmedCount={0} unconfirmedCount={0} />
                 <View style={styles.centerContainer}>
                     <Camera size={64} color="#52525b" strokeWidth={1} />
                     <Text style={styles.mainText}>CAMERA PERMISSION REQUIRED</Text>
@@ -55,7 +55,7 @@ export default function ScannerScreen() {
     if (!isAuthenticated) {
         return (
             <View style={styles.container}>
-                <MeshBackground />
+                <MeshBackground confirmedCount={0} unconfirmedCount={0} />
                 <View style={styles.centerContainer}>
                     <View style={styles.lockIconContainer}>
                         <Lock size={48} color="#0891B2" strokeWidth={1.5} />

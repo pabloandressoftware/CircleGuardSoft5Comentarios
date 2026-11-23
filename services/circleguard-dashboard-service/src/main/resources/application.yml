@@ -1,5 +1,8 @@
 # Configuracion externalizada (HU-07)
 spring:
+  config:
+    # HU-23: umbrales de Circuit Breaker, Retry y endpoints de evidencia
+    import: classpath:resilience.yml
   application:
     name: circleguard-dashboard-service
   datasource:
@@ -17,10 +20,17 @@ spring:
 circleguard:
   promotion-service:
     url: ${PROMOTION_SERVICE_URL:http://localhost:8088}
+    # HU-23: timeouts de la llamada HTTP (peor caso con Retry: 2 x (200 + 250) ms + 50 ms = 950 ms)
+    connect-timeout: ${PROMOTION_CONNECT_TIMEOUT:200ms}
+    read-timeout: ${PROMOTION_READ_TIMEOUT:250ms}
 
 server:
   port: 8084
   forward-headers-strategy: native
+
+# HU-21: las analiticas exigen el permiso dashboard:view.
+jwt:
+  secret: ${JWT_SECRET}
 
 # HU-18: sondas de Kubernetes (/actuator/health/liveness y /readiness) y metricas
 # (/actuator/prometheus). El Ingress no publica /actuator; solo se usa dentro del cluster.

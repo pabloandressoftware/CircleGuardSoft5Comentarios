@@ -3,20 +3,21 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { useRouter } from 'expo-router';
 import { DASHBOARD_BASE_URL } from '@/constants/Config';
 import { Building2, ShieldAlert } from 'lucide-react-native';
+import { authHeaders } from '@/utils/apiAuth';
 
 export default function DepartmentAnalyticsScreen() {
-  const [department, setDepartment] = useState('Faculty of Engineering, Design and Applied Sciences (Barberi de Ingeniería, Diseño y Ciencias Aplicadas)');
+  const [department, setDepartment] = useState('Faculty of Engineering, Design and Applied Sciences (Barberi de IngenierÃ­a, DiseÃ±o y Ciencias Aplicadas)');
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const departments = [
-    'Faculty of Administrative and Economic Sciences (Negocios y Economía)',
-    'Faculty of Engineering, Design and Applied Sciences (Barberi de Ingeniería, Diseño y Ciencias Aplicadas)',
-    'Faculty of Law and Social Sciences (Ciencias Jurídicas y Sociales)',
+    'Faculty of Administrative and Economic Sciences (Negocios y EconomÃ­a)',
+    'Faculty of Engineering, Design and Applied Sciences (Barberi de IngenierÃ­a, DiseÃ±o y Ciencias Aplicadas)',
+    'Faculty of Law and Social Sciences (Ciencias JurÃ­dicas y Sociales)',
     'Faculty of Natural Sciences (Ciencias Naturales)',
     'Faculty of Health Sciences (Ciencias de la Salud)',
-    'School of Education (Escuela de Educación)'
+    'School of Education (Escuela de EducaciÃ³n)'
   ];
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export default function DepartmentAnalyticsScreen() {
   const fetchDepartmentStats = async (dept: string) => {
     setLoading(true);
     try {
-      const response = await fetch(`${DASHBOARD_BASE_URL}/api/v1/analytics/department/${dept}`);
+      const response = await fetch(`${DASHBOARD_BASE_URL}/api/v1/analytics/department/${encodeURIComponent(dept)}`, { headers: await authHeaders() });
       if (response.ok) {
         const data = await response.json();
         setStats(data);

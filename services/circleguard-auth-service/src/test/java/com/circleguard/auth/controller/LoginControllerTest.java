@@ -1,6 +1,7 @@
 package com.circleguard.auth.controller;
 
 import com.circleguard.auth.client.IdentityClient;
+import com.circleguard.auth.client.IdentityUnavailableException;
 import com.circleguard.auth.service.JwtTokenService;
 import com.circleguard.auth.service.CustomUserDetailsService;
 import com.circleguard.auth.security.SecurityConfig;
@@ -18,7 +19,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -37,6 +37,9 @@ public class LoginControllerTest {
 
     @MockBean
     private IdentityClient identityClient;
+
+    @MockBean
+    private com.circleguard.auth.service.VisitorHandoffService visitorHandoffService;
 
     @MockBean
     private CustomUserDetailsService userDetailsService;
@@ -67,8 +70,24 @@ public class LoginControllerTest {
     }
 
     @Test
-    void internalPermissionEndpointRequiresAuthentication() throws Exception {
-        mockMvc.perform(get("/api/v1/users/permissions/alert:receive_priority"))
-                .andExpect(status().isUnauthorized());
+    void shouldReturnControlledErrorWhenIdentityIsUnavailable() throws Exception {
+        // HU-22: con identity caido (o su circuito abierto) el login responde 503, no 500
+        Authentication auth = Mockito.mock(Authentication.class);
+        Mockito.when(authManager.authenticate(Mockito.any(UsernamePasswordAuthenticationToken.class)))
+                .thenReturn(auth);
+        Mockito.when(identityClient.getAnonymousId("testuser"))
+                .thenThrow(new IdentityUnavailableException("identity-service no disponible",
+                        new RuntimeException("Connection refused")));
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\": \"testuser\", \"password\": \"password123\"}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(header().string("Retry-After", "10"))
+                .andExpect(jsonPath("$.code").value("IDENTITY_UNAVAILABLE"))
+                .andExpect(jsonPath("$.message").value("El servicio de identidad no esta disponible. Intenta de nuevo en unos segundos."))
+                .andExpect(jsonPath("$.token").doesNotExist());
+
+        Mockito.verify(jwtService, Mockito.never()).generateToken(Mockito.any(), Mockito.any());
     }
 }

@@ -18,17 +18,10 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        System.out.println("Looking up user in database: " + username);
         LocalUser user = userRepository.findByUsername(username)
-                .orElseThrow(() -> {
-                    System.err.println("User NOT found in database: " + username);
-                    return new UsernameNotFoundException("User not found: " + username);
-                });
-
-        System.out.println("User found: " + user.getUsername() + ", active: " + user.getIsActive());
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
         if (!user.getIsActive()) {
-            System.err.println("User account is DISABLED: " + username);
             throw new DisabledException("User account is disabled");
         }
 

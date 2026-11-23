@@ -24,8 +24,17 @@ public class StorageService {
 
     public String store(MultipartFile file) {
         try {
-            String filename = UUID.randomUUID() + "_" + file.getOriginalFilename();
-            Files.copy(file.getInputStream(), this.root.resolve(filename));
+            String original = file.getOriginalFilename();
+            String safeName = original == null ? "file" : Paths.get(original).getFileName().toString();
+            if (safeName.isBlank() || safeName.contains("..")) {
+                safeName = "file";
+            }
+            String filename = UUID.randomUUID() + "_" + safeName;
+            Path target = this.root.resolve(filename).normalize();
+            if (!target.startsWith(this.root)) {
+                throw new IllegalArgumentException("Nombre de archivo invalido");
+            }
+            Files.copy(file.getInputStream(), target);
             return filename;
         } catch (Exception e) {
             throw new RuntimeException("Could not store the file. Error: " + e.getMessage());

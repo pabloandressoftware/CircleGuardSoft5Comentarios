@@ -50,7 +50,13 @@ def call(String environment, Map args = [:]) {
                 . "$CIRCLE_ENV_FILE"
                 set +a
 
-                registry="${REGISTRY:-127.0.0.1:5000}"
+                registry="${REGISTRY:?Falta REGISTRY en circleguard-env-${HELM_ENV}}"
+                case "$registry" in
+                    *127.0.0.1*|*localhost*|*example.invalid*)
+                        echo "REGISTRY '$registry' no es alcanzable desde el cluster." >&2
+                        exit 1
+                        ;;
+                esac
                 ns="circleguard-${HELM_ENV}"
 
                 kubectl apply -f deploy/k8s/namespaces.yaml >/dev/null

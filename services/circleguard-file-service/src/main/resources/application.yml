@@ -18,6 +18,10 @@ server:
   port: 8085
   forward-headers-strategy: native
 
+# HU-21: la subida de archivos exige un JWT valido de auth-service.
+jwt:
+  secret: ${JWT_SECRET}
+
 # HU-18: sondas de Kubernetes (/actuator/health/liveness y /readiness) y metricas
 # (/actuator/prometheus). El Ingress no publica /actuator; solo se usa dentro del cluster.
 management:

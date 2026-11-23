@@ -20,7 +20,21 @@
  */
 
 def available() {
-    return fileExists('infra/terraform')
+    if (!fileExists('infra/terraform/envs/dev/terraform.tfvars')) {
+        return false
+    }
+    // HU-17 dejo plantillas inoperables (cuenta 000000000000, registry
+    // example.invalid). Ejecutar plan/apply con ellas rompe cualquier tag.
+    // Solo se habilita Terraform cuando el operador reemplazo esos valores.
+    String tfvars = readFile('infra/terraform/envs/dev/terraform.tfvars')
+    boolean placeholder = tfvars.contains('000000000000') ||
+        tfvars.contains('example.invalid') ||
+        tfvars.contains('REEMPLAZAR')
+    if (placeholder) {
+        echo 'Terraform: infra/terraform sigue con valores de plantilla; se omite plan/apply.'
+        return false
+    }
+    return true
 }
 
 def plan(String environment, Map args = [:]) {

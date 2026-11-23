@@ -1,7 +1,9 @@
 package com.circleguard.form.controller;
 
 import com.circleguard.form.model.ValidationStatus;
+import com.circleguard.form.security.JwtAuthorizer;
 import com.circleguard.form.service.HealthSurveyService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,9 +17,11 @@ import java.util.UUID;
 public class CertificateValidationController {
 
     private final HealthSurveyService surveyService;
+    private final JwtAuthorizer jwtAuthorizer;
 
     @GetMapping("/pending")
-    public ResponseEntity<?> getPending() {
+    public ResponseEntity<?> getPending(HttpServletRequest request) {
+        jwtAuthorizer.requirePermission(request, "certificate:validate");
         return ResponseEntity.ok(surveyService.getPendingSurveys());
     }
 
@@ -25,8 +29,15 @@ public class CertificateValidationController {
     public ResponseEntity<?> validate(
             @PathVariable UUID id,
             @RequestParam ValidationStatus status,
-            @RequestParam UUID adminId) {
-        surveyService.validateSurvey(id, status, adminId);
+            @RequestParam(required = false) UUID adminId,
+            HttpServletRequest request) {
+        jwtAuthorizer.requirePermission(request, "certificate:validate");
+        UUID actor = adminId;
+        if (actor == null) {
+            String subject = jwtAuthorizer.subject(request);
+            actor = subject != null ? UUID.fromString(subject) : null;
+        }
+        surveyService.validateSurvey(id, status, actor);
         return ResponseEntity.ok().build();
     }
 }

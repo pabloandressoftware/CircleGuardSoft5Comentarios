@@ -1,9 +1,10 @@
 import { Platform } from 'react-native';
 import * as TaskManager from 'expo-task-manager';
 import * as BackgroundFetch from 'expo-background-fetch';
-import * as SecureStore from 'expo-secure-store';
 import { ProximityScanner } from './proximityScanner';
 import { PROMOTION_BASE_URL } from '../constants/Config';
+import { storage } from './storage';
+import { authHeaders } from './apiAuth';
 
 export const PROXIMITY_SYNC_TASK = 'PROXIMITY_SYNC_TASK';
 
@@ -16,7 +17,7 @@ TaskManager.defineTask(PROXIMITY_SYNC_TASK, async () => {
         console.log('[Task] PROXIMITY_SYNC_TASK started...');
         
         // 1. Get current user's anonymousId
-        const myAnonymousId = await SecureStore.getItemAsync('user_anonymous_id');
+        const myAnonymousId = await storage.getItem('circleguard_anon_id');
         if (!myAnonymousId) {
             console.log('[Task] No anonymousId found. Skipping sync.');
             return BackgroundFetch.BackgroundFetchResult.NoData;
@@ -34,7 +35,10 @@ TaskManager.defineTask(PROXIMITY_SYNC_TASK, async () => {
             try {
                 await fetch(`${PROMOTION_BASE_URL}/api/v1/encounters/report`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(await authHeaders()),
+                    },
                     body: JSON.stringify({
                         sourceId: myAnonymousId,
                         targetId: peer.anonymousId,

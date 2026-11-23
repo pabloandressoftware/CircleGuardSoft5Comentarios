@@ -11,6 +11,8 @@ env:
 secretEnv:
   DB_USERNAME: DB_USERNAME
   DB_PASSWORD: DB_PASSWORD
+  # HU-21: valida el JWT en los endpoints administrativos.
+  JWT_SECRET: JWT_SECRET
 ingress:
   enabled: true
   paths:

@@ -7,6 +7,8 @@ env:
   DB_HOST: postgres
   DB_PORT: "5432"
   JPA_DDL_AUTO: validate
+  # HU-25: publica eventos de auditoria en Kafka.
+  KAFKA_BOOTSTRAP_SERVERS: kafka:9092
 secretEnv:
   DB_USERNAME: DB_USERNAME
   DB_PASSWORD: DB_PASSWORD

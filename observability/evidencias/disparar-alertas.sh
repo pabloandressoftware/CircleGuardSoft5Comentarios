@@ -76,11 +76,11 @@ wait_alert() {
 }
 
 service_down() {
-  echo '>>> CircleguardServiceDown: se escala web a 0'
-  kubectl -n "$ns" scale deployment/web --replicas=0 >/dev/null
+  echo '>>> CircleguardServiceDown: se escala auth-service a 0'
+  kubectl -n "$ns" scale deployment/auth-service --replicas=0 >/dev/null
   wait_alert CircleguardServiceDown
   capture 01-service-down
-  kubectl -n "$ns" scale deployment/web --replicas=1 >/dev/null
+  kubectl -n "$ns" scale deployment/auth-service --replicas=2 >/dev/null
 }
 
 high_errors() {
