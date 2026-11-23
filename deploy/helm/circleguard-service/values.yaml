@@ -30,6 +30,14 @@ resources:
   requests: { cpu: 100m, memory: 256Mi }
   limits: { cpu: 500m, memory: 512Mi }
 
+# HU-25: trazas con el agente Java de OpenTelemetry hacia Jaeger (ver observability/trazas-logs/).
+# Apagado por defecto; lo activan los servicios del flujo de encuestas en deploy/helm/values/.
+otel:
+  enabled: false
+  agentImage: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.10.0
+  # OTLP/HTTP del Jaeger que instala observability/trazas-logs/instalar.sh en el namespace monitoring.
+  endpoint: http://jaeger.monitoring.svc:4318
+
 probes:
   timeoutSeconds: 5
   # Spring Boot tarda 35-50 s en arrancar en kind con disco lento: la sonda de arranque

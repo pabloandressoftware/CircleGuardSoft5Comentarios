@@ -36,3 +36,10 @@ ingress:
     - /api/v1/location
     - /api/v1/mesh
     - /api/v1/sessions
+# HU-25: trazas con el agente de OpenTelemetry. El agente suma memoria fuera del heap
+# (-Xmx320m), por eso el limite sube de 512Mi a 768Mi para evitar OOMKilled.
+otel:
+  enabled: true
+resources:
+  limits:
+    memory: 768Mi

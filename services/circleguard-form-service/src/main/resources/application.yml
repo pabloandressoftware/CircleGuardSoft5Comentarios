@@ -39,3 +39,9 @@ management:
       probes:
         enabled: true
       show-details: never
+
+# HU-25: el agente de OpenTelemetry pone trace_id y span_id en el MDC; se imprimen para que
+# Loki permita filtrar por traceId. Sin el agente (Compose, pruebas) quedan vacios.
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},trace_id=%X{trace_id:-},span_id=%X{span_id:-}]"

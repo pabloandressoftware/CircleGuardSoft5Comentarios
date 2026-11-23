@@ -30,6 +30,26 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.securityContext | nindent 8 }}
+      {{- if .Values.otel.enabled }}
+      # HU-25: copia el agente a un volumen compartido; la imagen del servicio no cambia.
+      initContainers:
+        - name: otel-agent
+          image: "{{ .Values.otel.agentImage }}"
+          command: ["cp", "/javaagent.jar", "/otel/javaagent.jar"]
+          volumeMounts:
+            - name: otel-agent
+              mountPath: /otel
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: otel-agent
+          emptyDir: {}
+      {{- end }}
       containers:
         - name: app
           image: "{{ .Values.image.repository }}:{{ required "Define image.tag (vX.Y.Z)" .Values.image.tag }}"
@@ -51,6 +71,30 @@ spec:
                   name: {{ $.Values.secretName }}
                   key: {{ $key }}
             {{- end }}
+            {{- if .Values.otel.enabled }}
+            # HU-25: agente Java de OpenTelemetry. JDK_JAVA_OPTIONS no pisa JAVA_TOOL_OPTIONS.
+            - name: JDK_JAVA_OPTIONS
+              value: "-javaagent:/otel/javaagent.jar"
+            - name: OTEL_SERVICE_NAME
+              value: {{ .Release.Name | quote }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.otel.endpoint | quote }}
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: http/protobuf
+            - name: OTEL_TRACES_EXPORTER
+              value: otlp
+            # Solo trazas: las metricas van por Prometheus (HU-24) y los logs por stdout a Loki.
+            - name: OTEL_METRICS_EXPORTER
+              value: none
+            - name: OTEL_LOGS_EXPORTER
+              value: none
+            {{- end }}
+          {{- if .Values.otel.enabled }}
+          volumeMounts:
+            - name: otel-agent
+              mountPath: /otel
+              readOnly: true
+          {{- end }}
           startupProbe:
             httpGet:
               path: {{ .Values.probes.liveness.path }}
