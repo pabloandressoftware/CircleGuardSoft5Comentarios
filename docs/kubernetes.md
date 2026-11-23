@@ -84,6 +84,22 @@ Se probó en un cluster kind de un nodo (v1.31) creado en la máquina de desarro
 - Persistencia de Kafka y alta disponibilidad de la base de datos: esta HU deja un nodo por componente.
 - Las pruebas funcionales entre servicios (flujo de encuesta → Kafka → promotion): solo se comprobó que cada servicio arranca, se conecta y responde sus rutas de salud.
 
+## Pipeline (HU-19)
+
+HU-19 integra este despliegue en Jenkins:
+
+- `Terraform plan` revisa los tres ambientes cuando un PR toca `infra/` o en cada
+  tag. Los applies de dev y stage son automáticos en un tag; el de prod ocurre
+  después de la aprobación del usuario `aprobador`.
+- `circleGuardHelm.groovy` crea el namespace, el `Secret` de la aplicación y el
+  `imagePullSecret`, ejecuta `deploy/k8s/desplegar.sh` y espera el
+  `kubectl rollout status` de cada Deployment.
+- El despliegue oficial usa `DEPLOY_TARGET=helm`; `compose` queda como respaldo.
+- El registro se toma de `REGISTRY` en `circleguard-env-<ambiente>`.
+
+Detalles, credenciales y pasos manuales: [HU-19 · pipeline](hu-19-pipeline.md).
+El contrato que debe cumplir Terraform: [HU-17 · contrato](hu-17-terraform-contrato.md).
+
 ## Seguridad (HU-21)
 
 - Cada release crea una `ServiceAccount` sin token montado y sin permisos sobre
@@ -97,6 +113,8 @@ Detalles y comandos: [HU-21 · RBAC, TLS y acceso](seguridad-k8s.md).
 
 ## Pendiente (otras HU)
 
-- HU-17 crea el cluster real con Terraform y entrega los kubeconfigs.
-- HU-19 llama a `desplegar.sh` desde Jenkins.
+- HU-17 implementa Terraform en `infra/terraform/envs/<ambiente>`; el
+  aprovisionamiento y los kubeconfigs reales siguen pendientes por cuenta y
+  presupuesto. k3s usa Traefik y los values por ambiente declaran su IngressClass.
+  Ver [operación HU-17](hu-17-terraform.md).
 - HU-24 y HU-25 consumen `/actuator/prometheus` y los logs.

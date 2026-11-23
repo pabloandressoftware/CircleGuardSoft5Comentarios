@@ -3,6 +3,7 @@
 env:
   CORS_ALLOWED_ORIGINS: "https://prod.circleguard.local"
 ingress:
+  className: traefik
   host: prod.circleguard.local
   # HU-21: cert-manager emite el certificado autofirmado para este Ingress.
   annotations:

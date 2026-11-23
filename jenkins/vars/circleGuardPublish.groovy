@@ -20,6 +20,10 @@ def call(Map args = [:]) {
         }
         node scripts/release-image-tag.mjs "$TAG_NAME"
     ''', returnStdout: true).trim()
+    withEnv(["RELEASE_NOTES_TAG=${imageTag}"]) {
+        sh 'node scripts/check-release-notes.mjs "$RELEASE_NOTES_TAG"'
+    }
+    archiveArtifacts artifacts: 'release-notes.md'
     withCredentials([usernamePassword(credentialsId: credentialsId,
                                       usernameVariable: 'NX_USER', passwordVariable: 'NX_PASS')]) {
         withEnv(["REGISTRY=${registry}", "IMAGE_TAG=${imageTag}"]) {
