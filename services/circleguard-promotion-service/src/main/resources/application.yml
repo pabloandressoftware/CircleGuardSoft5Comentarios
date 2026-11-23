@@ -27,6 +27,11 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
+    # HU-25: promotion publica Map (promotion.status.changed, alert.priority, circle.fenced);
+    # sin esto usaba StringSerializer y fallaba con SerializationException (igual que form-service).
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
   data:
     redis:
       host: ${REDIS_HOST:localhost}
