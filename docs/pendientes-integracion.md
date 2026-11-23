@@ -1,8 +1,9 @@
 # Pendientes de integración entre HU-17, HU-18, HU-19, HU-20, HU-21 y HU-24
 
 Este documento consolida lo que falta para llevar a un ambiente real las HU ya
-trabajadas. La rama base es `feat/hu-19-pipeline-terraform-helm`, que parte de
-`dev`. Las HU-21 y HU-24 están en ramas separadas y todavía no se han fusionado.
+trabajadas. La rama base es `dev`: HU-19, HU-21 y HU-24 ya están fusionadas. El
+código del pipeline quedó cerrado en `feat/hu-19-21-24-cierre-pipeline`; lo que
+sigue es sobre todo operación y validación en un clúster real.
 
 Fecha de este estado: 22 de noviembre de 2026.
 
@@ -11,10 +12,10 @@ Fecha de este estado: 22 de noviembre de 2026.
 | HU | Rama | Estado | Pendiente principal |
 | --- | --- | --- | --- |
 | HU-18 | `feat/hu-18-kubernetes-helm` | Fusionada en `dev` (PR #44) | Validación en clúster real, Ingress, web y middleware persistente |
-| HU-19 | `feat/hu-19-pipeline-terraform-helm` | Implementada y pusheada, sin PR | Terraform de HU-17, credenciales, clúster y despliegue real |
+| HU-19 | `feat/hu-19-pipeline-terraform-helm` | Fusionada en `dev` | Credenciales, clúster y despliegue real |
 | HU-20 | `feat/hu-20-seguridad-pipeline` | Fusionada en `dev` (PR #43) | Decisión sobre CVEs de Spring Boot y prueba real del umbral |
-| HU-21 | `feat/hu-21-seguridad-ingress` | Implementada y pusheada, sin PR | Credenciales, cert-manager y validación en clúster |
-| HU-24 | `feat/hu-24-observabilidad` | Implementada y pusheada, sin PR | Instalar observabilidad y disparar las alertas reales |
+| HU-21 | `feat/hu-21-seguridad-ingress` | Fusionada en `dev` (PR #51) | Validación en clúster (401/403, TLS y ServiceAccounts) |
+| HU-24 | `feat/hu-24-observabilidad` | Fusionada en `dev` (PR #51) | Instalar el stack y disparar las alertas reales |
 
 ## 2. Pendientes por HU
 
@@ -42,7 +43,8 @@ Referencia: `docs/kubernetes.md`.
 
 ### HU-19 · Terraform y Helm en Jenkins
 
-- Crear el PR de `feat/hu-19-pipeline-terraform-helm` a `dev` y fusionarlo.
+- Fusionada en `dev`. El E2E con Helm ya usa `kubectl port-forward` hacia
+  `svc/redis` en `circleguard-dev`; falta validarlo contra el clúster real.
 - Reconstruir la imagen de Jenkins para tener `terraform`, `helm`, `kubectl` y
   AWS CLI (`infra/ci/jenkins/Dockerfile`).
 - Integrar `hu-17` después de HU-19. Su código ya existe; faltan la cuenta
@@ -50,8 +52,6 @@ Referencia: `docs/kubernetes.md`.
 - Cargar `aws-terraform` y `kubeconfig-dev/stage/prod` en Jenkins.
 - Hacer alcanzable `REGISTRY` desde k3s y actualizar los `circleguard-env-*`.
 - Configurar `SITE_ADDRESS` con el Ingress y HTTPS reales.
-- Resolver el bloqueo de E2E con Helm: `circleGuardE2E.groovy` espera Redis por
-  SSH en el host; con Helm hay que usar `kubectl port-forward` o exponer Redis.
 - Ejecutar el primer tag con `DEPLOY_TARGET=helm` y `DEPLOY_MIDDLEWARE=true`
   para instalar el middleware en el clúster.
 
@@ -70,11 +70,12 @@ Referencia: `docs/seguridad.md`.
 
 ### HU-21 · RBAC, TLS y autenticación de rutas
 
-- Crear el PR de `feat/hu-21-seguridad-ingress` a `dev` y fusionarlo.
+- Fusionada en `dev` (PR #51).
 - Agregar `CI_DEVELOPER_PASSWORD` al `ci.env` y reconstruir Jenkins.
 - Regenerar o actualizar los `circleguard-env-*` con `INTERNAL_API_KEY`.
-- Instalar cert-manager (`deploy/k8s/cert-manager.sh`) y verificar el Ingress con
-  `deploy/k8s/verificar-tls.sh <host>` o `curl -k`.
+- El stage `TLS con cert-manager` instala cert-manager y el `ClusterIssuer` en
+  cada tag con Helm; falta confirmar que el certificado se emite y validar el
+  Ingress con `deploy/k8s/verificar-tls.sh <host>` o `curl -k`.
 - Validar los roles `admin`, `developer` y `approver` en Jenkins.
 - Probar en clúster que:
   - `/identities/map` sin JWT devuelve 401;
@@ -89,20 +90,19 @@ Referencia:
 
 ### HU-24 · Observabilidad
 
-- Crear el PR de `feat/hu-24-observabilidad` a `dev` y fusionarlo.
-- Ejecutar `observability/instalar.sh` con `CI_DISCORD_WEBHOOK` (webhook de
-  Spidey) y `GRAFANA_ADMIN_PASSWORD`.
+- Fusionada en `dev` (PR #51).
+- El stage `Observabilidad` ejecuta `observability/instalar.sh` en cada tag con
+  Helm; requiere las credenciales `discord-webhook` y `grafana-admin-password`.
 - Verificar que el ServiceMonitor descubre los 8 servicios Java de dev/stage/prod
   (24 targets).
 - Abrir Grafana por `kubectl port-forward` y revisar los tableros técnico y de
   negocio.
-- Ejecutar `observability/evidencias/disparar-alertas.sh` y guardar la evidencia
-  de `ServiceDown`, `High5xxRate` y `GateDenialSpike` en
+- Ejecutar manualmente `observability/evidencias/disparar-alertas.sh` y guardar
+  la evidencia de `ServiceDown`, `High5xxRate` y `GateDenialSpike` en
   `observability/evidencias/<fecha>/`.
 - Confirmar que Spidey recibe las alertas en Discord.
 
-Referencia:
-<https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/blob/feat/hu-24-observabilidad/docs/observabilidad.md>
+Referencia: [docs/observabilidad.md](observabilidad.md).
 
 ## 3. Lo que debe entregar HU-17
 
@@ -144,9 +144,12 @@ Cada ambiente debe ser un root module independiente que reutilice `modules/`.
 
 ### 3.3 Clúster y kubeconfigs
 
-- k3s por ambiente, o un clúster con tres namespaces.
+- La decisión para este proyecto es **un clúster con tres namespaces**
+  (`circleguard-dev`, `circleguard-stage`, `circleguard-prod`).
 - Entregar un kubeconfig por ambiente y cargarlo en Jenkins como
-  `kubeconfig-dev`, `kubeconfig-stage` y `kubeconfig-prod`.
+  `kubeconfig-dev`, `kubeconfig-stage` y `kubeconfig-prod`. Los stages de
+  cert-manager y observabilidad usan `kubeconfig-dev`, que apunta al clúster
+  compartido.
 - El kubeconfig debe permitir crear namespaces, Secrets, Deployments, Services,
   Ingress, HPA y ejecutar `helm upgrade --install --wait`.
 - Si se usa un permiso limitado, HU-19 debe dejar de crear namespaces y HU-17
@@ -174,24 +177,25 @@ Cada ambiente debe ser un root module independiente que reutilice `modules/`.
 
 ## 4. Orden de integración recomendado
 
-1. **HU-17:** fusionar Terraform, provisionar el clúster y entregar kubeconfigs.
-2. **HU-19:** fusionar el pipeline, reconstruir Jenkins, cargar credenciales y
-   desplegar el primer tag con Helm.
-3. **HU-21:** fusionar RBAC/TLS, actualizar `INTERNAL_API_KEY`, instalar
-   cert-manager y validar rutas.
-4. **HU-24:** fusionar observabilidad, instalar kube-prometheus-stack y verificar
-   24 targets.
+1. **HU-17:** provisionar el clúster y entregar kubeconfigs.
+2. **HU-19:** reconstruir Jenkins, cargar credenciales y desplegar el primer tag
+   con Helm.
+3. **HU-21:** los stages `TLS con cert-manager` y `Observabilidad` corren
+   automáticamente en el tag; validar rutas y certificados.
+4. **HU-24:** verificar los 24 targets y los tableros en Grafana.
 5. Ejecutar las tres alertas de HU-24 y guardar la evidencia para HU-29.
 
 ## 5. Riesgos y conflictos entre ramas
 
-- HU-19, HU-21 y HU-24 parten de `dev`; comparten cambios en `README.md` y
-  `docs/kubernetes.md`, que pueden generar conflictos menores.
-- HU-19 modifica `Jenkinsfile`; HU-21 toca `casc.yml`, `plugins.txt`, `compose.yml`
-  y `ci.env.example`. El conflicto esperado es bajo, pero hay que fusionar en orden.
-- HU-19 crea namespaces desde el pipeline; HU-21 puede introducir credenciales
-  limitadas. Decidir si los namespaces los crea HU-17 o el pipeline.
-- HU-24 necesita servicios desplegados para que el ServiceMonitor tenga targets.
+- HU-19, HU-21 y HU-24 ya están fusionadas en `dev`; los conflictos de
+  `README.md` y `docs/kubernetes.md` quedaron resueltos.
+- Se asume **un clúster con tres namespaces**; si se usan clústeres separados,
+  los stages `TLS con cert-manager` y `Observabilidad` deben ejecutarse en cada
+  uno (hoy usan `kubeconfig-dev`).
+- HU-19 crea namespaces desde el pipeline; si HU-21 introduce credenciales
+  limitadas, decidir si los namespaces los crea HU-17 o el pipeline.
+- HU-24 necesita servicios desplegados para que el ServiceMonitor tenga targets
+  y los stages automáticos alargan cada tag (`--wait` de Helm).
 - HU-21 introduce `INTERNAL_API_KEY`; los `.env` de HU-19 deben actualizarse antes
   de desplegar.
 - El webhook de Spidey se reutiliza en Alertmanager, pero se guarda como Secret
@@ -206,7 +210,9 @@ Cada ambiente debe ser un root module independiente que reutilice `modules/`.
 - [ ] Imagen de Jenkins reconstruida con Terraform, Helm, kubectl y AWS CLI.
 - [ ] Registro alcanzable desde k3s y `REGISTRY` actualizado.
 - [ ] `SITE_ADDRESS` y TLS funcionando; humo y E2E en verde.
-- [ ] HU-21 fusionada y validada (401/403/ServiceAccounts/TLS).
-- [ ] HU-24 fusionada; 24 targets y dashboards visibles.
+- [x] HU-21 fusionada; falta validarla en clúster (401/403/ServiceAccounts/TLS).
+- [x] HU-24 fusionada; falta verificar 24 targets y dashboards.
+- [ ] Cert-manager y observabilidad instalados por el pipeline en un tag real.
 - [ ] Tres alertas críticas disparadas con evidencia y aviso a Spidey.
-- [ ] `INTERNAL_API_KEY` y `CI_DEVELOPER_PASSWORD` cargados sin exponerlos en Git.
+- [ ] `INTERNAL_API_KEY`, `CI_DEVELOPER_PASSWORD` y `grafana-admin-password`
+      cargados sin exponerlos en Git.

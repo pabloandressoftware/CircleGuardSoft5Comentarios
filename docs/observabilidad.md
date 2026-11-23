@@ -29,6 +29,10 @@ validación. Prometheus agrega el tag `application` a todas las métricas.
 Requisitos: `helm`, `kubectl`, `jq` y un cluster con los namespaces
 `circleguard-dev`, `circleguard-stage` y `circleguard-prod`.
 
+El pipeline lo instala automáticamente en cada tag con el stage
+**Observabilidad**, que usa `kubeconfig-dev` y las credenciales
+`discord-webhook` y `grafana-admin-password`. Para hacerlo a mano:
+
 ```bash
 CI_DISCORD_WEBHOOK='https://discord.com/api/webhooks/...' \
 GRAFANA_ADMIN_PASSWORD='<contrasena>' \
@@ -91,7 +95,8 @@ promtool test rules observability/alerts/tests.yaml
 
 ## Evidencia de las tres alertas
 
-Con un cluster real y el stack instalado:
+La evidencia es **manual y nunca se ejecuta en el pipeline**: el script escala
+`web` a 0 y detiene PostgreSQL. Con un cluster real y el stack instalado:
 
 ```bash
 bash observability/evidencias/disparar-alertas.sh
