@@ -98,7 +98,7 @@ high_errors() {
 gate_denials() {
   echo '>>> CircleguardGateDenialSpike: se envian tokens invalidos al gateway'
   start_forward gateway-service 18087 8087
-  for _ in $(seq 1 300); do
+  for _ in $(seq 1 "${GATE_REQUESTS:-600}"); do
     curl -sS --max-time 3 -o /dev/null -X POST \
       -H 'Content-Type: application/json' \
       -d '{"token":"token-invalido-para-alerta"}' \
