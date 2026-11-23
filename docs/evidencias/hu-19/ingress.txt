@@ -1,0 +1,9 @@
+NAME                CLASS     HOSTS                   ADDRESS   PORTS     AGE
+auth-service        traefik   dev.circleguard.local             80, 443   85m
+dashboard-service   traefik   dev.circleguard.local             80, 443   75m
+file-service        traefik   dev.circleguard.local             80, 443   76m
+form-service        traefik   dev.circleguard.local             80, 443   80m
+gateway-service     traefik   dev.circleguard.local             80, 443   79m
+identity-service    traefik   dev.circleguard.local             80, 443   87m
+promotion-service   traefik   dev.circleguard.local             80, 443   83m
+web                 traefik   dev.circleguard.local             80, 443   74m

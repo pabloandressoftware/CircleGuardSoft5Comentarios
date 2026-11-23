@@ -201,7 +201,26 @@ Cada ambiente debe ser un root module independiente que reutilice `modules/`.
 - El webhook de Spidey se reutiliza en Alertmanager, pero se guarda como Secret
   de Kubernetes; no debe quedar en Git.
 
-## 6. Checklist final
+## 6. Evidencia local (23-nov-2026)
+
+Se levantó un clúster `kind` desechable con Traefik, cert-manager, las nueve
+imágenes `v0.1.0` y kube-prometheus-stack. Resultados:
+
+- **HU-19:** 9 releases Helm y 8 servicios Java + `web` en `Running`; humo HTTPS
+  con `/` → 200 y `/api/v1/health` → 401.
+- **HU-21:** `ClusterIssuer` y `Certificate/circleguard-dev-tls` `Ready`;
+  ServiceAccounts sin token montado.
+- **HU-24:** 8/8 targets `up` en dev y `CircleguardGateDenialSpike` visible en
+  Alertmanager.
+
+Evidencias: [HU-19](evidencias/hu-19/README.md),
+[HU-21](evidencias/hu-21/README.md) y [HU-24](evidencias/hu-24/README.md).
+
+Límites: no se ejecutó un tag de Jenkins ni `terraform apply` (sin AWS); el
+segundo ambiente agotó los 7.5 GB de Docker, así que no se alcanzaron los 24
+targets; el webhook de Discord usado fue provisional.
+
+## 7. Checklist final
 
 - [x] Código HU-17 con cinco módulos y composición compartida en su rama.
 
@@ -209,10 +228,12 @@ Cada ambiente debe ser un root module independiente que reutilice `modules/`.
 - [ ] `kubeconfig-*` y `aws-terraform` cargados en Jenkins.
 - [ ] Imagen de Jenkins reconstruida con Terraform, Helm, kubectl y AWS CLI.
 - [ ] Registro alcanzable desde k3s y `REGISTRY` actualizado.
-- [ ] `SITE_ADDRESS` y TLS funcionando; humo y E2E en verde.
-- [x] HU-21 fusionada; falta validarla en clúster (401/403/ServiceAccounts/TLS).
-- [x] HU-24 fusionada; falta verificar 24 targets y dashboards.
+- [ ] `SITE_ADDRESS` y TLS funcionando en Jenkins real; humo y E2E en verde.
+- [x] Evidencia local en kind de Helm, TLS y observabilidad en dev.
+- [ ] HU-21 validada en clúster real (401/403/ServiceAccounts/TLS).
+- [ ] HU-24 con 24 targets en los 3 ambientes (bloqueado por RAM local).
 - [ ] Cert-manager y observabilidad instalados por el pipeline en un tag real.
-- [ ] Tres alertas críticas disparadas con evidencia y aviso a Spidey.
+- [x] `CircleguardGateDenialSpike` disparada y guardada; falta confirmar Discord.
+- [ ] `CircleguardServiceDown` y `CircleguardHigh5xxRate` con evidencia.
 - [ ] `INTERNAL_API_KEY`, `CI_DEVELOPER_PASSWORD` y `grafana-admin-password`
       cargados sin exponerlos en Git.
