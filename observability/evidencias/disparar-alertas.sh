@@ -47,14 +47,15 @@ start_forward() {
 
 alertmanager_url="${ALERTMANAGER_URL:-}"
 if [[ -z "$alertmanager_url" ]]; then
-  kubectl -n monitoring port-forward svc/kube-prometheus-stack-kube-prometheus-alertmanager 19093:9093 >/dev/null 2>&1 &
+  kubectl -n monitoring port-forward svc/kube-prometheus-stack-alertmanager 19093:9093 >/dev/null 2>&1 &
   pids+=("$!")
   alertmanager_url="http://127.0.0.1:19093"
   sleep 2
 fi
 
 capture() {
-  local name=$1 dir="$out/$name"
+  local name=$1
+  local dir="$out/$name"
   mkdir -p "$dir"
   kubectl -n "$ns" get pods -o wide > "$dir/pods.txt" 2>&1 || true
   curl -fsS "$alertmanager_url/api/v2/alerts" > "$dir/alerts.json" 2>&1 || true
@@ -98,7 +99,7 @@ high_errors() {
 gate_denials() {
   echo '>>> CircleguardGateDenialSpike: se envian tokens invalidos al gateway'
   start_forward gateway-service 18087 8087
-  for _ in $(seq 1 300); do
+  for _ in $(seq 1 "${GATE_REQUESTS:-600}"); do
     curl -sS --max-time 3 -o /dev/null -X POST \
       -H 'Content-Type: application/json' \
       -d '{"token":"token-invalido-para-alerta"}' \

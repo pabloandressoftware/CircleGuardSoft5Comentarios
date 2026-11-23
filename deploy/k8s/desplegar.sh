@@ -25,6 +25,16 @@ if [[ ${#servicios[@]} -eq 0 ]]; then
   servicios=(identity-service auth-service promotion-service form-service gateway-service notification-service file-service dashboard-service web)
 fi
 
+# Permite superponer valores sin editar los archivos versionados (util para
+# evidencia local o entornos de laboratorio). Separa varios archivos con ':'.
+extra_values=()
+if [[ -n "${HELM_EXTRA_VALUES:-}" ]]; then
+  IFS=':' read -r -a _extra_values <<< "$HELM_EXTRA_VALUES"
+  for archivo in "${_extra_values[@]}"; do
+    extra_values+=(-f "$archivo")
+  done
+fi
+
 kubectl apply -f "$aqui/../k8s/namespaces.yaml" >/dev/null
 
 if [[ -n "${NX_USER:-}" && -n "${NX_PASS:-}" ]]; then
@@ -43,7 +53,7 @@ for s in "${servicios[@]}"; do
   fi
   echo "helm upgrade --install ${s} (${repositorio}:${etiqueta}) en ${ns}"
   helm upgrade --install "$s" "$aqui/circleguard-service" -n "$ns" \
-    -f "$aqui/values/$s.yaml" -f "$aqui/envs/$ambiente.yaml" \
+    -f "$aqui/values/$s.yaml" -f "$aqui/envs/$ambiente.yaml" "${extra_values[@]}" \
     --set image.repository="$repositorio" \
     --set image.tag="$etiqueta" \
     --set "imagePullSecrets[0].name=nexus-registry" \

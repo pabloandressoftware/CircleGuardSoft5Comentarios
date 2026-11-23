@@ -46,15 +46,18 @@ helm template gateway-service deploy/helm/circleguard-service \
 
 ## 3. TLS con cert-manager
 
-Instala cert-manager y el emisor autofirmado:
+El script instala cert-manager con Helm y aplica
+`deploy/k8s/issuers.yaml` (`ClusterIssuer/circleguard-selfsigned`).
+
+El pipeline lo ejecuta automáticamente con el stage **TLS con cert-manager**
+antes de crear los Ingress, usando la credencial `kubeconfig-dev` (clúster
+compartido). También se puede lanzar a mano:
 
 ```bash
 bash deploy/k8s/cert-manager.sh
 ```
 
-El script instala cert-manager con Helm y aplica
-`deploy/k8s/issuers.yaml` (`ClusterIssuer/circleguard-selfsigned`). Los tres
-ambientes piden su certificado con:
+Los tres ambientes piden su certificado con:
 
 ```yaml
 ingress:

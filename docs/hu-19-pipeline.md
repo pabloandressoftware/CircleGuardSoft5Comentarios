@@ -13,10 +13,10 @@ Preparar (detecta cambios en infra/)
   → Terraform plan (los 3 ambientes; PR con cambios en infra/ o tag)
   → Calidad → Seguridad → Web
   → [tag] Publicar imágenes → Escanear imágenes
-  → [tag] Terraform apply dev → Desplegar dev → Humo → E2E
+  → [tag] Terraform apply dev → TLS con cert-manager → Desplegar dev → Humo → E2E
   → [tag] Terraform apply stage → Desplegar stage → Humo → ZAP
   → [tag] Aprobación prod (usuario aprobador)
-  → [tag] Terraform apply prod → Desplegar prod → Humo
+  → [tag] Terraform apply prod → Desplegar prod → Humo → Observabilidad
 ```
 
 - En un **PR** solo se ejecuta `terraform plan`; nunca se aplica ni se despliega.
@@ -28,6 +28,12 @@ Preparar (detecta cambios en infra/)
   registra antes/después y tiempo. Compose conserva el redespliegue anterior.
   Ver [HU-27](hu-27-versiones-rollback.md).
 - Un fallo dispara los avisos de HU-11 (Discord y correo) desde `post.failure`.
+- Con `DEPLOY_TARGET=helm`, el E2E de dev expone Redis con
+  `kubectl port-forward svc/redis 16379:6379` en `circleguard-dev`; con Compose
+  conserva el túnel SSH a la VM.
+- Los stages **TLS con cert-manager** y **Observabilidad** se ejecutan en cada
+  tag con Helm y son idempotentes. Asumen un clúster compartido con los tres
+  namespaces y usan `kubeconfig-dev`.
 
 ## Parámetros nuevos
 
@@ -44,6 +50,8 @@ Preparar (detecta cambios en infra/)
 | `aws-terraform` | Username with password | Access key y secret key de AWS para Terraform. |
 | `circleguard-env-dev/stage/prod` | Secret file | `.env` del ambiente; aporta `REGISTRY` y `SITE_ADDRESS`. |
 | `nexus-registry` | Username with password | Login al registro y creación del `imagePullSecret`. |
+| `discord-webhook` | Username with password | Webhook de Spidey para Alertmanager (la contraseña es la URL). |
+| `grafana-admin-password` | Secret text | Contraseña del usuario `admin` de Grafana. |
 
 Las credenciales `circleguard-env-*` ya existían para HU-10. Solo deben
 actualizarse si cambia el registro o el host del Ingress.
@@ -54,6 +62,8 @@ actualizarse si cambia el registro o el host del Ingress.
 | --- | --- |
 | `jenkins/vars/circleGuardTerraform.groovy` | `plan` y `apply` por ambiente, con credenciales AWS y artefacto `terraform-plan.txt`. |
 | `jenkins/vars/circleGuardHelm.groovy` | Namespace, secrets, `imagePullSecret`, Helm y espera de `rollout status`. |
+| `jenkins/vars/circleGuardCertManager.groovy` | Instala cert-manager y el `ClusterIssuer` autofirmado antes del primer Ingress (HU-21). |
+| `jenkins/vars/circleGuardObservability.groovy` | Instala kube-prometheus-stack, ServiceMonitor, alertas y tableros (HU-24). |
 | `deploy/k8s/desplegar.sh` | `helm upgrade --install` con registro configurable y `kubectl rollout status`. |
 | `infra/ci/jenkins/Dockerfile` | Instala `terraform`, `helm`, `kubectl` y AWS CLI con versiones fijas. |
 | `docs/hu-17-terraform-contrato.md` | Qué debe entregar HU-17 para que estas etapas funcionen. |
@@ -100,13 +110,16 @@ actualizarse si cambia el registro o el host del Ingress.
 
 ## Limitaciones conocidas
 
-- HU-17 aporta los `.tf` en la rama `hu-17`. La cuenta, las plantillas de
-  configuración y las credenciales deben prepararse antes de ejecutar el pipeline.
-  La infraestructura AWS y el bloqueo real todavía no se han demostrado.
+- HU-17 ya está fusionada en `dev`, pero `infra/terraform/envs/*/terraform.tfvars`
+  y `backend.hcl` siguen siendo plantillas inoperables (cuenta `000…`, AMI falsa
+  y `registry.example.invalid`). La infraestructura AWS y el bloqueo real todavía
+  no se han demostrado.
 - El middleware se despliega solo con `DEPLOY_MIDDLEWARE=true`; no se reinstala
   en cada release.
 - El humo/E2E siguen usando HTTPS contra `SITE_ADDRESS`; requieren Ingress, DNS
   y TLS operativos.
+- El E2E con Helm necesita que el kubeconfig permita `pods/portforward` en
+  `circleguard-dev`.
 - El registro debe ser alcanzable por k3s. Si es Nexus HTTP, hace falta
   configuración adicional de containerd.
 

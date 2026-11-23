@@ -1,0 +1,2 @@
+TLS / -> 200
+TLS /api/v1/health -> 401

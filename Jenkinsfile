@@ -27,6 +27,8 @@ def security
 def zap
 def terraform
 def helm
+def certManager
+def observability
 def changed = []
 def infraChanged = false
 
@@ -129,6 +131,8 @@ pipeline {
                     zap = load 'jenkins/vars/circleGuardZap.groovy'
                     terraform = load 'jenkins/vars/circleGuardTerraform.groovy'
                     helm = load 'jenkins/vars/circleGuardHelm.groovy'
+                    certManager = load 'jenkins/vars/circleGuardCertManager.groovy'
+                    observability = load 'jenkins/vars/circleGuardObservability.groovy'
                     sh 'node --test deploy/k8s/releases.test.mjs scripts/check-release-notes.test.mjs'
 
                     String baseRef = env.CHANGE_TARGET
@@ -292,6 +296,22 @@ pipeline {
             }
         }
 
+        // HU-21: un solo clúster atiende dev/stage/prod. cert-manager debe existir
+        // antes de crear los Ingress, por eso se instala una vez tras el apply de dev.
+        stage('TLS con cert-manager') {
+            when {
+                allOf {
+                    buildingTag()
+                    tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.ROLLBACK_TAG }
+                    expression { !params.SKIP_DEPLOY && params.DEPLOY_TARGET == 'helm' }
+                }
+            }
+            steps {
+                script { certManager.install() }
+            }
+        }
+
         // HU-10: dev recibe la etiqueta recien publicada y debe superar el humo.
         stage('Desplegar dev') {
             when {
@@ -344,7 +364,7 @@ pipeline {
                 }
             }
             steps {
-                script { e2e.call(host: env.DEV_HOST, environment: 'dev') }
+                script { e2e.call(host: env.DEV_HOST, environment: 'dev', deployTarget: params.DEPLOY_TARGET) }
             }
         }
 
@@ -481,6 +501,23 @@ pipeline {
             }
             steps {
                 script { smoke.call(env.PROD_HOST) }
+            }
+        }
+
+        // HU-24: observabilidad del clúster compartido. El ServiceMonitor cubre los
+        // tres namespaces; se instala al final del tag para no repetir el stack por
+        // ambiente. La evidencia de alertas se dispara manualmente, nunca aquí.
+        stage('Observabilidad') {
+            when {
+                allOf {
+                    buildingTag()
+                    tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.ROLLBACK_TAG }
+                    expression { !params.SKIP_DEPLOY && params.DEPLOY_TARGET == 'helm' }
+                }
+            }
+            steps {
+                script { observability.install() }
             }
         }
 

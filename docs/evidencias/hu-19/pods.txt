@@ -1,0 +1,15 @@
+NAME                                   READY   STATUS    RESTARTS   AGE    IP            NODE                                  NOMINATED NODE   READINESS GATES
+auth-service-85c48958cd-9rgcc          1/1     Running   0          85m    10.244.0.19   circleguard-evidencia-control-plane   <none>           <none>
+dashboard-service-58cc5cc9bf-b4mpj     1/1     Running   0          75m    10.244.0.27   circleguard-evidencia-control-plane   <none>           <none>
+file-service-6fc79458cb-dbqbn          1/1     Running   0          76m    10.244.0.26   circleguard-evidencia-control-plane   <none>           <none>
+form-service-57bdb44bbc-lzj9b          1/1     Running   0          80m    10.244.0.22   circleguard-evidencia-control-plane   <none>           <none>
+gateway-service-5fb5c88fd6-kk4fw       1/1     Running   0          78m    10.244.0.24   circleguard-evidencia-control-plane   <none>           <none>
+identity-service-77f6884694-gzq5p      1/1     Running   0          87m    10.244.0.18   circleguard-evidencia-control-plane   <none>           <none>
+kafka-86675677c8-nfmnb                 1/1     Running   0          110m   10.244.0.14   circleguard-evidencia-control-plane   <none>           <none>
+neo4j-0                                1/1     Running   0          110m   10.244.0.16   circleguard-evidencia-control-plane   <none>           <none>
+notification-service-cb8497fb9-64bgp   1/1     Running   0          77m    10.244.0.25   circleguard-evidencia-control-plane   <none>           <none>
+openldap-65d7b8697d-f47fn              1/1     Running   0          108m   10.244.0.17   circleguard-evidencia-control-plane   <none>           <none>
+postgres-0                             1/1     Running   0          113m   10.244.0.11   circleguard-evidencia-control-plane   <none>           <none>
+promotion-service-7b874c4f95-tf9vt     1/1     Running   0          83m    10.244.0.20   circleguard-evidencia-control-plane   <none>           <none>
+redis-master-0                         1/1     Running   0          111m   10.244.0.13   circleguard-evidencia-control-plane   <none>           <none>
+web-57db5dc485-5wnjn                   1/1     Running   0          74m    10.244.0.28   circleguard-evidencia-control-plane   <none>           <none>
