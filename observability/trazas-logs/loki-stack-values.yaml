@@ -1,0 +1,23 @@
+# HU-25 · Loki y Promtail con el chart grafana/loki-stack (se instala con instalar.sh).
+# Promtail corre en cada nodo, lee los logs de TODOS los pods y los envia a Loki. Grafana ya
+# viene de HU-24 (kube-prometheus-stack), por eso aqui se desactiva el de este chart.
+loki:
+  enabled: true
+  fullnameOverride: loki
+  persistence:
+    enabled: true
+    size: 5Gi
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+
+promtail:
+  enabled: true
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { cpu: 200m, memory: 128Mi }
+
+grafana:
+  enabled: false
+prometheus:
+  enabled: false
