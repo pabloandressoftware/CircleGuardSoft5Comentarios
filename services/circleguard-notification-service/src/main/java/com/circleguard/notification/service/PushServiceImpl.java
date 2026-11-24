@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.client.RestClient;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,7 +15,7 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class PushServiceImpl implements PushService {
 
-    private final WebClient webClient;
+    private final RestClient restClient;
 
     @Value("${push.gotify.url:http://localhost:8080}")
     private String gotifyUrl;
@@ -26,9 +26,9 @@ public class PushServiceImpl implements PushService {
     @jakarta.annotation.Resource
     private AuditLogService auditLogService;
 
-    public PushServiceImpl(WebClient.Builder webClientBuilder, 
+    public PushServiceImpl(RestClient.Builder restClientBuilder,
                            @Value("${push.gotify.url:http://localhost:8080}") String gotifyUrl) {
-        this.webClient = webClientBuilder.baseUrl(gotifyUrl).build();
+        this.restClient = restClientBuilder.baseUrl(gotifyUrl).build();
     }
 
     @Override
@@ -64,14 +64,12 @@ public class PushServiceImpl implements PushService {
                 body.put("extras", Map.of("client::notification", metadata));
             }
             
-            webClient.post()
-                .uri("/message?token=" + gotifyToken)
+            restClient.post()
+                .uri("/message?token={token}", gotifyToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(body)
+                .body(body)
                 .retrieve()
-                .toBodilessEntity()
-                .toFuture()
-                .join(); // Block in the @Async thread to support @Retryable
+                .toBodilessEntity(); // Blocking in the @Async thread preserves retry semantics.
 
             log.info("Push notification with metadata sent successfully to user: {}", userId);
             auditLogService.logDelivery(userId, "PUSH", "SUCCESS", correlationId);

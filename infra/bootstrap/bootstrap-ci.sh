@@ -21,7 +21,13 @@ if [[ $mode == --local ]]; then
     docker_cli=(sudo --preserve-env=CI_DOCKER_GID,BUILDX_NO_DEFAULT_ATTESTATIONS docker)
   fi
   compose=("${docker_cli[@]}" compose -p "${CI_COMPOSE_PROJECT:-circleguard-ci}" --env-file "$env_file" -f "$root/infra/ci/compose.yml")
+  if [[ ${CI_ENABLE_HTTPS:-0} == 1 ]]; then
+    compose+=(-f "$root/infra/ci/compose.aws.yml")
+  fi
   "${compose[@]}" up -d --build jenkins sonarqube nexus
+  if [[ ${CI_ENABLE_HTTPS:-0} == 1 ]]; then
+    "${compose[@]}" up -d proxy
+  fi
   init_status=0
   "${compose[@]}" run --rm --no-deps --build init || init_status=$?
   "${compose[@]}" exec -T jenkins docker version --format '{{.Server.Version}}'

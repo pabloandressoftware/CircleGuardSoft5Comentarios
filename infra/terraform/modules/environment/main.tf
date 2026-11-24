@@ -1,7 +1,8 @@
 terraform {
   required_version = "~> 1.9.0"
   required_providers {
-    aws = { source = "hashicorp/aws", version = "~> 5.100.0" }
+    aws    = { source = "hashicorp/aws", version = "~> 5.100.0" }
+    random = { source = "hashicorp/random", version = "~> 3.7.2" }
   }
 }
 
@@ -23,7 +24,12 @@ variable "config" {
     data_size_gib     = number
     log_retention     = number
     k3s_version       = string
+    worker_count      = optional(number, 1)
   })
+  validation {
+    condition     = contains([0, 1], var.config.worker_count)
+    error_message = "La demostracion admite cero o un worker por ambiente."
+  }
   validation {
     condition     = contains(["dev", "stage", "prod"], var.config.environment) && can(regex("^[0-9]{12}$", var.config.account_id))
     error_message = "Usa dev/stage/prod y una cuenta AWS de 12 dígitos."
@@ -50,6 +56,7 @@ module "network" {
   admin_cidrs       = var.config.admin_cidrs
   api_cidrs         = var.config.api_cidrs
   web_cidrs         = var.config.web_cidrs
+  cluster_network   = var.config.worker_count > 0
 }
 module "registry" {
   source = "../registry"
@@ -69,20 +76,60 @@ module "observability" {
   retention_days = var.config.log_retention
 }
 module "cluster" {
-  source            = "../cluster"
-  name              = local.name
-  ami_id            = var.config.ami_id
-  instance_type     = var.config.instance_type
-  key_name          = var.config.key_name
-  subnet_id         = module.network.subnet_id
-  security_group_id = module.network.security_group_id
-  public_ip         = module.network.public_ip
-  volume_id         = module.storage.volume_id
-  k3s_version       = var.config.k3s_version
-  registries_yaml   = module.registry.registries_yaml
-  log_policy        = module.observability.log_policy
-  agent_config      = module.observability.agent_config
-  region            = var.config.region
+  source               = "../cluster"
+  name                 = local.name
+  ami_id               = var.config.ami_id
+  instance_type        = var.config.instance_type
+  key_name             = var.config.key_name
+  subnet_id            = module.network.subnet_id
+  security_group_id    = module.network.security_group_id
+  public_ip            = module.network.public_ip
+  volume_id            = module.storage.volume_id
+  k3s_version          = var.config.k3s_version
+  registries_yaml      = module.registry.registries_yaml
+  log_policy           = module.observability.log_policy
+  agent_config         = module.observability.agent_config
+  region               = var.config.region
+  permissions_boundary = "arn:aws:iam::${var.config.account_id}:policy/CircleGuardNodeBoundary"
+  agent_token          = var.config.worker_count > 0 ? random_password.agent[0].result : ""
+}
+
+resource "random_password" "agent" {
+  count   = var.config.worker_count > 0 ? 1 : 0
+  length  = 64
+  special = false
+}
+
+resource "aws_instance" "worker" {
+  count                  = var.config.worker_count
+  ami                    = var.config.ami_id
+  instance_type          = var.config.instance_type
+  key_name               = var.config.key_name
+  subnet_id              = module.network.subnet_id
+  vpc_security_group_ids = [module.network.security_group_id]
+  iam_instance_profile   = module.cluster.instance_profile
+  # IP automatica para egress sin un NAT Gateway ni otra Elastic IP.
+  associate_public_ip_address = true
+  user_data_replace_on_change = true
+  user_data = templatefile("${path.module}/worker-cloud-init.sh.tftpl", {
+    name           = "${local.name}-worker-${count.index + 1}"
+    server_ip      = module.cluster.private_ip
+    agent_token    = random_password.agent[0].result
+    k3s_version    = var.config.k3s_version
+    registries_b64 = base64encode(module.registry.registries_yaml)
+  })
+  metadata_options {
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+  }
+  root_block_device {
+    volume_size           = 30
+    volume_type           = "gp3"
+    encrypted             = true
+    delete_on_termination = true
+  }
+  tags       = { Name = "${local.name}-worker-${count.index + 1}" }
+  depends_on = [module.network]
 }
 
 resource "aws_eip_association" "node" {

@@ -129,7 +129,7 @@ pipeline {
                     zap = load 'jenkins/vars/circleGuardZap.groovy'
                     terraform = load 'jenkins/vars/circleGuardTerraform.groovy'
                     helm = load 'jenkins/vars/circleGuardHelm.groovy'
-                    sh 'node --test deploy/k8s/releases.test.mjs scripts/check-release-notes.test.mjs'
+                    sh 'node --test deploy/k8s/releases.test.mjs scripts/check-release-notes.test.mjs scripts/spring-rendering-vex.test.mjs infra/terraform/scripts/check-plan.test.mjs'
 
                     String baseRef = env.CHANGE_TARGET
                         ? "origin/${env.CHANGE_TARGET}"

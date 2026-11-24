@@ -125,6 +125,44 @@ configure_discord_credential() {
     'Webhook de Discord para notificaciones del pipeline'
 }
 
+configure_secret_text_credential() {
+  credential_id=$1
+  credential_secret=$2
+  crumb=$(jenkins_web "$jenkins/crumbIssuer/api/json" | jq -r '.crumb')
+  payload=$(jq -nc --arg id "$credential_id" --arg secret "$credential_secret" \
+    '{credentials:{scope:"GLOBAL",id:$id,secret:$secret,"$class":"org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl"}}')
+  status=$(jenkins_status "$jenkins/credentials/store/system/domain/_/credential/${credential_id}/api/json") || true
+  if [ "$status" = 200 ]; then
+    jenkins_web -H "Jenkins-Crumb: $crumb" -X POST \
+      "$jenkins/credentials/store/system/domain/_/credential/${credential_id}/doDelete" >/dev/null
+  fi
+  jenkins_web -H "Jenkins-Crumb: $crumb" -X POST \
+    "$jenkins/credentials/store/system/domain/_/createCredentials" \
+    --data-urlencode "json=$payload" >/dev/null
+}
+
+configure_sonar_integration() {
+  tokens=$(sonar_api "$sonar/api/user_tokens/search")
+  if printf '%s' "$tokens" | jq -e '.userTokens[] | select(.name == "CircleGuardJenkins")' >/dev/null; then
+    sonar_api -X POST "$sonar/api/user_tokens/revoke" --data name=CircleGuardJenkins >/dev/null
+  fi
+  sonar_token=$(sonar_api -X POST "$sonar/api/user_tokens/generate" \
+    --data name=CircleGuardJenkins --data type=GLOBAL_ANALYSIS_TOKEN | jq -er '.token')
+  configure_secret_text_credential sonarqube-token "$sonar_token"
+  webhook_id=$(sonar_api "$sonar/api/webhooks/list" \
+    | jq -r '.webhooks[] | select(.name == "CircleGuardJenkins") | .key')
+  webhook_action=create
+  if [ -n "$webhook_id" ]; then webhook_action=update; fi
+  sonar_api -X POST "$sonar/api/webhooks/$webhook_action" \
+    --data-urlencode "webhook=$webhook_id" --data name=CircleGuardJenkins \
+    --data-urlencode 'url=http://jenkins:8080/sonarqube-webhook/' \
+    --data-urlencode "secret=${CI_SONAR_WEBHOOK_SECRET:-}" >/dev/null
+  if [ -n "${CI_SONAR_WEBHOOK_SECRET:-}" ]; then
+    configure_secret_text_credential sonarqube-webhook-secret "$CI_SONAR_WEBHOOK_SECRET"
+  fi
+  echo 'Integracion Sonar/Jenkins: token y callback del quality gate configurados.'
+}
+
 wait_until Jenkins request "$jenkins/login"
 jenkins_api "$jenkins/api/json" >/dev/null
 configure_github_credential
@@ -160,6 +198,7 @@ elif ! printf '%s' "$conditions" | jq -e '.conditions[] | select(.metric == "new
 fi
 sonar_api -X POST "$sonar/api/qualitygates/set_as_default" --data-urlencode "name=$gate"
 sonar_api -X POST "$sonar/api/settings/set" --data key=sonar.qualitygate.ignoreSmallChanges --data value=false
+configure_sonar_integration
 
 if ! nexus_api "$nexus/security/realms/active" >/dev/null 2>&1; then
   if [ ! -s /nexus-data/admin.password ]; then

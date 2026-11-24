@@ -13,7 +13,11 @@ RUN npx --no-install expo export --platform web --output-dir dist
 FROM nginxinc/nginx-unprivileged:1.30-alpine
 # HU-20: parchea los paquetes de Alpine con CVE criticos corregidos (Trivy bloquea la etiqueta si no).
 USER root
-RUN apk upgrade --no-cache
+RUN apk add --no-cache --upgrade \
+      'nginx>=1.30.7' 'nginx-module-geoip>=1.30.7' \
+      'nginx-module-image-filter>=1.30.7' 'nginx-module-njs>=1.30.7' \
+      'nginx-module-xslt>=1.30.7' && \
+    apk upgrade --no-cache
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/ /usr/share/nginx/html/
 EXPOSE 8080

@@ -1,0 +1,29 @@
+services:
+  jenkins:
+    environment:
+      CI_REGISTRY_HOST: ${CI_REGISTRY_HOST:?Define CI_REGISTRY_HOST}
+      CIRCLE_AWS_AUTH_MODE: instance-profile
+      AWS_REGION: us-east-2
+      AWS_DEFAULT_REGION: us-east-2
+      CI_BRANCH_INCLUDES: ${CI_BRANCH_INCLUDES:-__bootstrap_disabled__}
+    volumes:
+      - /var/jenkins_home:/var/jenkins_home
+      - ./jenkins/casc.yml:/opt/jenkins/casc.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+  proxy:
+    image: caddy:2.11.9-alpine
+    environment:
+      CI_PUBLIC_DOMAIN: ${CI_PUBLIC_DOMAIN:?Define CI_PUBLIC_DOMAIN}
+      CI_TLS_EMAIL: ${CI_TLS_EMAIL:?Define CI_TLS_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+
+volumes:
+  caddy-data:
+  caddy-config:

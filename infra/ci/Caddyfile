@@ -1,0 +1,19 @@
+{
+    email {$CI_TLS_EMAIL}
+}
+
+jenkins.{$CI_PUBLIC_DOMAIN} {
+    reverse_proxy jenkins:8080
+}
+
+sonar.{$CI_PUBLIC_DOMAIN} {
+    reverse_proxy sonarqube:9000
+}
+
+nexus.{$CI_PUBLIC_DOMAIN} {
+    reverse_proxy nexus:8081
+}
+
+registry.{$CI_PUBLIC_DOMAIN} {
+    reverse_proxy nexus:5000
+}

@@ -3,9 +3,9 @@
  *
  *   circleGuardSmoke('ec2-....compute.amazonaws.com')
  *
- * Acepta 2xx/3xx y los 401/403/404/405 de las rutas que no son publicas; solo
- * falla con 5xx o sin respuesta. Se ejecuta desde Jenkins contra HTTPS (CA
- * interna de Caddy), por eso curl usa -k.
+ * Acepta 2xx/3xx y los 401/403 de las rutas que exigen autenticacion.
+ * Rechaza 404, 5xx y respuestas invalidas. Se ejecuta desde Jenkins contra HTTPS (CA
+ * publica). CIRCLE_TLS_INSECURE=1 permite certificados locales de forma explicita.
  */
 def call(String host) {
     if (!host || !(host ==~ /^[A-Za-z0-9][A-Za-z0-9.-]*$/)) {
@@ -15,7 +15,9 @@ def call(String host) {
         sh '''#!/bin/bash
             set -e
             for path in / /api/v1/health; do
-                code=$(curl -ksS --max-time 15 -o /dev/null -w '%{http_code}' \
+                tls_args=()
+                [[ ${CIRCLE_TLS_INSECURE:-0} != 1 ]] || tls_args=(-k)
+                code=$(curl -sS "${tls_args[@]}" --max-time 15 -o /dev/null -w '%{http_code}' \
                     "https://$SMOKE_HOST$path" || true)
                 echo "humo $path -> $code"
                 case "$code" in
@@ -23,7 +25,6 @@ def call(String host) {
                     # aceptaba y ocultaba despliegues rotos). 401/403 son validos en
                     # rutas que exigen autenticacion.
                     2??|3??|401|403) ;;
-                    *)
                     *)
                         echo "Prueba de humo fallida en $path ($code)." >&2
                         exit 1

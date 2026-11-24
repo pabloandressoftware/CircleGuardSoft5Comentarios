@@ -6,6 +6,7 @@ mock_provider "aws" {
     defaults = { arn = "arn:aws:logs:us-east-2:123456789012:log-group:/circleguard/test/k3s" }
   }
 }
+mock_provider "random" {}
 
 variables {
   config = {

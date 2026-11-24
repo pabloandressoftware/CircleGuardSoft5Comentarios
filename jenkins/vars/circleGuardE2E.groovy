@@ -32,7 +32,7 @@ def call(Map args = [:]) {
             "E2E_AUTH_URL=https://${host}",
             "E2E_FORM_URL=https://${host}",
             "E2E_GATEWAY_URL=https://${host}",
-            'E2E_IGNORE_HTTPS_ERRORS=1',
+            "E2E_IGNORE_HTTPS_ERRORS=${env.CIRCLE_TLS_INSECURE == '1' ? '1' : '0'}",
             'E2E_SEED_QUESTIONNAIRE=1',
         ]) {
             dir('e2e') {

@@ -74,5 +74,13 @@ kubeconfig-*
 .tools/
 .local-evidence/
 release-notes.md
+security-reports/
+changed-services.txt
+built-images.txt
+published-images.txt
+deploy-*.txt
+approval-prod*.txt
+.helm-host-*.txt
+tmp/pdfs/
 infra/terraform/**/terraform-plan.txt
 infra/terraform/**/terraform-no-changes.txt

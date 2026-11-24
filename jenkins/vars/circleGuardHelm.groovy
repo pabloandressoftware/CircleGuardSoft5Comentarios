@@ -69,10 +69,18 @@ def call(String environment, Map args = [:]) {
 
                 bash deploy/k8s/crear-secretos.sh "$HELM_ENV"
 
-                if [[ "$DEPLOY_MIDDLEWARE" == "true" ]]; then
+                if [[ "${TLS_ISSUER:-circleguard-selfsigned}" == circleguard-letsencrypt ]]; then
+                    export TLS_ISSUER_MODE=acme
+                fi
+                bash deploy/k8s/cert-manager.sh
+
+                if [[ "$DEPLOY_MIDDLEWARE" == "true" ]] ||
+                    ! kubectl -n "$ns" get statefulset postgres redis-master neo4j >/dev/null 2>&1 ||
+                    ! kubectl -n "$ns" get deployment kafka openldap >/dev/null 2>&1; then
                     echo "Desplegando middleware en ${HELM_ENV} (puede tardar varios minutos)..."
                     bash deploy/k8s/middleware.sh "$HELM_ENV"
                 fi
+                bash deploy/k8s/verificar-postgres.sh "$HELM_ENV"
 
                 REGISTRY="$registry" bash deploy/k8s/desplegar.sh \
                     "$HELM_ENV" "$HELM_IMAGE_TAG"

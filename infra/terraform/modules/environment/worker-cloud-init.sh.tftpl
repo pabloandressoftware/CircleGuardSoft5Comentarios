@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+for attempt in $(seq 1 120); do
+  if curl --connect-timeout 5 -fsSL https://get.k3s.io -o /tmp/install-k3s.sh; then break; fi
+  sleep 5
+done
+test -s /tmp/install-k3s.sh
+mkdir -p /etc/rancher/k3s
+printf '%s' '${registries_b64}' | base64 -d > /etc/rancher/k3s/registries.yaml
+cat > /etc/rancher/k3s/config.yaml <<'K3S'
+server: "https://${server_ip}:6443"
+token: "${agent_token}"
+node-name: "${name}"
+node-label:
+  - "circleguard.io/storage=false"
+K3S
+INSTALL_K3S_VERSION='${k3s_version}' INSTALL_K3S_EXEC=agent sh /tmp/install-k3s.sh

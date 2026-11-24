@@ -14,7 +14,7 @@
  */
 def call(Map args = [:]) {
     String credentialsId = args.get('credentialsId', 'nexus-registry')
-    String registry = args.get('registry', '127.0.0.1:5000')
+    String registry = args.get('registry', env.REGISTRY ?: '127.0.0.1:5000')
 
     String imageTag = sh(script: '''
         git merge-base --is-ancestor HEAD refs/remotes/origin/main || {
@@ -46,7 +46,7 @@ def call(Map args = [:]) {
 
 def push(Map args = [:]) {
     String credentialsId = args.get('credentialsId', 'nexus-registry')
-    String registry = args.get('registry', '127.0.0.1:5000')
+    String registry = args.get('registry', env.REGISTRY ?: '127.0.0.1:5000')
     withCredentials([usernamePassword(credentialsId: credentialsId,
                                       usernameVariable: 'NX_USER', passwordVariable: 'NX_PASS')]) {
         withEnv(["REGISTRY=${registry}"]) {

@@ -1,0 +1,16 @@
+{
+  "component": "pkg:maven/org.springframework/spring-webmvc@6.2.19",
+  "reviewBefore": "2026-11-27T00:00:00Z",
+  "findings": [
+    {
+      "id": "CVE-2026-47884",
+      "source": "https://spring.io/security/cve-2026-47884/",
+      "impact": "CircleGuard exposes REST controllers and does not configure XsltView or XsltViewResolver. The XSLT view-rendering path required by the advisory is not reachable."
+    },
+    {
+      "id": "CVE-2026-47890",
+      "source": "https://spring.io/security/cve-2026-47890/",
+      "impact": "CircleGuard does not send view fragments over Server-Sent Events. The SSE fragment-rendering path required by the advisory is not used."
+    }
+  ]
+}

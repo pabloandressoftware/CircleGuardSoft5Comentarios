@@ -39,22 +39,21 @@ def filesystem(Map args = [:]) {
 }
 
 def images(Map args = [:]) {
-    String registry = args.get('registry', '127.0.0.1:5000')
+    String registry = args.get('registry', env.REGISTRY ?: '127.0.0.1:5000')
     String tag = args.get('tag')
     String severity = args.get('severity', 'CRITICAL')
     List<String> names = ['auth', 'identity', 'promotion', 'form', 'gateway', 'notification', 'file', 'dashboard']
         .collect { "circleguard-${it}-service" } + ['web']
-    for (String name : names) {
-        sh """#!/bin/bash
-            set -eo pipefail
-            mkdir -p security-reports
-            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v trivy-cache:/root/.cache/ \
-                aquasec/trivy:0.58.1 image --severity ${severity} --ignore-unfixed \
-                --exit-code 1 --format table ${registry}/circleguard/${name}:${tag} \
-                | tee security-reports/trivy-${name}.txt
-        """
+    try {
+        for (String name : names) {
+            withEnv(["TRIVY_IMAGE=${registry}/circleguard/${name}:${tag}",
+                     "TRIVY_REPORT_NAME=${name}", "TRIVY_SEVERITY=${severity}"]) {
+                sh 'bash scripts/scan-image.sh "$TRIVY_IMAGE" "$TRIVY_REPORT_NAME"'
+            }
+        }
+    } finally {
+        archiveArtifacts artifacts: 'security-reports/**', allowEmptyArchive: true
     }
-    archiveArtifacts artifacts: 'security-reports/trivy-*.txt', allowEmptyArchive: true
 }
 
 // Permite cargar este paso con "load" desde el Jenkinsfile

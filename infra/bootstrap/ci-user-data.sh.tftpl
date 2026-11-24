@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Terraform asocia la EIP después de crear la instancia.
+for attempt in $(seq 1 120); do
+  if curl --connect-timeout 5 -fsSL https://download.docker.com/linux/ubuntu/gpg -o /tmp/circleguard-docker.asc; then break; fi
+  sleep 5
+done
+test -s /tmp/circleguard-docker.asc
+
+${docker_bootstrap}
+
+printf 'vm.max_map_count=524288\n' > /etc/sysctl.d/99-circleguard-sonar.conf
+sysctl -p /etc/sysctl.d/99-circleguard-sonar.conf
+systemctl restart snap.amazon-ssm-agent.amazon-ssm-agent.service || true
+printf 'CircleGuard CI Docker bootstrap ready\n'

@@ -55,8 +55,21 @@ jenkins:
             value: "${CI_NOTIFY_EMAILS:-}"
           - key: "NOTIFY_FROM"
             value: "${CI_SMTP_USER:-}"
+          - key: "REGISTRY"
+            value: "${CI_REGISTRY_HOST:-127.0.0.1:5000}"
+          - key: "CIRCLE_AWS_AUTH_MODE"
+            value: "${CIRCLE_AWS_AUTH_MODE:-credentials}"
+          - key: "AWS_REGION"
+            value: "${AWS_REGION:-us-east-2}"
 
 unclassified:
+  sonarglobalconfiguration:
+    buildWrapperEnabled: true
+    installations:
+      - name: sonarqube
+        serverUrl: http://sonarqube:9000
+        credentialsId: sonarqube-token
+        webhookSecretId: sonarqube-webhook-secret
   # Sin esta URL, BUILD_URL llega vacia y los avisos de fallo salen con 'null'.
   location:
     url: "${CI_JENKINS_URL:-http://127.0.0.1:8181/}"
@@ -114,6 +127,13 @@ jobs:
             numToKeep(20)
           }
         }
+        // Mantiene CI/CD automatico sin requerir permisos de administrador
+        // del repositorio para crear un webhook. Latencia maxima: dos minutos.
+        triggers {
+          periodicFolderTrigger {
+            interval('2m')
+          }
+        }
 
         // Descubrir tags y programar sus builds. Con una estrategia explicita,
         // tambien hay que conservar el disparo automatico de ramas y PR.
@@ -132,7 +152,7 @@ jobs:
           }
           // Solo se construyen dev, main, los PR (PR-*) y los tags de release (v*).
           // Las ramas viejas siguen en GitHub pero Jenkins las ignora.
-          (branchSource / 'source' / 'includes').value = 'dev main PR-* v*'
+          (branchSource / 'source' / 'includes').value = '${CI_BRANCH_INCLUDES:-dev main PR-* v*}'
           branchSource / 'buildStrategies' << {
             'jenkins.branch.buildstrategies.basic.BranchBuildStrategyImpl' { }
             'jenkins.branch.buildstrategies.basic.ChangeRequestBuildStrategyImpl' { }

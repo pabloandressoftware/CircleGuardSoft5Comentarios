@@ -1,9 +1,9 @@
 plugins {
-    id("org.springframework.boot") version "3.2.4" apply false
-    id("io.spring.dependency-management") version "1.1.4" apply false
-    kotlin("jvm") version "1.9.24" apply false
-    kotlin("plugin.spring") version "1.9.24" apply false
-    kotlin("plugin.jpa") version "1.9.24" apply false
+    id("org.springframework.boot") version "3.5.16" apply false
+    id("io.spring.dependency-management") version "1.1.7" apply false
+    kotlin("jvm") version "1.9.25" apply false
+    kotlin("plugin.spring") version "1.9.25" apply false
+    kotlin("plugin.jpa") version "1.9.25" apply false
     // HU-09: analisis de calidad. La tarea "sonar" se ejecuta desde Jenkins (jenkins/vars/circleGuardQuality.groovy)
     id("org.sonarqube") version "5.1.0.4882"
 }
@@ -33,6 +33,10 @@ allprojects {
 }
 
 subprojects {
+    // Parche de Tomcat verificado por Trivy; el BOM se importa desde el plugin Boot.
+    extra["tomcat.version"] = "10.1.62"
+    extra["netty.version"] = "4.1.137.Final"
+    extra["freemarker.version"] = "2.3.35"
     apply(plugin = "java")
     apply(plugin = "org.jetbrains.kotlin.jvm")
     // HU-09: cobertura por servicio para el pipeline y para SonarQube
@@ -44,8 +48,6 @@ subprojects {
     }
 
     dependencies {
-        "implementation"(platform("org.springframework.boot:spring-boot-dependencies:3.2.4"))
-        "testImplementation"(platform("org.springframework.boot:spring-boot-dependencies:3.2.4"))
         "compileOnly"("org.projectlombok:lombok")
         "annotationProcessor"("org.projectlombok:lombok")
         "testCompileOnly"("org.projectlombok:lombok")
