@@ -115,20 +115,41 @@ if [[ -z "$alertmanager_url" ]]; then
   alertmanager_url="http://127.0.0.1:19093"
 fi
 
+# Cada alerta se identifica por nombre y, si se dan, por etiquetas extra
+# (p. ej. 'deployment="auth-service"'). Filtrar solo por nombre confundia la
+# prueba con otra instancia de la misma alerta ya activa en el cluster.
 alerts_for() {
-  curl -fsS -G --max-time 10 --data-urlencode "filter=alertname=\"$1\"" \
+  local name=$1; shift
+  local args=(--data-urlencode "filter=alertname=\"$name\"")
+  local matcher
+  for matcher in "$@"; do
+    args+=(--data-urlencode "filter=$matcher")
+  done
+  curl -fsS -G --max-time 10 "${args[@]}" \
     --data-urlencode 'active=true' --data-urlencode 'silenced=false' \
     "$alertmanager_url/api/v2/alerts"
 }
 
 alert_active() {
   local body
-  body=$(alerts_for "$1" 2>/dev/null) || return 1
+  body=$(alerts_for "$@" 2>/dev/null) || return 1
   [[ -n "$body" && "$body" != "[]" ]]
 }
 
+# Una alerta que ya esta activa antes de provocarla no prueba nada.
+require_inactive() {
+  if alert_active "$@"; then
+    log "ERROR: $1 ($*) ya estaba activa antes de la prueba; se aborta para no falsear la evidencia"
+    return 1
+  fi
+  log "Antes de la prueba: $1 inactiva"
+}
+
 capture() {
-  local name=$1 dir="$out/$name"
+  # Dos declaraciones: bash expande todos los argumentos de `local` antes de asignar,
+  # asi que "$name" aun no existe en la misma linea y set -u aborta el script.
+  local name=$1
+  local dir="$out/$name"
   mkdir -p "$dir"
   date -u +%Y-%m-%dT%H:%M:%SZ > "$dir/hora-utc.txt"
   kubectl -n "$ns" get pods -o wide > "$dir/pods.txt" 2>&1 || true
@@ -136,10 +157,10 @@ capture() {
 }
 
 wait_firing() {
-  local name=$1 deadline=$((SECONDS + fire_timeout))
+  local name=$1 start=$SECONDS deadline=$((SECONDS + fire_timeout))
   while (( SECONDS < deadline )); do
-    if alert_active "$name"; then
-      log "FIRING: $name visible en Alertmanager"
+    if alert_active "$@"; then
+      log "FIRING: $* visible en Alertmanager tras $((SECONDS - start)) s"
       return 0
     fi
     sleep 15
@@ -149,10 +170,10 @@ wait_firing() {
 }
 
 wait_resolved() {
-  local name=$1 deadline=$((SECONDS + resolve_timeout))
+  local name=$1 start=$SECONDS deadline=$((SECONDS + resolve_timeout))
   while (( SECONDS < deadline )); do
-    if ! alert_active "$name"; then
-      log "RESOLVED: $name ya no esta activa"
+    if ! alert_active "$@"; then
+      log "RESOLVED: $* ya no esta activa tras $((SECONDS - start)) s"
       return 0
     fi
     sleep 15
@@ -170,19 +191,25 @@ load_loop() {
   done
 }
 
+# La instancia de kube-state-metrics lleva la etiqueta deployment; asi solo cuenta
+# la caida provocada de auth-service en este namespace.
+down_alert=(CircleguardServiceDown "namespace=\"$ns\"" 'deployment="auth-service"')
+
 service_down() {
   log '>>> CircleguardServiceDown: auth-service sin replicas disponibles'
+  require_inactive "${down_alert[@]}"
   capture 01-service-down-antes
   scale_to deployment/auth-service 0
-  wait_firing CircleguardServiceDown
+  wait_firing "${down_alert[@]}"
   capture 01-service-down-firing
   restore_now deployment/auth-service
-  wait_resolved CircleguardServiceDown
+  wait_resolved "${down_alert[@]}"
   capture 01-service-down-resolved
 }
 
 high_errors() {
   log '>>> CircleguardHigh5xxRate: PostgreSQL detenido y carga sobre form-service'
+  require_inactive CircleguardHigh5xxRate
   capture 02-high-5xx-antes
   start_forward svc/form-service 18086 8086
   scale_to statefulset/postgres 0
@@ -197,6 +224,7 @@ high_errors() {
 
 gate_denials() {
   log '>>> CircleguardGateDenialSpike: tokens invalidos al gateway (>1 RED/s sostenido)'
+  require_inactive CircleguardGateDenialSpike
   capture 03-gate-denials-antes
   start_forward svc/gateway-service 18087 8087
   load_loop 4 -X POST -H 'Content-Type: application/json' \
