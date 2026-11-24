@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.3](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/compare/v1.1.2...v1.1.3) (2026-11-24)
+
+
+### Bug Fixes
+
+* **k8s:** no imprimir la clave de Neo4j en el log del despliegue ([7e046e2](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/7e046e24dbf1c49f6b3981660dc3e8196c6b3a7b))
+* **k8s:** no imprimir la clave de Neo4j en el log del despliegue ([6551a10](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/6551a100953b96be0e5288afbc0beff9a1aac372))
+
 ## [1.1.2](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/compare/v1.1.1...v1.1.2) (2026-11-24)
 
 
