@@ -38,10 +38,14 @@ helm upgrade --install redis oci://registry-1.docker.io/bitnamicharts/redis -n "
 
 kubectl -n "$ns" apply -f "$aqui/kafka.yaml"
 
+# En la primera instalacion las NOTES del chart imprimen neo4j.password en claro, y Jenkins
+# no lo enmascara porque no es una credencial suya. Se descarta stdout; los errores siguen
+# saliendo por stderr y --wait mantiene el fallo si el release no queda listo.
 helm upgrade --install neo4j neo4j/neo4j -n "$ns" --wait --timeout 15m \
   --set neo4j.name=neo4j --set neo4j.edition=community --set neo4j.acceptLicenseAgreement=yes \
   --set neo4j.password="$(secreto NEO4J_PASSWORD)" --set volumes.data.mode=defaultStorageClass \
-  --set neo4j.resources.memory=2Gi --set services.neo4j.enabled=false
+  --set neo4j.resources.memory=2Gi --set services.neo4j.enabled=false >/dev/null
+echo "Release neo4j listo en $ns"
 
 kubectl -n "$ns" apply -f "$aqui/openldap.yaml"
 echo "Middleware listo en $ns"
