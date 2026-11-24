@@ -139,6 +139,10 @@ subprojects {
     }
 
     extensions.configure<org.sonarqube.gradle.SonarExtension> {
+        // ":services" solo agrupa los microservicios: no tiene codigo ni importa el BOM
+        // de Spring Boot, asi que sus dependencias sin version no se resuelven y el
+        // escaner fallaba ("Could not find org.projectlombok:lombok:.").
+        isSkipProject = project.path == ":services"
         properties {
             property(
                 "sonar.coverage.jacoco.xmlReportPaths",

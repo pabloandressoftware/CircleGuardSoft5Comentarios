@@ -55,3 +55,22 @@ node scripts/spring-rendering-vex.mjs --check-sources
 ```
 
 El soporte usado esta documentado en [Trivy 0.58.1: local VEX](https://github.com/aquasecurity/trivy/blob/v0.58.1/docs/docs/supply-chain/vex/file.md).
+
+## Excepcion de configuracion: salida a Internet de los nodos k3s
+
+Revision del 24 de noviembre de 2026, aprobada por el responsable de la infraestructura.
+
+Trivy fs reporta `AVD-AWS-0104` (CRITICAL) en `infra/terraform/modules/network/main.tf`:
+el security group de los nodos permite salida a `0.0.0.0/0`. Es una decision de
+diseno de la demostracion, no un descuido:
+
+- Los nodos estan en una subred publica sin NAT Gateway, por costo del plan FREE.
+- Necesitan salida a Nexus, Docker Hub, Let's Encrypt, repositorios del SO y APIs de AWS.
+- Limitarla a TCP 80/443 no elimina el hallazgo: la regla marca cualquier destino `0.0.0.0/0`.
+- El ingreso sigue restringido: SSH y API a los /32 del operador y Jenkins, 80/443 para el Ingress.
+  El trafico entre nodos solo se admite desde el mismo security group.
+
+La excepcion vive en `.trivyignore.yaml`, cubre solo ese ID y ese archivo y **vence el
+2026-12-31**. Al vencer, Trivy vuelve a bloquear. El pipeline la ejecuta con
+`--show-suppressed`, de modo que el hallazgo sigue visible en `security-reports/trivy-fs.txt`.
+No cubre CVE de dependencias ni de imagenes; cualquier otro CRITICAL sigue bloqueando.

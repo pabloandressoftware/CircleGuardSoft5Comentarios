@@ -25,11 +25,31 @@ tests:
               summary: "Servicio CircleGuard caido"
               description: "circleguard-dev (identity-service) no responde a Prometheus desde hace mas de 1 minuto."
 
+  # Deployment escalado a 0: no hay serie up, pero kube-state-metrics lo reporta.
   - interval: 1m
     input_series:
-      - series: 'http_server_requests_seconds_count{status="500"}'
+      - series: 'kube_deployment_status_replicas_available{namespace="circleguard-dev", job="kube-state-metrics", deployment="auth-service"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: CircleguardServiceDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              team: circleguard
+              namespace: circleguard-dev
+              job: kube-state-metrics
+              deployment: auth-service
+            exp_annotations:
+              summary: "Servicio CircleGuard caido"
+              description: "circleguard-dev (kube-state-metrics/auth-service) no responde a Prometheus desde hace mas de 1 minuto."
+
+  - interval: 1m
+    input_series:
+      # La regla filtra por namespace de CircleGuard: las series deben llevarlo.
+      - series: 'http_server_requests_seconds_count{namespace="circleguard-dev", status="500"}'
         values: '0+60x10'
-      - series: 'http_server_requests_seconds_count{status="200"}'
+      - series: 'http_server_requests_seconds_count{namespace="circleguard-dev", status="200"}'
         values: '0+60x10'
     alert_rule_test:
       - eval_time: 4m

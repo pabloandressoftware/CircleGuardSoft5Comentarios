@@ -31,32 +31,28 @@ prometheus:
       limits: { cpu: 1000m, memory: 2Gi }
 
 alertmanager:
+  # Configuracion por defecto SIN notificaciones externas: las alertas quedan
+  # visibles en la API/UI de Alertmanager (receptor "local", sin integraciones).
+  # El chart fijado trae Alertmanager 0.27, que no admite webhook_url_file en
+  # discord_configs. Si se define CI_DISCORD_WEBHOOK, instalar.sh crea un Secret
+  # con la configuracion completa (incluido Discord) y lo activa con
+  # alertmanagerSpec.configSecret; el webhook nunca se escribe en este archivo.
   config:
     global:
       resolve_timeout: 5m
     route:
-      receiver: discord
+      receiver: local
       group_by: [alertname, namespace]
       group_wait: 10s
       group_interval: 5m
       repeat_interval: 4h
-      routes:
-        - matchers:
-            - severity="critical"
-          receiver: discord
+      # Helm combina mapas pero reemplaza listas: sin esta lista vacia se heredan
+      # las rutas del chart (Watchdog -> "null") y el operador rechaza la
+      # configuracion porque el receptor "null" ya no existe.
+      routes: []
     receivers:
-      - name: discord
-        discord_configs:
-          # El mismo webhook de Spidey que usa Jenkins (credencial discord-webhook).
-          - webhook_url_file: /etc/alertmanager/secrets/alertmanager-discord/webhook-url
-            send_resolved: true
-            title: '{{ .CommonAnnotations.summary }}'
-            message: |
-              {{ range .Alerts }}{{ .Annotations.description }}
-              {{ end }}
+      - name: local
   alertmanagerSpec:
-    secrets:
-      - alertmanager-discord
     resources:
       requests: { cpu: 50m, memory: 64Mi }
       limits: { cpu: 200m, memory: 256Mi }
