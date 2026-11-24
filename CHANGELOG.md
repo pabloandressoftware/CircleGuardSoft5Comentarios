@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.1.2](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/compare/v1.1.1...v1.1.2) (2026-11-24)
+
+
+### Bug Fixes
+
+* **auth:** enviar la clave interna a identity-service durante el login ([6c5fb28](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/6c5fb28d547aca12aca2d4ebafdba35d9093b1f6))
+* **ci:** aceptar argumentos con nombre en los pasos de despliegue Helm y Compose ([300d8d7](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/300d8d73b317718e69c4cb77bd610e7c176dae5b))
+* desbloquear el despliegue Helm y el login de v1.1.1 ([62229cb](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/62229cb60c12f210562ff24055885a2d1b8f5f62))
+* **infra:** no reemplazar el worker al detener stage o prod ([e0a7ebc](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/e0a7ebcb570d09b248afdbc503fe6cdc65a76f87))
+* **k8s:** dar margen al primer mapeo de identidad en el login ([f55f844](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/f55f84418c3efe43d5cf8b547116914afeb87890))
+
 ## [1.1.1](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/compare/v1.1.0...v1.1.1) (2026-11-24)
 
 
