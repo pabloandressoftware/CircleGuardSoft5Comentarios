@@ -242,6 +242,19 @@ Expected evidence after a real run: `published-images.txt`, the image digests,
 
 ---
 
+## Parte 2 · Despliegue en AWS (v1.1.2) y cierre del Sprint 2
+
+| Documento | Contenido |
+| --- | --- |
+| [Informe de la Parte 2](docs/informe/informe-parte-2.md) | Resumen, estado de las HU, problemas, limitaciones y guion de la sustentación |
+| [Executive summary (EN)](docs/executive-summary.md) | Resumen de una página en inglés |
+| [Arquitectura](docs/arquitectura.md) | Aplicación, infraestructura AWS, pipeline y observabilidad |
+| [Manual de operaciones](docs/manual-operaciones.md) | CI, k3s, Helm, TLS, alertas, rollback, seguridad y retiro |
+| [Costos](docs/costos.md) | Estimados, reales y ventana de cierre del 25-nov |
+| [Evidencia HU-17 a HU-27](docs/evidencias/sprint-2.md) | Builds, digests, alertas y rollback |
+| [Sprint 2](docs/agil/sprint-2.md) · [HU-22 eliminada](docs/agil/hu-22-eliminada.md) | Review, burndown y retrospectiva |
+| [Presentación (PDF)](docs/presentacion/sustentacion-parte-2.pdf) | Diapositivas y guía de estudio |
+
 ## Parte 1 · Operación del pipeline y evidencias
 
 Documentos: [arquitectura y pipeline (diagramas)](docs/arquitectura.md) ·

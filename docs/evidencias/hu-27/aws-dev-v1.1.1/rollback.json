@@ -1,0 +1,62 @@
+{
+  "environment": "dev",
+  "targetTag": "v1.1.1",
+  "startedAt": "2026-11-24T19:54:35.202Z",
+  "status": "succeeded",
+  "recoverySeconds": 581.21,
+  "completed": [
+    {
+      "service": "identity-service",
+      "revision": 1,
+      "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-identity-service:v1.1.1"
+    },
+    {
+      "service": "auth-service",
+      "revision": 1,
+      "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-auth-service:v1.1.1"
+    },
+    {
+      "service": "promotion-service",
+      "revision": 1,
+      "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-promotion-service:v1.1.1"
+    },
+    {
+      "service": "form-service",
+      "revision": 1,
+      "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-form-service:v1.1.1"
+    },
+    {
+      "service": "gateway-service",
+      "revision": 1,
+      "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-gateway-service:v1.1.1"
+    },
+    {
+      "service": "notification-service",
+      "revision": 1,
+      "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-notification-service:v1.1.1"
+    },
+    {
+      "service": "file-service",
+      "revision": 1,
+      "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-file-service:v1.1.1"
+    },
+    {
+      "service": "dashboard-service",
+      "revision": 1,
+      "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-dashboard-service:v1.1.1"
+    },
+    {
+      "service": "web",
+      "revision": 1,
+      "image": "registry.18-220-203-182.sslip.io/circleguard/web:v1.1.1"
+    }
+  ],
+  "build": "https://jenkins.18-220-203-182.sslip.io/job/circleguard/job/v1.1.2/3/",
+  "commit": "f24127f4a86e94d39113e3a2e3f7cd0e51127334",
+  "smoke": {
+    "url": "https://dev.3-143-61-218.sslip.io/",
+    "httpStatus": 200
+  },
+  "finishedAt": "2026-11-24T20:04:16.412Z",
+  "elapsedSeconds": 581.21
+}

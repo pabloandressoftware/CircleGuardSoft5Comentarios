@@ -137,8 +137,15 @@ toda la aplicación.
 fallo parcial, cambios concurrentes, readiness, humo y notas publicadas. También se
 ejecutó la demo en Kubernetes y se consultó la release v1.0.0 real.
 
-Falta ejecutar el pipeline Jenkins integrado, consultar los tres ambientes
-reales con sus nueve servicios y demostrar su rollback completo. HU-17/HU-19
-deben entregar clústeres, kubeconfigs, imágenes posteriores a Actuator y HTTPS.
-La cuenta Free plan sin créditos impide la prueba AWS del operador; no se
-usaron recursos AWS durante esta implementación.
+### Ejecución en AWS (24-nov-2026)
+
+Lo que faltaba se completó en los ambientes reales:
+
+- **Pipeline integrado:** la release `v1.1.2` (#2) desplegó los nueve servicios en
+  dev, stage y prod y registró el inventario de los tres.
+- **Rollback completo en dev:** v1.1.2 → v1.1.1 en el build #3 (recuperación
+  **581,2 s**) y v1.1.1 → v1.1.2 en el #4 (**567,1 s**), ambos con humo y TLS correctos.
+- **Stage y prod:** no se pudo hacer rollback, porque solo tienen v1.1.2 en su
+  historial y v1.1.0 no se usa por ser vulnerable.
+
+Detalle y archivos: [evidencias/sprint-2.md](evidencias/sprint-2.md#hu-27--versiones-por-ambiente-y-rollback).

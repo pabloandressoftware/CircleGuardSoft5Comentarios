@@ -1,0 +1,21 @@
+20:04:33Z >>> CircleguardServiceDown: auth-service sin replicas disponibles
+20:04:33Z Antes de la prueba: CircleguardServiceDown inactiva
+20:04:33Z Replicas originales de deployment/auth-service: 1
+20:04:33Z deployment/auth-service escalado a 0
+20:06:03Z FIRING: CircleguardServiceDown namespace="circleguard-stage" deployment="auth-service" visible en Alertmanager tras 90 s
+20:06:54Z deployment/auth-service restaurado a 1 replicas y listo
+20:07:39Z RESOLVED: CircleguardServiceDown namespace="circleguard-stage" deployment="auth-service" ya no esta activa tras 45 s
+20:07:39Z >>> CircleguardHigh5xxRate: PostgreSQL detenido y carga sobre form-service
+20:07:39Z Antes de la prueba: CircleguardHigh5xxRate inactiva
+20:07:40Z Replicas originales de statefulset/postgres: 1
+20:07:40Z statefulset/postgres escalado a 0
+20:11:55Z FIRING: CircleguardHigh5xxRate visible en Alertmanager tras 255 s
+20:12:56Z statefulset/postgres restaurado a 1 replicas y listo
+20:17:26Z RESOLVED: CircleguardHigh5xxRate ya no esta activa tras 270 s
+20:17:26Z >>> CircleguardGateDenialSpike: tokens invalidos al gateway (>1 RED/s sostenido)
+20:17:26Z Antes de la prueba: CircleguardGateDenialSpike inactiva
+20:20:28Z FIRING: CircleguardGateDenialSpike visible en Alertmanager tras 180 s
+20:25:28Z RESOLVED: CircleguardGateDenialSpike ya no esta activa tras 300 s
+20:25:28Z Evidencia guardada en observability-report/alertas-stage
+20:25:28Z Restaurando deployment/auth-service a 1 replicas
+20:25:28Z Restaurando statefulset/postgres a 1 replicas

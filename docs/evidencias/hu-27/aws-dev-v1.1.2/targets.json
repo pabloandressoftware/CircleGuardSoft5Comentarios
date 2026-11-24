@@ -1,0 +1,47 @@
+[
+  {
+    "service": "identity-service",
+    "revision": 2,
+    "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-identity-service:v1.1.2"
+  },
+  {
+    "service": "auth-service",
+    "revision": 2,
+    "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-auth-service:v1.1.2"
+  },
+  {
+    "service": "promotion-service",
+    "revision": 2,
+    "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-promotion-service:v1.1.2"
+  },
+  {
+    "service": "form-service",
+    "revision": 2,
+    "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-form-service:v1.1.2"
+  },
+  {
+    "service": "gateway-service",
+    "revision": 2,
+    "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-gateway-service:v1.1.2"
+  },
+  {
+    "service": "notification-service",
+    "revision": 2,
+    "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-notification-service:v1.1.2"
+  },
+  {
+    "service": "file-service",
+    "revision": 2,
+    "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-file-service:v1.1.2"
+  },
+  {
+    "service": "dashboard-service",
+    "revision": 2,
+    "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-dashboard-service:v1.1.2"
+  },
+  {
+    "service": "web",
+    "revision": 2,
+    "image": "registry.18-220-203-182.sslip.io/circleguard/web:v1.1.2"
+  }
+]

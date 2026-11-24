@@ -91,27 +91,24 @@ promtool test rules observability/alerts/tests.yaml
 
 ## Evidencia de las tres alertas
 
-Con un cluster real y el stack instalado:
+Se ejecuta desde Jenkins con `circleguard-observability`, `ENVIRONMENT=dev|stage` y
+`ACTION=alertas-all`. También puede correrse a mano con
+`ENV_NAME=dev bash observability/evidencias/disparar-alertas.sh all`.
 
-```bash
-bash observability/evidencias/disparar-alertas.sh
-```
+El script hace tres pruebas, en orden:
 
-El script hace, en orden:
+1. **`CircleguardServiceDown`:** escala `auth-service` a 0. La alerta se identifica
+   por `namespace` y `deployment`.
+2. **`CircleguardHigh5xxRate`:** detiene PostgreSQL y lanza carga sobre `form-service`.
+3. **`CircleguardGateDenialSpike`:** envía tokens QR inválidos al gateway.
 
-1. Escala `web` a 0 → `CircleguardServiceDown`.
-2. Detiene PostgreSQL y golpea `form-service` → `CircleguardHigh5xxRate`.
-3. Envía tokens QR inválidos al gateway → `CircleguardGateDenialSpike`.
+En cada una exige que la alerta esté **inactiva antes** de provocarla, espera FIRING,
+restaura y espera RESOLVED. Guarda `registro.txt` y, por fase, `pods.txt` y la
+respuesta de Alertmanager. El `trap` restaura siempre las réplicas originales.
+**Nunca en prod.**
 
-Después de cada disparo espera a que Alertmanager reciba la alerta y guarda en
-`observability/evidencias/<fecha>/`:
-
-- `pods.txt` del namespace,
-- `alerts.json` con la respuesta de `/api/v2/alerts`,
-- `alertmanager.json`.
-
-El `trap` restaura `web` y PostgreSQL al terminar. **No ejecutar en prod.**
-
+Resultados del 24-nov-2026 (builds #7 y #8, SUCCESS) en
+[evidencias/sprint-2.md](evidencias/sprint-2.md#hu-24--métricas-tableros-y-alertas).
 ## Límites
 
 - La evidencia real necesita un cluster con los servicios y el middleware de
