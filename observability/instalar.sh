@@ -119,8 +119,8 @@ kube-prometheus-stack $version instalado en $monitoring_ns.
 
 Grafana:     kubectl -n $monitoring_ns port-forward svc/$release-grafana 3000:80
              http://127.0.0.1:3000  (usuario admin)
-Prometheus:  kubectl -n $monitoring_ns port-forward svc/$release-kube-prometheus-prometheus 9090:9090
-Alertmanager:kubectl -n $monitoring_ns port-forward svc/$release-kube-prometheus-alertmanager 9093:9093
+Prometheus:  kubectl -n $monitoring_ns port-forward svc/prometheus-operated 9090:9090
+Alertmanager:kubectl -n $monitoring_ns port-forward svc/alertmanager-operated 9093:9093
 
 El ServiceMonitor recolecta los 8 servicios Java del ambiente de este cluster.
 EOF

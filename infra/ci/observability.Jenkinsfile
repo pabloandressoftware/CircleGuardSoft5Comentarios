@@ -56,19 +56,33 @@ pipeline {
                     sh '''#!/bin/bash
                         set -euo pipefail
                         mkdir -p observability-report
+                        # El operador puede rechazar la configuracion de Alertmanager sin
+                        # crear su StatefulSet: se exige el pod listo, no solo el recurso.
+                        for _ in $(seq 1 60); do
+                            kubectl -n monitoring get pod -l app.kubernetes.io/name=alertmanager \
+                                -o name 2>/dev/null | grep -q . && break
+                            sleep 5
+                        done
+                        kubectl -n monitoring wait --for=condition=Ready pod \
+                            -l app.kubernetes.io/name=alertmanager --timeout=300s
                         kubectl -n monitoring get pods,servicemonitors,prometheusrules -o wide \
                             | tee observability-report/monitoring.txt
                         kubectl -n monitoring port-forward svc/prometheus-operated 19090:9090 >/dev/null 2>&1 &
                         pf=$!
                         trap 'kill $pf >/dev/null 2>&1 || true' EXIT
                         for _ in $(seq 1 30); do
-                            curl -fsS -o /dev/null http://127.0.0.1:19090/-/ready && break
+                            curl -fsS -o /dev/null http://127.0.0.1:19090/-/ready 2>/dev/null && break
                             sleep 2
+                        done
+                        # La recarga de reglas del operador tarda hasta un par de minutos.
+                        for _ in $(seq 1 36); do
+                            curl -fsS http://127.0.0.1:19090/api/v1/rules?type=alert \
+                                > observability-report/rules.json
+                            grep -q CircleguardServiceDown observability-report/rules.json && break
+                            sleep 5
                         done
                         curl -fsS http://127.0.0.1:19090/api/v1/targets?state=active \
                             > observability-report/targets.json
-                        curl -fsS http://127.0.0.1:19090/api/v1/rules?type=alert \
-                            > observability-report/rules.json
                         node -e '
                             const t = require("./observability-report/targets.json").data.activeTargets
                                 .filter(x => (x.labels.namespace || "").startsWith("circleguard-"));

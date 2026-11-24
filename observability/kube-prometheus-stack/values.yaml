@@ -46,6 +46,10 @@ alertmanager:
       group_wait: 10s
       group_interval: 5m
       repeat_interval: 4h
+      # Helm combina mapas pero reemplaza listas: sin esta lista vacia se heredan
+      # las rutas del chart (Watchdog -> "null") y el operador rechaza la
+      # configuracion porque el receptor "null" ya no existe.
+      routes: []
     receivers:
       - name: local
   alertmanagerSpec:
