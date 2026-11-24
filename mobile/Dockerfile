@@ -13,10 +13,11 @@ RUN npx --no-install expo export --platform web --output-dir dist
 FROM nginxinc/nginx-unprivileged:1.30-alpine
 # HU-20: parchea los paquetes de Alpine con CVE criticos corregidos (Trivy bloquea la etiqueta si no).
 USER root
-RUN apk add --no-cache --upgrade \
-      'nginx>=1.30.7' 'nginx-module-geoip>=1.30.7' \
-      'nginx-module-image-filter>=1.30.7' 'nginx-module-njs>=1.30.7' \
-      'nginx-module-xslt>=1.30.7' && \
+# La SPA es estatica: se retiran los modulos dinamicos (njs, xslt, geoip, image-filter) que no usa y
+# cuya version 1.30.7 aun no esta en el repositorio de Alpine (fijaban nginx a 1.30.6); sin ellos
+# apk puede subir nginx a >=1.30.7, que corrige los CVE criticos.
+RUN apk del nginx-module-geoip nginx-module-image-filter nginx-module-njs nginx-module-xslt && \
+    apk add --no-cache 'nginx>=1.30.7' && \
     apk upgrade --no-cache
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/ /usr/share/nginx/html/
