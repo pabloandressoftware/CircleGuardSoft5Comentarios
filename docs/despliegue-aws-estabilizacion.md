@@ -1,5 +1,12 @@
 # Despliegue de CircleGuard para la sustentacion
 
+> **Actualización del 24-nov-2026:** la release **v1.1.2** está desplegada por el
+> pipeline en dev, stage y prod (build `circleguard » v1.1.2` #2). Stage y prod ya
+> existen; se encienden solo para pruebas. Estado vigente, operación y costos:
+> [manual-operaciones.md](manual-operaciones.md), [costos.md](costos.md) y
+> [evidencias/sprint-2.md](evidencias/sprint-2.md). Lo que sigue es la bitácora del
+> 23-nov y se conserva como registro.
+
 Estado comprobado el 23 de noviembre de 2026. Rama de trabajo:
 `fix/release-1.1.0-estabilizacion`, base `69cba57`.
 La aplicacion todavia no esta publicada: hay infraestructura y middleware,

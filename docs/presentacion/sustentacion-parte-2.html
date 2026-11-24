@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>CircleGuard · Sustentación Parte 2</title>
+<style>
+  @page { size: 13.333in 7.5in; margin: 0; }
+  :root {
+    --ink: #14213d; --muted: #5c677d; --line: #d9dee7; --bg: #ffffff;
+    --accent: #0f766e; --accent-soft: #e6f4f2; --warn: #b45309; --warn-soft: #fdf3e2;
+    --bad: #b91c1c; --bad-soft: #fdecec; --ok: #15803d; --ok-soft: #e8f6ec;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: var(--ink); background: #888; }
+  .slide {
+    width: 13.333in; height: 7.5in; background: var(--bg); position: relative; overflow: hidden;
+    page-break-after: always; break-after: page; padding: 0.55in 0.7in 0.5in 0.7in;
+    display: flex; flex-direction: column;
+  }
+  .slide:last-child { page-break-after: auto; break-after: auto; }
+  .kicker { font-size: 13pt; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 600; margin-bottom: 4pt; }
+  h1 { font-size: 30pt; margin: 0 0 14pt 0; line-height: 1.1; font-weight: 700; }
+  h2 { font-size: 15pt; margin: 0 0 6pt 0; color: var(--accent); }
+  p, li { font-size: 14pt; line-height: 1.38; margin: 0 0 6pt 0; }
+  ul { margin: 0; padding-left: 20pt; }
+  li { margin-bottom: 5pt; }
+  .small, .small li, .small p { font-size: 11.5pt; }
+  .muted { color: var(--muted); }
+  .foot { position: absolute; bottom: 0.25in; left: 0.7in; right: 0.7in; display: flex; justify-content: space-between; font-size: 9.5pt; color: var(--muted); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22pt; flex: 1; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16pt; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12pt; }
+  .card { border: 1px solid var(--line); border-radius: 8pt; padding: 12pt 14pt; background: #fbfcfe; }
+  .card.accent { background: var(--accent-soft); border-color: #b6dfd9; }
+  .card.warn { background: var(--warn-soft); border-color: #f1d5a6; }
+  .card.bad { background: var(--bad-soft); border-color: #f3c2c2; }
+  .card.ok { background: var(--ok-soft); border-color: #bfe3c9; }
+  .big { font-size: 30pt; font-weight: 700; line-height: 1; margin-bottom: 4pt; }
+  .label { font-size: 11pt; color: var(--muted); }
+  table { border-collapse: collapse; width: 100%; font-size: 12pt; }
+  th { text-align: left; color: var(--muted); font-weight: 600; border-bottom: 2px solid var(--line); padding: 5pt 7pt; }
+  td { border-bottom: 1px solid var(--line); padding: 5pt 7pt; vertical-align: top; }
+  code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 0.9em; background: #eef1f6; padding: 0 3pt; border-radius: 3pt; }
+  .pill { display: inline-block; padding: 1pt 7pt; border-radius: 10pt; font-size: 10.5pt; font-weight: 600; }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .pill.bad { background: var(--bad-soft); color: var(--bad); }
+  /* Diagramas con cajas */
+  .flow { display: flex; align-items: center; gap: 6pt; flex-wrap: wrap; }
+  .box { border: 1.5px solid var(--ink); border-radius: 6pt; padding: 6pt 9pt; font-size: 11pt; background: #fff; text-align: center; }
+  .box.a { border-color: var(--accent); background: var(--accent-soft); }
+  .box.g { border-color: #94a3b8; background: #f1f5f9; }
+  .box.w { border-color: var(--warn); background: var(--warn-soft); }
+  .arrow { color: var(--muted); font-size: 13pt; }
+  .title-slide { background: var(--ink); color: #fff; justify-content: center; }
+  .title-slide h1 { font-size: 46pt; color: #fff; }
+  .title-slide .kicker { color: #5eead4; }
+  .title-slide p { color: #cbd5e1; font-size: 16pt; }
+  .section { border-left: 5pt solid var(--accent); padding-left: 12pt; }
+  .note { font-size: 11pt; color: var(--muted); margin-top: auto; padding-top: 8pt; border-top: 1px dashed var(--line); }
+  .qa h2 { font-size: 13pt; margin-top: 6pt; }
+  .qa p { font-size: 11.5pt; margin-bottom: 4pt; }
+</style>
+</head>
+<body>
+
+<!-- 1 -->
+<section class="slide title-slide">
+  <div class="kicker">Ingeniería de Software V · Taller 3 · Parte 2</div>
+  <h1>CircleGuard en AWS:<br>infraestructura, despliegue y operación</h1>
+  <p>Release <b>v1.1.2</b> en dev, stage y prod · Sprint 2 (9–25 de noviembre de 2026)</p>
+  <p style="margin-top:24pt">Daniel Martínez Alvarado · Pablo Andrés Guzmán Alarcón · Rodolfo Moreno Gutiérrez · Nicolás Góngora Rincón</p>
+  <p class="small" style="color:#94a3b8">Sustentación · miércoles 25 de noviembre de 2026</p>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <div class="kicker">Agenda</div>
+  <h1>Qué vamos a mostrar</h1>
+  <div class="grid2">
+    <div>
+      <ol style="font-size:15pt; line-height:1.7">
+        <li>El sistema y su arquitectura</li>
+        <li>Infraestructura como código en AWS</li>
+        <li>Pipeline CI/CD y release v1.1.2</li>
+        <li>Seguridad y patrones</li>
+        <li>Observabilidad y alertas</li>
+      </ol>
+    </div>
+    <div>
+      <ol start="6" style="font-size:15pt; line-height:1.7">
+        <li>Pruebas y resultados</li>
+        <li>Rollback con Helm</li>
+        <li>Problemas reales y cómo se resolvieron</li>
+        <li>Costos y cierre</li>
+        <li>Sprint 2: review, burndown, retrospectiva</li>
+      </ol>
+    </div>
+  </div>
+  <div class="note">Todo lo que se presenta fue verificado contra Jenkins, los clústeres o Jira el 24-nov-2026. Lo que no está terminado se dice explícitamente.</div>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <div class="kicker">1 · El sistema</div>
+  <h1>CircleGuard: control de acceso por estado de salud</h1>
+  <div class="grid2">
+    <div>
+      <p>Una comunidad (universidad) reporta síntomas; el sistema calcula el estado de salud de cada persona y de sus contactos, y la puerta del campus valida un <b>QR</b> según ese estado.</p>
+      <ul>
+        <li><b>8 microservicios</b> Spring Boot 3.5 (Java 21) + <b>cliente web</b> Expo</li>
+        <li>Identidad real separada y cifrada: el resto del sistema solo ve un <code>anonymousId</code></li>
+        <li>Grafo de contactos en Neo4j; eventos por Kafka</li>
+      </ul>
+    </div>
+    <div class="grid2" style="grid-template-columns:1fr 1fr; gap:10pt; align-content:start">
+      <div class="card"><div class="big">9</div><div class="label">imágenes por release</div></div>
+      <div class="card"><div class="big">5</div><div class="label">bases PostgreSQL (una por servicio)</div></div>
+      <div class="card"><div class="big">3</div><div class="label">ambientes k3s + 1 CI</div></div>
+      <div class="card"><div class="big">62</div><div class="label">puntos comprometidos en el Sprint 2</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <div class="kicker">1 · Arquitectura</div>
+  <h1>Arquitectura de la aplicación</h1>
+  <div style="display:flex; flex-direction:column; gap:12pt; margin-top:4pt">
+    <div class="flow">
+      <div class="box g">Navegador</div><span class="arrow">→ HTTPS →</span>
+      <div class="box a">Traefik Ingress<br><span class="small">cert-manager · Let's Encrypt</span></div><span class="arrow">→</span>
+      <div class="box">web</div><div class="box">auth</div><div class="box">gateway</div><div class="box">form</div><div class="box">promotion</div><div class="box">dashboard</div><div class="box">file</div>
+    </div>
+    <div class="grid3" style="margin-top:6pt">
+      <div class="card">
+        <h2>Identidad y acceso</h2>
+        <p class="small"><b>auth</b> valida contra LDAP, emite JWT y QR. Pide el <code>anonymousId</code> a <b>identity</b> (bóveda cifrada) con la clave interna <code>X-Internal-Api-Key</code>, protegido con <b>Retry + Circuit Breaker</b>. <b>gateway</b> valida el QR con Redis.</p>
+      </div>
+      <div class="card">
+        <h2>Salud y contactos</h2>
+        <p class="small"><b>form</b> guarda encuestas y publica <code>survey.submitted</code> en Kafka. <b>promotion</b> aplica la máquina de estados sobre el grafo Neo4j y cachea en Redis. <b>notification</b> consume los cambios.</p>
+      </div>
+      <div class="card">
+        <h2>Datos</h2>
+        <p class="small">PostgreSQL con 5 bases y usuario propio · Redis · Neo4j · Kafka · OpenLDAP. El middleware se instala con Helm (Bitnami/Neo4j) y manifiestos propios.</p>
+      </div>
+    </div>
+    <p class="small muted">Patrones: base de datos por servicio · eventos · cache-aside · máquina de estados · Retry + Circuit Breaker (Resilience4j).</p>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <div class="kicker">2 · HU-17 · Terraform</div>
+  <h1>Infraestructura como código en AWS</h1>
+  <div class="grid2">
+    <div>
+      <div class="grid2" style="grid-template-columns:1fr 1fr; gap:10pt">
+        <div class="card accent"><h2>CI</h2><p class="small">1 VM · Jenkins, Nexus, SonarQube detrás de Caddy (HTTPS)</p></div>
+        <div class="card"><h2>dev</h2><p class="small">k3s: servidor + worker</p></div>
+        <div class="card"><h2>stage</h2><p class="small">k3s: servidor + worker</p></div>
+        <div class="card"><h2>prod</h2><p class="small">k3s: servidor + worker</p></div>
+      </div>
+      <p class="small" style="margin-top:10pt">m7i-flex.large (2 vCPU, 8 GiB) · VPC propia por ambiente · EIP fija por servidor · nombres <code>sslip.io</code>.</p>
+    </div>
+    <div>
+      <ul class="small">
+        <li>Módulos <code>network</code>, <code>cluster</code>, <code>environment</code>; un estado remoto por ambiente (S3 versionado + DynamoDB locks).</li>
+        <li>Jenkins asume <code>CircleGuardCiTerraformRole</code>: <b>sin access keys</b>, política mínima generada a partir de planes reales.</li>
+        <li>SSH y API de Kubernetes limitados por CIDR; nodos con permissions boundary.</li>
+        <li><b>Protecciones:</b> <code>prevent_destroy</code> en CI y <code>check-plan.mjs</code>, que rechaza cualquier plan con bajas o reemplazos antes del apply.</li>
+        <li>Resultado en la release: <b>0 cambios</b> en dev, stage y prod.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <div class="kicker">3 · HU-19 · Pipeline</div>
+  <h1>Un pipeline, la misma imagen en los tres ambientes</h1>
+  <div style="display:flex; flex-direction:column; gap:10pt">
+    <div class="flow">
+      <div class="box g">PR / main</div><span class="arrow">→</span>
+      <div class="box">Tests · JaCoCo ≥ 60 % · Testcontainers</div><span class="arrow">→</span>
+      <div class="box">SonarQube gate</div><span class="arrow">→</span>
+      <div class="box">gitleaks · Trivy fs</div><span class="arrow">→</span>
+      <div class="box">Terraform plan ×3</div>
+    </div>
+    <div class="flow">
+      <div class="box g">Tag vX.Y.Z</div><span class="arrow">→</span>
+      <div class="box">Notas publicadas</div><span class="arrow">→</span>
+      <div class="box">9 imágenes</div><span class="arrow">→</span>
+      <div class="box w">Trivy: CRITICAL bloquea</div><span class="arrow">→</span>
+      <div class="box">Nexus</div>
+    </div>
+    <div class="flow">
+      <div class="box a">dev: apply · Helm · humo · E2E</div><span class="arrow">→</span>
+      <div class="box a">stage: apply · Helm · humo · ZAP</div><span class="arrow">→</span>
+      <div class="box w">Aprobación manual <b>aprobador</b></div><span class="arrow">→</span>
+      <div class="box a">prod: apply · Helm · humo</div><span class="arrow">→</span>
+      <div class="box">Versiones por ambiente</div>
+    </div>
+  </div>
+  <ul class="small" style="margin-top:14pt">
+    <li>Release Please crea el tag y las notas; sin notas publicadas, no se publican imágenes.</li>
+    <li>El rollback reutiliza revisiones Helm y etiquetas inmutables: no reconstruye nada.</li>
+    <li>Notificaciones: Discord sin webhook y SMTP rechazado (530); hoy solo Alertmanager.</li>
+  </ul>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <div class="kicker">3 · Resultado</div>
+  <h1>Release v1.1.2: build <code>v1.1.2</code> #2 · SUCCESS</h1>
+  <table>
+    <tr><th>Ambiente</th><th>URL</th><th>Releases</th><th>Humo</th><th>TLS</th></tr>
+    <tr><td><b>dev</b></td><td><code>dev.3-143-61-218.sslip.io</code></td><td>9/9 v1.1.2</td><td>200 / 401</td><td>Let's Encrypt · 22-feb-2027</td></tr>
+    <tr><td><b>stage</b></td><td><code>stage.3-134-68-77.sslip.io</code></td><td>9/9 v1.1.2</td><td>200 / 401</td><td>Let's Encrypt · 22-feb-2027</td></tr>
+    <tr><td><b>prod</b></td><td><code>prod.13-59-35-181.sslip.io</code></td><td>9/9 v1.1.2</td><td>200 / 401</td><td>Let's Encrypt · 22-feb-2027</td></tr>
+  </table>
+  <div class="grid4" style="margin-top:16pt">
+    <div class="card ok"><div class="big">5/5</div><div class="label">E2E Playwright en dev</div></div>
+    <div class="card ok"><div class="big">0</div><div class="label">CRITICAL en las 9 imágenes (Trivy)</div></div>
+    <div class="card warn"><div class="big">0 · 12</div><div class="label">ZAP en stage: FAIL · WARN</div></div>
+    <div class="card"><div class="big">49 min</div><div class="label">esperando la aprobación de prod (registrada en approval-prod.txt)</div></div>
+  </div>
+  <div class="note"><code>/api/v1/health</code> responde 401 a propósito: es una ruta protegida (HU-21). El humo comprueba además que el certificado sea de confianza.</div>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <div class="kicker">4 · HU-20 · HU-21 · Seguridad</div>
+  <h1>Seguridad en el pipeline y en la aplicación</h1>
+  <div class="grid2">
+    <div class="card">
+      <h2>Pipeline (HU-20)</h2>
+      <ul class="small">
+        <li><b>gitleaks</b> en cada build; ningún secreto en Git.</li>
+        <li><b>Trivy</b> bloquea CRITICAL. Única excepción: 2 CVE de spring-webmvc 6.2.19 con VEX <i>not_affected</i>, ligada al digest y con revisión antes del 27-nov.</li>
+        <li>Secretos solo en Jenkins Credentials y K8s Secrets; importador que nunca devuelve contenido.</li>
+        <li>Prod exige aprobación de un usuario restringido.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>Aplicación (HU-21)</h2>
+      <ul class="small">
+        <li>Seguridad <b>cerrada por defecto</b>: solo login y verificación de QR son públicos.</li>
+        <li>Llamadas internas con <code>X-Internal-Api-Key</code>; permisos por rol (migración V6).</li>
+        <li>TLS público con cert-manager en los tres ambientes.</li>
+      </ul>
+    </div>
+    <div class="card warn" style="grid-column: span 2">
+      <h2>Incidente del 24-nov, gestionado</h2>
+      <p class="small">El chart de Neo4j imprimió su clave en el log de Jenkins al instalar stage y prod. Ese mismo día: <b>rotación</b> en ambos ambientes (Neo4j, Secrets, Jenkins, pods verificados por hash), <b>PR #61</b> para que no se repita y el build se conserva como evidencia (la clave del log ya no es válida).</p>
+    </div>
+  </div>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <div class="kicker">4 · HU-23 · Patrones</div>
+  <h1>Patrones de diseño y su estado real</h1>
+  <table class="small">
+    <tr><th>Patrón</th><th>Dónde</th><th>Trade-off</th></tr>
+    <tr><td>Retry + Circuit Breaker</td><td>auth → identity, dashboard → promotion</td><td>Un fallo pasajero puede rechazar llamadas válidas con el circuito abierto</td></tr>
+    <tr><td>Cache-aside</td><td>promotion (Caffeine + Redis), gateway</td><td>Puede servir un estado viejo hasta invalidar</td></tr>
+    <tr><td>Eventos (Kafka)</td><td>form → promotion → notification</td><td>Consistencia eventual, más piezas que operar</td></tr>
+    <tr><td>Máquina de estados</td><td>promotion</td><td>Reglas en Cypher y Java: hay que probar ambas</td></tr>
+    <tr><td>BD por servicio</td><td>5 bases</td><td>Sin joins ni transacciones entre servicios</td></tr>
+  </table>
+  <div class="grid2" style="margin-top:12pt; flex:0">
+    <div class="card warn">
+      <h2>HU-23: evidencia parcial</h2>
+      <p class="small">Los parámetros de contención (<code>encounterWindowDays</code>, <code>mandatoryFenceDays</code>) se cambian en caliente por <code>/api/v1/admin/settings</code> y la lógica los lee de la base. El criterio pedía un toggle en <b>ConfigMap</b> y un patrón adicional (Bulkhead o rate limit): no están; el flag <code>unconfirmed-fencing</code> se guarda pero no se consulta.</p>
+    </div>
+    <div class="card">
+      <h2>HU-22 (KAN-34)</h2>
+      <p class="small">Eliminada del tablero por razones externas. El código de resiliencia con su etiqueta está desplegado y probado, pero no la damos por cerrada: no podemos contrastarla con sus criterios.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <div class="kicker">5 · HU-24 · Observabilidad</div>
+  <h1>Métricas, tableros y alertas en cada clúster</h1>
+  <div class="grid2">
+    <div>
+      <ul class="small">
+        <li><code>kube-prometheus-stack</code> por clúster: Prometheus, Alertmanager y Grafana con tableros técnico y de negocio.</li>
+        <li>5 reglas propias probadas con <code>promtool</code> en cada ejecución.</li>
+        <li>Prueba destructiva controlada (nunca en prod): el script guarda réplicas, provoca el fallo, espera FIRING, restaura y espera RESOLVED.</li>
+      </ul>
+      <div class="card warn" style="margin-top:10pt">
+        <p class="small"><b>Hallazgo:</b> auth y dashboard no exponían <code>/actuator/prometheus</code> (401/404) porque <code>resilience.yml</code> reemplazaba la lista de endpoints. Corregido con prueba de regresión en <b>PR #64</b>; llega con la próxima release.</p>
+      </div>
+    </div>
+    <div>
+      <table class="small">
+        <tr><th>Alerta</th><th>Provocación</th><th>dev</th><th>stage</th></tr>
+        <tr><td>ServiceDown</td><td>auth a 0 réplicas</td><td>75 s / 30 s</td><td>90 s / 45 s</td></tr>
+        <tr><td>High5xxRate</td><td>PostgreSQL a 0 + carga</td><td>300 s / 240 s</td><td>255 s / 270 s</td></tr>
+        <tr><td>GateDenialSpike</td><td>QR inválidos</td><td>181 s / 300 s</td><td>180 s / 300 s</td></tr>
+      </table>
+      <p class="small muted" style="margin-top:8pt">Tiempos: segundos desde la provocación hasta FIRING, y desde la restauración hasta RESOLVED. Discord: pendiente de webhook; la evidencia es la API de Alertmanager.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <div class="kicker">6 · HU-26 · Pruebas</div>
+  <h1>Pruebas y resultados</h1>
+  <div class="grid3">
+    <div class="card ok"><h2>Unitarias e integración</h2><p class="small">JaCoCo ≥ 60 % en cinco servicios (74,8–91,7 % en la Parte 1). Tres integraciones con Testcontainers. SonarQube gate OK.</p></div>
+    <div class="card ok"><h2>E2E (Playwright)</h2><p class="small">5/5 contra la URL pública de dev: login inválido, login válido, envío de cuestionario y QR para ACTIVE y SUSPECT.</p></div>
+    <div class="card warn"><h2>OWASP ZAP</h2><p class="small">Baseline en stage: 0 FAIL, 55 PASS, 12 WARN (HSTS, CSP, anti-clickjacking, cabeceras de caché). Pendiente: cabeceras en el Ingress.</p></div>
+  </div>
+  <div class="card" style="margin-top:14pt">
+    <h2>Locust (100 usuarios, 60 s, máquina local)</h2>
+    <table class="small">
+      <tr><th>Endpoint</th><th>p95</th><th>Errores</th><th>Meta p95 &lt; 500 ms</th></tr>
+      <tr><td><code>POST /gate/validate</code></td><td>7–9 ms</td><td>0 %</td><td><span class="pill ok">Cumple</span></td></tr>
+      <tr><td><code>POST /surveys</code></td><td>2,9–6,2 s</td><td>0 %</td><td><span class="pill bad">No cumple</span></td></tr>
+    </table>
+    <p class="small muted" style="margin-top:6pt">Medido en un solo equipo con disco mecánico; no representa AWS. Hipótesis: escritura transaccional, pool de 10 conexiones y una réplica. Siguiente paso: repetir en stage.</p>
+  </div>
+</section>
+
+<!-- 12 -->
+<section class="slide">
+  <div class="kicker">7 · HU-27 · Rollback</div>
+  <h1>Rollback real con Helm: v1.1.2 → v1.1.1 en dev</h1>
+  <div class="grid2">
+    <div>
+      <ul class="small">
+        <li>Job del tag con <code>ROLLBACK_TAG=v1.1.1</code>, <code>ROLLBACK_ENV=dev</code>. Prod exigiría la aprobación de <b>aprobador</b>.</li>
+        <li><code>releases.mjs</code> busca en los <b>9</b> historiales la revisión con esa etiqueta; si falta en uno, no toca ninguno.</li>
+        <li>Recuperación = desde el primer <code>helm rollback</code> hasta readiness + humo correctos.</li>
+        <li>Nunca hacia v1.1.0 (vulnerable).</li>
+      </ul>
+      <div class="card warn" style="margin-top:10pt">
+        <p class="small">v1.1.1 tiene el defecto de login que corrigió v1.1.2. El humo pasa, pero el login real no; por eso dev se devuelve a v1.1.2 con el mismo mecanismo.</p>
+      </div>
+    </div>
+    <div>
+      <table class="small">
+        <tr><th>Build</th><th>Operación</th><th>Recuperación</th><th>Resultado</th></tr>
+        <tr><td><code>v1.1.2</code> #3</td><td>v1.1.2 → <b>v1.1.1</b> (rev. 1 → 3)</td><td><b>581 s</b></td><td><span class="pill ok">succeeded</span></td></tr>
+        <tr><td><code>v1.1.2</code> #4</td><td>v1.1.1 → <b>v1.1.2</b> (rev. 2 → 4)</td><td><b>567 s</b></td><td><span class="pill ok">succeeded</span></td></tr>
+      </table>
+      <div class="grid2" style="grid-template-columns:1fr 1fr; gap:10pt; margin-top:12pt">
+        <div class="card ok"><div class="big">9/9</div><div class="label">releases restaurados y Ready en cada operación</div></div>
+        <div class="card ok"><div class="big">5/5</div><div class="label">E2E en dev después de volver a v1.1.2</div></div>
+      </div>
+      <p class="small muted" style="margin-top:8pt">≈ 9,5 min: los 9 <code>helm rollback --wait</code> son secuenciales, más el humo. Inventario final: dev, stage y prod en v1.1.2.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 13 -->
+<section class="slide">
+  <div class="kicker">8 · Lecciones</div>
+  <h1>Problemas reales y cómo se resolvieron</h1>
+  <table class="small">
+    <tr><th>Problema</th><th>Cómo se detectó</th><th>Solución</th></tr>
+    <tr><td>v1.1.0 con dependencias vulnerables</td><td>Trivy bloqueó la publicación</td><td>Estabilización (#55), releases 1.1.1 y 1.1.2</td></tr>
+    <tr><td>Login válido → 503: auth perdió la cabecera interna</td><td>E2E en el ensayo de dev</td><td>Se restauró; la prueba falla sin la cabecera (#59)</td></tr>
+    <tr><td>Primer login tras desplegar cortado a 250 ms</td><td>E2E 3/5</td><td>Timeouts de identity en Helm</td></tr>
+    <tr><td>Terraform quería reemplazar el worker detenido</td><td><code>check-plan.mjs</code> bloqueó el apply</td><td><code>ignore_changes</code>; plan sin cambios con nodos detenidos</td></tr>
+    <tr><td>Paso Helm con argumentos con nombre: <code>NoSuchMethodError</code></td><td>Release v1.1.1 #2</td><td>Sobrecarga <code>call(Map, String)</code></td></tr>
+    <tr><td>Clave de Neo4j en el log</td><td>Revisión del log del build</td><td>Rotación + PR #61</td></tr>
+    <tr><td>Alertas: FIRING falso y métricas ausentes</td><td>Revisión de la evidencia</td><td>Filtro por etiquetas (#63) y Actuator (#64)</td></tr>
+  </table>
+  <div class="note">Patrón común: los controles automáticos (Trivy, E2E, bloqueo de planes, aprobación) detuvieron cada problema antes de prod.</div>
+</section>
+
+<!-- 14 -->
+<section class="slide">
+  <div class="kicker">9 · Costos</div>
+  <h1>Costos: plan FREE, USD 160 en créditos, presupuesto USD 25</h1>
+  <div class="grid2">
+    <div>
+      <table class="small">
+        <tr><th>Ambiente</th><th>Encendido</th><th>Detenido</th></tr>
+        <tr><td>CI</td><td>USD 0,112/h</td><td>—</td></tr>
+        <tr><td>dev</td><td>USD 0,215/h</td><td>—</td></tr>
+        <tr><td>stage</td><td>USD 0,217/h</td><td>USD 0,020/h</td></tr>
+        <tr><td>prod</td><td>USD 0,219/h</td><td>USD 0,023/h</td></tr>
+        <tr><td><b>Todo</b></td><td><b>USD 18,30/día</b></td><td></td></tr>
+      </table>
+      <p class="small muted" style="margin-top:6pt">Precios de Price List (Ohio): m7i-flex.large 0,09576/h · gp3 0,08/GiB-mes · IPv4 0,005/h. Sin NAT ni balanceadores.</p>
+    </div>
+    <div>
+      <div class="grid2" style="grid-template-columns:1fr 1fr; gap:10pt">
+        <div class="card"><div class="big">0,00</div><div class="label">gasto real publicado por AWS (lag de facturación)</div></div>
+        <div class="card"><div class="big">≈ 8,8</div><div class="label">consumo estimado al 24-nov 19:40 UTC</div></div>
+        <div class="card ok"><div class="big">≈ 23</div><div class="label">estimado al cierre con stage/prod apagados fuera de pruebas</div></div>
+        <div class="card bad"><div class="big">≈ 34</div><div class="label">si todo quedara encendido: supera el presupuesto</div></div>
+      </div>
+      <p class="small" style="margin-top:10pt"><b>Cierre:</b> 25-nov 23:59 Colombia → destroy prod → stage → dev → CI (retirando <code>prevent_destroy</code> a propósito) → backend al final. No cerrar el proyecto AWS como atajo.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 15 -->
+<section class="slide">
+  <div class="kicker">10 · Sprint 2</div>
+  <h1>Review y burndown</h1>
+  <div class="grid2" style="grid-template-columns: 1.15fr 1fr">
+    <div>
+      <svg viewBox="0 0 560 300" width="100%" role="img" aria-label="Burndown del Sprint 2">
+        <g font-family="Segoe UI, Arial" font-size="12" fill="#5c677d">
+          <line x1="50" y1="20" x2="50" y2="250" stroke="#d9dee7"/>
+          <line x1="50" y1="250" x2="540" y2="250" stroke="#d9dee7"/>
+          <text x="40" y="254" text-anchor="end">0</text>
+          <text x="40" y="180" text-anchor="end">20</text>
+          <text x="40" y="106" text-anchor="end">40</text>
+          <text x="40" y="32" text-anchor="end">60</text>
+          <line x1="50" y1="176" x2="540" y2="176" stroke="#eef1f6"/>
+          <line x1="50" y1="102" x2="540" y2="102" stroke="#eef1f6"/>
+          <line x1="50" y1="28" x2="540" y2="28" stroke="#eef1f6"/>
+          <!-- x: 9-nov=50 ... 25-nov=540 ; 30.6 px/día -->
+          <text x="50" y="270" text-anchor="middle">9</text>
+          <text x="142" y="270" text-anchor="middle">12</text>
+          <text x="264" y="270" text-anchor="middle">16</text>
+          <text x="387" y="270" text-anchor="middle">20</text>
+          <text x="448" y="270" text-anchor="middle">22</text>
+          <text x="479" y="270" text-anchor="middle">23</text>
+          <text x="509" y="270" text-anchor="middle">24</text>
+          <text x="540" y="270" text-anchor="middle">25</text>
+          <text x="295" y="292" text-anchor="middle">noviembre de 2026</text>
+        </g>
+        <!-- y = 250 - pts*3.7 -->
+        <polyline fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 5" points="50,20.6 540,250"/>
+        <polyline fill="none" stroke="#0f766e" stroke-width="3" points="50,20.6 418,20.6 448,164.9 479,220.4 509,220.4"/>
+        <polyline fill="none" stroke="#0f766e" stroke-width="3" stroke-dasharray="3 4" points="509,220.4 540,250"/>
+        <circle cx="448" cy="164.9" r="4" fill="#0f766e"/><circle cx="479" cy="220.4" r="4" fill="#0f766e"/>
+        <g font-family="Segoe UI, Arial" font-size="12">
+          <text x="456" y="160" fill="#0f766e">22-nov: −39 pts</text>
+          <text x="487" y="212" fill="#0f766e">23-nov: −15</text>
+          <text x="300" y="120" fill="#94a3b8">ideal</text>
+        </g>
+      </svg>
+      <p class="small muted">Real según la fecha de integración de cada PR. Jira movió todo a Done en un lote el 24-nov, por eso no se usa su fecha.</p>
+    </div>
+    <div>
+      <div class="card ok"><div class="big">54 / 62</div><div class="label">puntos integrados y desplegados (10 de 12 historias)</div></div>
+      <ul class="small" style="margin-top:10pt">
+        <li><b>En curso:</b> HU-28 (esta documentación) y HU-29 (esta sustentación).</li>
+        <li><b>Parcial:</b> HU-23 (toggle en BD, no en ConfigMap), HU-25 (Jaeger/Loki no instalados en AWS), HU-24 (Discord y métricas de auth/dashboard).</li>
+        <li><b>Fuera del alcance:</b> HU-22, eliminada.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 16 -->
+<section class="slide">
+  <div class="kicker">10 · Sprint 2</div>
+  <h1>Retrospectiva</h1>
+  <div class="grid3">
+    <div class="card ok">
+      <h2>Bien</h2>
+      <ul class="small">
+        <li>Los controles automáticos frenaron cada defecto antes de prod.</li>
+        <li>Misma imagen inmutable en los tres ambientes, con aprobación registrada.</li>
+        <li>Ningún secreto en Git; la exposición en logs se rotó el mismo día.</li>
+        <li>Costos bajo control apagando stage/prod.</li>
+      </ul>
+    </div>
+    <div class="card warn">
+      <h2>Mejorar</h2>
+      <ul class="small">
+        <li>54 de 62 puntos se integraron en los dos últimos días.</li>
+        <li>Jira se actualizó en lote: el tablero no sirvió para seguir el sprint.</li>
+        <li>Se etiquetó v1.1.0 sin el pipeline completo en verde.</li>
+        <li>La observabilidad no se probó en el mismo PR que la cambió.</li>
+      </ul>
+    </div>
+    <div class="card accent">
+      <h2>Acciones</h2>
+      <ul class="small">
+        <li>PR pequeños e integración diaria.</li>
+        <li>Mover la tarjeta al integrar el PR.</li>
+        <li>No etiquetar sin el pipeline verde en <code>main</code>.</li>
+        <li>Desplegar #64, configurar Discord, Jaeger/Loki en AWS y cabeceras de ZAP.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 17 -->
+<section class="slide">
+  <div class="kicker">Cierre</div>
+  <h1>Estado final y siguientes pasos</h1>
+  <div class="grid2">
+    <div class="card ok">
+      <h2>Hecho y verificado</h2>
+      <ul class="small">
+        <li>v1.1.2 desplegada por el pipeline en dev, stage y prod, con HTTPS público.</li>
+        <li>E2E 5/5, Trivy 0 CRITICAL, ZAP 0 FAIL, Terraform sin cambios.</li>
+        <li>Alertas FIRING/RESOLVED en dev y stage.</li>
+        <li>Rollback real v1.1.2 → v1.1.1 y regreso a v1.1.2 en dev.</li>
+        <li>Manual de operaciones, costos, arquitectura y documentación ágil.</li>
+      </ul>
+    </div>
+    <div class="card warn">
+      <h2>Pendiente</h2>
+      <ul class="small">
+        <li>Discord: crear el webhook y cargarlo como credencial.</li>
+        <li>Release con #64 (métricas de auth y dashboard).</li>
+        <li>HU-23: toggle en ConfigMap y Bulkhead/rate limit.</li>
+        <li>Jaeger/Loki en AWS; cabeceras de seguridad en el Ingress.</li>
+        <li>Retiro ordenado de recursos después del 25-nov 23:59.</li>
+      </ul>
+    </div>
+  </div>
+  <p style="margin-top:16pt; font-size:18pt; text-align:center"><b>Gracias.</b> Preguntas.</p>
+</section>
+
+<!-- 18: guía de estudio -->
+<section class="slide qa">
+  <div class="kicker">Anexo · Guía de estudio</div>
+  <h1 style="font-size:24pt">Preguntas probables y respuestas cortas (1/2)</h1>
+  <div class="grid2" style="gap:18pt">
+    <div>
+      <h2>¿Por qué k3s y no EKS?</h2>
+      <p>Costo y plan FREE: EKS cobra el plano de control (~USD 0,10/h por clúster) y necesitaría NAT/LB. k3s da Kubernetes certificado en 2 VMs por ambiente.</p>
+      <h2>¿Cómo se garantiza que prod corre lo mismo que se probó?</h2>
+      <p>La etiqueta <code>vX.Y.Z</code> se construye una vez, Trivy la escanea y se publica en Nexus; dev, stage y prod hacen pull de esa misma etiqueta. La etapa <i>Versiones por ambiente</i> lo comprueba.</p>
+      <h2>¿Qué impide que el pipeline borre infraestructura?</h2>
+      <p><code>check-plan.mjs</code> rechaza planes con bajas o reemplazos; CI tiene <code>prevent_destroy</code>; el rol de Jenkins no puede modificarse a sí mismo.</p>
+      <h2>¿Qué pasa si identity se cae?</h2>
+      <p>Retry (2 intentos) y Circuit Breaker: el login responde 503 controlado en menos de 1 s; con el circuito abierto, casi al instante, sin llamar a identity.</p>
+    </div>
+    <div>
+      <h2>¿Por qué <code>/api/v1/health</code> da 401 y se considera bien?</h2>
+      <p>Es una ruta protegida (HU-21). El humo verifica que el Ingress y el servicio responden y que la seguridad está activa.</p>
+      <h2>¿Cómo funciona la aprobación de prod?</h2>
+      <p>Un <code>input</code> de Jenkins restringido al usuario <code>aprobador</code>; guarda quién aprobó en <code>approval-prod.txt</code>.</p>
+      <h2>¿Cómo se gestionan los secretos?</h2>
+      <p>Fuera de Git, en Jenkins Credentials → Secret de K8s (<code>crear-secretos.sh</code>). gitleaks en cada build. Ante una exposición se rota y se corrige la causa.</p>
+      <h2>¿Por qué hay una excepción en Trivy?</h2>
+      <p>Dos CVE de spring-webmvc cuyo código vulnerable no se ejecuta (VEX <i>not_affected</i>), atada al digest y con fecha de revisión; no oculta otros hallazgos.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 19 -->
+<section class="slide qa">
+  <div class="kicker">Anexo · Guía de estudio</div>
+  <h1 style="font-size:24pt">Preguntas probables y respuestas cortas (2/2)</h1>
+  <div class="grid2" style="gap:18pt">
+    <div>
+      <h2>¿Cuánto tarda un rollback y qué mide?</h2>
+      <p>Unos 9,5 minutos en dev (581 s hacia v1.1.1 y 567 s de vuelta a v1.1.2). Se mide desde el primer <code>helm rollback</code> hasta que los 9 releases están Ready y el humo responde; no incluye detectar el incidente ni la aprobación.</p>
+      <h2>¿Por qué no se hizo rollback en stage o prod?</h2>
+      <p>Solo dev tiene dos releases en su historial Helm (v1.1.1 y v1.1.2). Stage y prod solo tienen v1.1.2, y no se usa v1.1.0 por vulnerable.</p>
+      <h2>¿Qué es una alerta FIRING/RESOLVED?</h2>
+      <p>Prometheus evalúa la regla; tras su <code>for</code> la envía a Alertmanager (FIRING). Al recuperarse el servicio deja de cumplirse y Alertmanager la marca resuelta.</p>
+      <h2>¿Por qué no llegan las alertas a Discord?</h2>
+      <p>No hay webhook. El flujo está listo (credencial <code>discord-webhook</code> → Secret de Alertmanager), pero no se inventa una notificación que no ocurrió.</p>
+    </div>
+    <div>
+      <h2>¿Qué cuesta y cómo se controla?</h2>
+      <p>≈ USD 0,76/h todo encendido. Stage/prod se apagan fuera de pruebas; estimado ≈ USD 23 al cierre, cubierto por créditos del plan FREE.</p>
+      <h2>¿Qué es lo más débil del proyecto?</h2>
+      <p>HU-23 (toggle en BD y no en ConfigMap, sin Bulkhead), el rendimiento de <code>/surveys</code> sin medir en AWS y la integración tardía.</p>
+      <h2>¿Qué haría distinto el equipo?</h2>
+      <p>Integrar a diario, mantener Jira al día y no etiquetar sin el pipeline completo en verde.</p>
+      <h2>¿Cómo se apaga todo al final?</h2>
+      <p>Destroy revisado prod → stage → dev → CI (retirando <code>prevent_destroy</code> a propósito) y el backend al final; luego se verifican EBS, EIP y logs.</p>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
