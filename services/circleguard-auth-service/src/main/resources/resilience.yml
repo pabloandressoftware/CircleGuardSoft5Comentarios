@@ -33,7 +33,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,circuitbreakers,circuitbreakerevents,retries
+        include: health,prometheus,circuitbreakers,circuitbreakerevents,retries
   endpoint:
     health:
       show-details: always
