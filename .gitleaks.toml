@@ -8,6 +8,9 @@ useDefault = true
 description = "Claves de prueba y ejemplos"
 paths = [
   '''src/test/''',
+  # Reportes y resultados de pruebas generados por Gradle en el workspace de CI:
+  # repiten los datos falsos de src/test/. El resto de build/ sigue analizandose.
+  '''services/[^/]+/build/(reports/tests|test-results)/''',
   '''(^|/)\.env\.example$''',
   '''docs/''',
 ]

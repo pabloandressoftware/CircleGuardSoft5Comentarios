@@ -30,9 +30,13 @@ def filesystem(Map args = [:]) {
         mkdir -p security-reports
         # Dependencias (gradle, npm), IaC (Dockerfile, compose, Helm, Terraform) y secretos.
         # --exit-code 1: cualquier hallazgo del nivel indicado rompe el build.
+        # .terraform/ y tfplan son artefactos generados por la etapa Terraform plan
+        # (providers y estado), no codigo del repositorio. Las excepciones acotadas y
+        # con vencimiento viven en .trivyignore.yaml y se muestran como suprimidas.
         docker run --rm -v "\$PWD":/src -v trivy-cache:/root/.cache/ aquasec/trivy:0.58.1 fs \
             --scanners vuln,misconfig --severity ${severity} --ignore-unfixed \
-            --skip-dirs node_modules,build,bin,.gradle \
+            --skip-dirs 'node_modules,build,bin,.gradle,**/.terraform' --skip-files '**/tfplan' \
+            --ignorefile /src/.trivyignore.yaml --show-suppressed \
             --exit-code 1 --format table /src | tee security-reports/trivy-fs.txt
     """
     archiveArtifacts artifacts: 'security-reports/trivy-fs.txt', allowEmptyArchive: true

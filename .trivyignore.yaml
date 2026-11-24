@@ -1,0 +1,16 @@
+# HU-20 · Excepciones acotadas de Trivy (misconfig). Cada entrada debe tener una
+# justificacion, limitarse a un archivo y vencer. Al vencer, Trivy vuelve a
+# bloquear y hay que reevaluar. No agregar CVE de dependencias o imagenes aqui.
+misconfigurations:
+  - id: AVD-AWS-0104
+    paths:
+      - "infra/terraform/modules/network/main.tf"
+    statement: >-
+      Egress 0.0.0.0/0 de los nodos k3s de la demo: estan en una subred publica sin
+      NAT Gateway (decision de costo del plan FREE) y necesitan salida a Nexus,
+      Docker Hub, Let's Encrypt, repositorios del SO y APIs de AWS. El ingreso
+      esta restringido (SSH/API a /32 del operador y Jenkins; 80/443 para Ingress)
+      y el trafico entre nodos se limita al mismo security group. Aprobado por el
+      responsable el 2026-11-24; se retira con la infraestructura tras la
+      sustentacion. Ver docs/seguridad-spring-demo.md.
+    expired_at: 2026-12-31
