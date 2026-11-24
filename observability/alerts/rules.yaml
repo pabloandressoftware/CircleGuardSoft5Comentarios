@@ -19,15 +19,20 @@ groups:
             )[5m:15s]
           )
 
+      # Un Deployment sin replicas disponibles no deja target en Prometheus (su
+      # serie up desaparece), por eso tambien se usa kube-state-metrics.
       - alert: CircleguardServiceDown
-        expr: up{namespace=~"circleguard-(dev|stage|prod)"} == 0
+        expr: |
+          up{namespace=~"circleguard-(dev|stage|prod)"} == 0
+          or
+          kube_deployment_status_replicas_available{namespace=~"circleguard-(dev|stage|prod)"} == 0
         for: 1m
         labels:
           severity: critical
           team: circleguard
         annotations:
           summary: "Servicio CircleGuard caido"
-          description: "{{ $labels.namespace }} ({{ $labels.job }}) no responde a Prometheus desde hace mas de 1 minuto."
+          description: "{{ $labels.namespace }} ({{ $labels.job }}{{ if $labels.deployment }}/{{ $labels.deployment }}{{ end }}) no responde a Prometheus desde hace mas de 1 minuto."
 
       - alert: CircleguardHigh5xxRate
         expr: |
