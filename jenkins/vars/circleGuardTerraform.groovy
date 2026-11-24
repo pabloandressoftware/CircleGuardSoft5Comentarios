@@ -37,10 +37,12 @@ def available() {
     return true
 }
 
+// La ruta se llama tfDir: una variable local "dir" ocultaria el paso dir(...) de
+// Jenkins y dir(dir) fallaria con MissingMethodException (String.call).
 def plan(String environment, Map args = [:]) {
-    String dir = envDir(environment)
-    if (!fileExists(dir)) {
-        echo "Terraform: ${dir} no existe todavia (pendiente HU-17); se omite el plan de ${environment}."
+    String tfDir = envDir(environment)
+    if (!fileExists(tfDir)) {
+        echo "Terraform: ${tfDir} no existe todavia (pendiente HU-17); se omite el plan de ${environment}."
         return false
     }
 
@@ -48,7 +50,7 @@ def plan(String environment, Map args = [:]) {
     String credentialsId = args.get('credentialsId', 'aws-terraform')
 
     withAws(credentialsId, region) {
-        dir(dir) {
+        dir(tfDir) {
             sh '''#!/bin/bash
                 set -euo pipefail
                 terraform fmt -check -recursive ../..
@@ -64,14 +66,14 @@ def plan(String environment, Map args = [:]) {
             '''
         }
     }
-    archiveArtifacts artifacts: "${dir}/terraform-plan.txt", allowEmptyArchive: true
+    archiveArtifacts artifacts: "${tfDir}/terraform-plan.txt", allowEmptyArchive: true
     echo "Terraform plan de ${environment} listo."
     return true
 }
 
 def apply(String environment, Map args = [:]) {
-    String dir = envDir(environment)
-    if (!fileExists("${dir}/tfplan")) {
+    String tfDir = envDir(environment)
+    if (!fileExists("${tfDir}/tfplan")) {
         echo "Terraform: no hay plan guardado para ${environment} (pendiente HU-17 o plan omitido); se omite el apply."
         return false
     }
@@ -81,7 +83,7 @@ def apply(String environment, Map args = [:]) {
 
     try {
         withAws(credentialsId, region) {
-            dir(dir) {
+            dir(tfDir) {
                 sh '''#!/bin/bash
                     set -euo pipefail
                     terraform show -json tfplan | node ../../scripts/check-plan.mjs
@@ -93,7 +95,7 @@ def apply(String environment, Map args = [:]) {
             }
         }
     } finally {
-        archiveArtifacts artifacts: "${dir}/terraform-no-changes.txt", allowEmptyArchive: true
+        archiveArtifacts artifacts: "${tfDir}/terraform-no-changes.txt", allowEmptyArchive: true
     }
     echo "Terraform apply de ${environment} completado."
     return true

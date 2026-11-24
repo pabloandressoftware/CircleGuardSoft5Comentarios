@@ -127,6 +127,8 @@ jobs:
             numToKeep(20)
           }
         }
+        // Nota: el configure de abajo fija pruneDeadBranches=false, asi que
+        // numToKeep no elimina jobs de ramas huerfanas.
         // Mantiene CI/CD automatico sin requerir permisos de administrador
         // del repositorio para crear un webhook. Latencia maxima: dos minutos.
         triggers {
@@ -149,10 +151,20 @@ jobs:
               strategyId(1) // PR del mismo repositorio, probados fusionados con su destino
             }
             'org.jenkinsci.plugins.github__branch__source.TagDiscoveryTrait' { }
+            // Solo se construyen dev, main, los PR (PR-*) y los tags de release (v*).
+            // Las ramas viejas siguen en GitHub pero Jenkins las ignora. El filtro
+            // debe ser este trait: GitHubSCMSource ignora el campo heredado
+            // <includes> y, sin el trait, descubre todas las ramas y tags.
+            // Con un tag reciente que no deba construirse (p. ej. v1.1.0 en un
+            // Jenkins nuevo), usar el tag exacto: CI_BRANCH_INCLUDES='main PR-* v1.1.1'.
+            'jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait' {
+              includes('${CI_BRANCH_INCLUDES:-dev main PR-* v*}')
+              excludes('')
+            }
           }
-          // Solo se construyen dev, main, los PR (PR-*) y los tags de release (v*).
-          // Las ramas viejas siguen en GitHub pero Jenkins las ignora.
-          (branchSource / 'source' / 'includes').value = '${CI_BRANCH_INCLUDES:-dev main PR-* v*}'
+          // Cambiar el filtro deja ramas viejas como huerfanas: no se borran sus
+          // jobs ni su historial de builds (pueden ser evidencia del curso).
+          (project / 'orphanedItemStrategy' / 'pruneDeadBranches').value = false
           branchSource / 'buildStrategies' << {
             'jenkins.branch.buildstrategies.basic.BranchBuildStrategyImpl' { }
             'jenkins.branch.buildstrategies.basic.ChangeRequestBuildStrategyImpl' { }
