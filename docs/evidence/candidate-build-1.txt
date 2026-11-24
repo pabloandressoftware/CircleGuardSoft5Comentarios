@@ -1,0 +1,22 @@
+CircleGuard - extracto sanitizado del punto de corte
+Codigo: 388e8a9d746955eb2da6ff13a0e13f62e7d67d5a
+Job: https://jenkins.18-220-203-182.sslip.io/job/circleguard-handover/1/
+Final: 2026-11-24T04:26:58Z / FAILURE
+
+Unitarias, cobertura e integrationTest: PASS.
+Ocho imagenes Java construidas con tag handover-388e8a9d7469.
+Web: fallo en mobile/Dockerfile, RUN apk add --upgrade.
+No se alcanzaron los escaneos nuevos del lote ni el push. Nexus: 0 componentes.
+
+ERROR: unable to select packages:
+  nginx-1.30.7-r0 conflicts: nginx-1.30.6-r1
+  nginx-module-geoip-1.30.6-r1 requires nginx~1.30.6
+  nginx-module-image-filter-1.30.6-r1 requires nginx~1.30.6
+  nginx-module-njs-1.30.6.1.0.2-r1 requires nginx~1.30.6
+  nginx-module-xslt-1.30.6-r1 requires nginx~1.30.6
+  world requires nginx>=1.30.7 and corresponding modules>=1.30.7
+Process apk exited 6. Pipeline exited 1.
+
+Siguiente accion: resolver la base/paquetes de web sin perder USER 101/8080,
+verificar arranque y SPA, subir la correccion y repetir el job por commit.
+Detalle: docs/handover-claude-release.md, apartado 6.

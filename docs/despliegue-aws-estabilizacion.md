@@ -96,14 +96,17 @@ El primer preflight de CI fue SUCCESS; se repetira tras su restauracion.
 
 Queda por completar:
 
-1. Terminar el build y Trivy de las nueve imagenes; conservar informes originales,
-   SBOM y cualquier evaluacion VEX. No publicar imagenes que fallen el control.
-2. Ejecutar integrationTest real con Docker, Sonar y el pipeline del PR.
+1. Corregir web: el job circleguard-handover #1 construyo ocho imagenes Java pero
+   fallo por conflicto NGINX/Alpine en mobile/Dockerfile. No llego a los escaneos
+   ni publico imagenes. Repetir el lote tras la correccion y conservar informes.
+2. Unitarias, JaCoCo e integrationTest real pasaron en ese Jenkins. Quedan Sonar
+   y el pipeline oficial del PR. Movil 13/13 y TypeScript pasaron localmente.
 3. Integrar la instalacion de observabilidad en cada cluster, cargar el webhook
    Discord y la credencial de Grafana, y comprobar sus targets y notificaciones.
 4. Crear stage/prod para preparar sus kubeconfigs y secretos independientes;
    detenerlos cuando no se esten verificando.
-5. Crear/revisar el PR hacia main, pasar checks y fusionarlo. `v1.1.0` ya existe
+5. Revisar el PR 55, creado en borrador hacia main, pasar checks y fusionarlo.
+   `v1.1.0` ya existe
    en `145f0a7` y NO contiene la estabilizacion; no moverlo ni recrearlo.
 6. Usar Release Please para una nueva release patch (previsiblemente `v1.1.1`)
    con notas publicadas y version.txt consistente. El pipeline acepta `vX.Y.Z`.

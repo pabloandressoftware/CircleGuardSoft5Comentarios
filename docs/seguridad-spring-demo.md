@@ -43,6 +43,12 @@ snapshots comprueba el arranque sin root y la ruta SPA /admin/console despues
 de Trivy. El resultado de ese job, sin anticipar su aprobacion, se registra en
 docs/evidence/handover-status.json.
 
+Resultado del job #1: los paquetes/modulos de la base unprivileged siguen
+requiriendo NGINX 1.30.6-r1 y apk no pudo resolver la mezcla con 1.30.7. La
+imagen web no se construyo; este cambio no es una correccion validada. El lote
+no llego a Trivy ni a push. El receptor debe corregir mobile/Dockerfile siguiendo
+el apartado 6 de la guia y repetir la validacion completa antes de publicar.
+
 ```sh
 node --test scripts/spring-rendering-vex.test.mjs
 node scripts/spring-rendering-vex.mjs --check-sources

@@ -1,0 +1,141 @@
+{
+  "auditedAtUtc": "2026-11-24T04:27:02.0777064Z",
+  "branch": "fix/release-1.1.0-estabilizacion",
+  "sourceCommit": "388e8a9d746955eb2da6ff13a0e13f62e7d67d5a",
+  "pullRequest": "https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/pull/55",
+  "pullRequestDraft": true,
+  "candidateJob": {
+    "number": 1,
+    "url": "https://jenkins.18-220-203-182.sslip.io/job/circleguard-handover/1/",
+    "building": false,
+    "result": "FAILURE",
+    "officialRelease": false,
+    "note": "Termino FAILURE; web no construye por conflicto NGINX/Alpine. No hay otro build iniciado.",
+    "failureReason": "mobile/Dockerfile: nginx 1.30.7 entra en conflicto con modulos nginx~1.30.6 de la base unprivileged"
+  },
+  "images": [
+    {
+      "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-auth-service:handover-388e8a9d7469",
+      "published": false,
+      "built": true,
+      "scan": "NOT_RUN"
+    },
+    {
+      "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-identity-service:handover-388e8a9d7469",
+      "published": false,
+      "built": true,
+      "scan": "NOT_RUN"
+    },
+    {
+      "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-promotion-service:handover-388e8a9d7469",
+      "published": false,
+      "built": true,
+      "scan": "NOT_RUN"
+    },
+    {
+      "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-form-service:handover-388e8a9d7469",
+      "published": false,
+      "built": true,
+      "scan": "NOT_RUN"
+    },
+    {
+      "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-gateway-service:handover-388e8a9d7469",
+      "published": false,
+      "built": true,
+      "scan": "NOT_RUN"
+    },
+    {
+      "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-notification-service:handover-388e8a9d7469",
+      "published": false,
+      "built": true,
+      "scan": "NOT_RUN"
+    },
+    {
+      "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-file-service:handover-388e8a9d7469",
+      "published": false,
+      "built": true,
+      "scan": "NOT_RUN"
+    },
+    {
+      "image": "registry.18-220-203-182.sslip.io/circleguard/circleguard-dashboard-service:handover-388e8a9d7469",
+      "published": false,
+      "built": true,
+      "scan": "NOT_RUN"
+    },
+    {
+      "image": "registry.18-220-203-182.sslip.io/circleguard/web:handover-388e8a9d7469",
+      "published": false,
+      "built": false,
+      "scan": "NOT_RUN"
+    }
+  ],
+  "nexusPaginationRemaining": false,
+  "validation": {
+    "localUnitAndCoverage": "PASS",
+    "jenkinsUnitAndCoverage": "PASS",
+    "jenkinsIntegration": "PASS",
+    "nodeTests": 16,
+    "nodeResult": "PASS",
+    "mobileTests": 13,
+    "mobileResult": "PASS",
+    "typeScript": "PASS",
+    "terraformMockTests": 2,
+    "terraformFmt": "PASS",
+    "gitleaksStagedTree": "PASS",
+    "publicTlsCI": "PASS",
+    "sonarOfficialPipeline": "PENDING",
+    "smokeE2E": "PENDING"
+  },
+  "aws": {
+    "accountId": "001784022331",
+    "profile": "circleguard",
+    "region": "us-east-2",
+    "plan": "FREE",
+    "lastObservedCreditsUsd": 160,
+    "budgetUsd": 25,
+    "estimatedBaseUsdPerDay": 7.8,
+    "instances": [
+      {
+        "environment": "ci",
+        "id": "i-0aaea7211026e03d7",
+        "publicIp": "18.220.203.182",
+        "state": "running"
+      },
+      {
+        "environment": "dev",
+        "role": "server",
+        "id": "i-0713e7f73c304ae7a",
+        "publicIp": "3.143.61.218",
+        "state": "running"
+      },
+      {
+        "environment": "dev",
+        "role": "worker",
+        "id": "i-02ed4119a539dbc42",
+        "state": "running"
+      }
+    ],
+    "devNodesReady": 2,
+    "devMiddlewareReady": 5,
+    "devApplicationDeployed": false,
+    "stageCreated": false,
+    "prodCreated": false
+  },
+  "webhookConfigured": false,
+  "webhookOwnerAction": "El receptor del PDF debe configurar el webhook existente en ci.env, Jenkins y Alertmanager.",
+  "pending": [
+    "Corregir NGINX/Alpine de web; repetir build, nueve escaneos y push",
+    "Webhook y observabilidad por cluster",
+    "Stage/prod y secretos independientes",
+    "Checks y merge PR55",
+    "Release Please y tag nuevo posterior a v1.1.0",
+    "Pipeline oficial con TLS de aplicacion Smoke E2E ZAP",
+    "Alertas y rollback en dev stage prod"
+  ],
+  "security": {
+    "trivySeverity": "CRITICAL",
+    "ignoreUnfixed": true,
+    "vexScope": "spring-webmvc@6.2.19: CVE-2026-47884 y CVE-2026-47890, digest OCI exacto",
+    "vexReviewBefore": "2026-11-27T00:00:00Z"
+  }
+}

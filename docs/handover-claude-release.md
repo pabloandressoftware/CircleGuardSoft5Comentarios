@@ -8,13 +8,23 @@
 
 **Rama de trabajo:** `fix/release-1.1.0-estabilizacion`. Objetivo posterior: integración por PR a `main` y release oficial verificada.
 
+**PR de integración, en borrador:** https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/pull/55
+
 ## 1. Leer primero: estado y reglas de continuidad
 
 La infraestructura y el middleware de dev están operativos. Esto **no significa que la aplicación esté desplegada**: al comenzar esta auditoría no había imágenes en Nexus, releases de aplicación, Ingress ni certificados de aplicación en dev.
 
 El proceso anterior terminó de construir nueve imágenes locales con nombre `v1.1.1`, pero varios escaneos fallaron. Esas imágenes NO son una release oficial y no deben publicarse con ese tag: `version.txt` sigue en `1.1.0` y aún no existe `v1.1.1` en GitHub.
 
-Esta entrega incorpora un flujo separado para snapshots `handover-<12 caracteres del commit>`. Su job prueba el backend, construye las nueve imágenes, exige que todas aprueben Trivy y solo entonces publica en Nexus. El resultado final, commit de código y referencias de imágenes se registran en `docs/evidence/handover-status.json` cuando termine la ejecución.
+Esta entrega incorpora un flujo separado para snapshots `handover-<12 caracteres del commit>`. Su job prueba el backend, construye las nueve imágenes, exige que todas aprueben Trivy y solo entonces publica en Nexus. El resultado final, commit de código y referencias de imágenes quedaron registrados en `docs/evidence/handover-status.json`.
+
+**Punto final de entrega:** el job #1 terminó FAILURE el 24 de noviembre a las
+04:26:58 UTC (23 de noviembre, 23:26:58 Bogotá). Unitarias, cobertura e
+integraciones pasaron. Construyó las ocho imágenes Java, pero falló al construir
+web por conflicto de paquetes NGINX/Alpine. No llegó a los escaneos del lote ni
+publicó ninguna imagen. El primer trabajo del receptor es corregir ese bloqueo,
+detallado en el apartado 6. El usuario priorizó entregar esta guía y el PDF;
+no se lanzó otro build ni se continuó el despliegue.
 
 Reglas para Claude y el operador:
 
@@ -42,7 +52,7 @@ El nuevo control de planes impide bajas/reemplazos desde el pipeline. La evaluac
 
 ### Pendiente antes de declarar main desplegado
 
-1. Confirmar el resultado final del job de snapshots y su inventario en Nexus.
+1. Corregir el conflicto de paquetes NGINX de web, repetir los nueve escaneos y publicar el snapshot; el job #1 terminó fallido y Nexus sigue sin imágenes.
 2. Cargar el webhook de Discord existente. **La auditoría encontró el campo vacío**, aunque el contexto previo lo daba por configurado.
 3. Completar la instalación de observabilidad por clúster y corregir el script de evidencia antes de pruebas destructivas.
 4. Preparar stage/prod, sus kubeconfigs y secretos propios; actualmente **no existen instancias de esos ambientes**, no están simplemente detenidas.
@@ -132,6 +142,7 @@ Set-Location -LiteralPath $Repo
 $Aws = Join-Path $env:LOCALAPPDATA 'Programs\Amazon\AWSCLIV2\aws.exe'
 $Tf = Join-Path $Repo '.tools\terraform-1.9.8\terraform.exe'
 $Ssh = 'C:\Windows\System32\OpenSSH\ssh.exe'
+$Scp = 'C:\Windows\System32\OpenSSH\scp.exe'
 $Key = Join-Path $Repo '.local-evidence\credentials\ssh\circleguard-demo-20261123'
 $Known = Join-Path $Repo '.local-evidence\credentials\ssh\known_hosts'
 $SshOptions = @('-i', $Key, '-o', 'BatchMode=yes',
@@ -220,6 +231,15 @@ Si AWS MCP no aparece, revisar la configuración generada, que `uvx` sea resolub
 
 Terraform 1.9.8/proveedor AWS 5.100.0 no consume directamente el nuevo `login_session`. El perfil local `circleguard-terraform` usa `credential_process` para exportar temporalmente las credenciales de `circleguard`. No contiene access keys permanentes.
 
+Solo si ese adaptador no existe en la nueva estación, configurarlo así. Este
+comando guarda la instrucción para obtener credenciales, no imprime sus valores:
+
+```powershell
+$CredentialProcess = '"' + $Aws + '" configure export-credentials --profile circleguard --format process'
+& $Aws configure set credential_process $CredentialProcess --profile circleguard-terraform
+& $Aws configure set region us-east-2 --profile circleguard-terraform
+```
+
 ```powershell
 $env:AWS_PROFILE = 'circleguard-terraform'
 $env:AWS_REGION = 'us-east-2'
@@ -237,6 +257,53 @@ Revisar primero el inventario final de esta entrega y el job:
 - https://jenkins.18-220-203-182.sslip.io/job/circleguard-handover/
 - Nexus, Browse, repositorio Docker `circleguard`.
 
+### 6.1 Bloqueo exacto y primera acción del receptor
+
+Fuente de código del job #1: `388e8a9d746955eb2da6ff13a0e13f62e7d67d5a`.
+Tag intentado: `handover-388e8a9d7469`. Resultado: **8 imágenes Java construidas,
+web fallida, 0 escaneos nuevos del lote y 0 imágenes publicadas**. Ver el extracto
+sanitizado `docs/evidence/candidate-build-1.txt` y la consola del job #1.
+
+`mobile/Dockerfile`, línea RUN de apk, pide NGINX y módulos >=1.30.7 sobre
+`nginxinc/nginx-unprivileged:1.30-alpine`. La base trae paquetes 1.30.6-r1 y los
+módulos dependen de `nginx~1.30.6`; apk no puede resolver la mezcla. El simple
+`apk upgrade` anterior tampoco reparaba los paquetes fijados. Esta corrección
+del Dockerfile **está pendiente**; no repetir el job sin modificarla.
+
+Procedimiento para resolverlo desde un host con Docker:
+
+1. Inspeccionar repositorios, world y módulos de la base; no asumir que todos
+   los paquetes de un repositorio son compatibles con los del otro.
+2. Comprobar si ya existe una base unprivileged parcheada publicada. El tag
+   `nginxinc/nginx-unprivileged:1.30.7-alpine` no existía durante esta auditoría.
+3. Como alternativa, evaluar `nginx:1.30.7-alpine`, que sí se pudo descargar:
+   adaptar PID, directorios temporales y permisos para conservar `USER 101` y
+   puerto 8080. No cambiar simplemente la base y asumir que arranca sin root.
+4. Construir solo web para iterar, verificar `nginx -v`, usuario efectivo,
+   arranque HTTP y fallback `/admin/console`; ejecutar Trivy. No suprimir CVEs
+   de NGINX con el VEX de Spring.
+5. Guardar la corrección, ejecutar Jest/TypeScript según el cambio, hacer commit
+   y push de la rama y lanzar un nuevo snapshot del commit corregido. El job
+   volverá a probar/escanear las nueve imágenes antes del push.
+
+Comandos de diagnóstico; no publican imágenes:
+
+```bash
+docker run --rm --entrypoint sh nginxinc/nginx-unprivileged:1.30-alpine \
+  -c 'cat /etc/apk/repositories; cat /etc/apk/world; apk policy nginx nginx-module-njs'
+docker manifest inspect nginx:1.30.7-alpine >/dev/null
+# Después de corregir mobile/Dockerfile:
+image=registry.18-220-203-182.sslip.io/circleguard/web:diagnostico-web
+docker build -t "$image" mobile
+docker run --rm --entrypoint sh "$image" -c 'id; nginx -v; nginx -t'
+bash scripts/scan-image.sh "$image" web
+```
+
+El job #1 ya terminó; no queda esperando autorización. El preflight de Jenkins
+tras su restauración sigue pendiente. No se creó infraestructura stage/prod.
+
+### 6.2 Repetir la publicación después de corregir web
+
 No confundir las nueve imágenes locales antiguas `v1.1.1` con los snapshots publicados por el nuevo job. Los snapshots tienen un commit de origen completo en `org.opencontainers.image.revision` y tag `handover-<sha12>`.
 
 Código del job: `infra/ci/candidate.Jenkinsfile`. Publicador: `infra/ci/publish-candidate.sh`. Escaneo: `scripts/scan-image.sh`. Esta ruta no crea infraestructura ni despliega ambientes y no reemplaza el pipeline oficial de release.
@@ -251,7 +318,7 @@ $Commit = (git rev-parse HEAD).Trim()
   -GitCommit $Commit
 ```
 
-El job exige checkout limpio, ejecuta unitarias/JaCoCo e integraciones Docker, construye ocho imágenes Java y web, escanea todas y comprueba el arranque web y la ruta SPA antes de cualquier push. Si falla una imagen, no publica el lote. Preserva los informes originales, SBOM, VEX y hallazgos suprimidos visibles en sus artifacts.
+El job exige checkout limpio, ejecuta unitarias/JaCoCo e integraciones Docker, construye ocho imágenes Java y web, escanea todas y comprueba el arranque web y la ruta SPA antes de cualquier push. Si falla una imagen, no publica el lote. Cuando alcanza el escaneo, preserva informes originales, SBOM, VEX y hallazgos suprimidos visibles en sus artifacts. El job #1 falló antes de producir esos informes nuevos.
 
 No aumentar el umbral de Trivy, no usar exit-code 0 para aprobar el resultado final y no ampliar VEX a otros paquetes sin análisis. La evaluación actual solo cubre dos avisos de Spring MVC 6.2.19 y exige revisión antes del 27 de noviembre. No extender esa fecha sin reevaluar.
 
@@ -270,6 +337,16 @@ Se debe usar el webhook existente que indicó el equipo. El estado confirmado al
 9. Probar un fallo controlado del pipeline y una alerta FIRING y RESOLVED de Prometheus. Registrar ambiente, hora, build y mensaje recibido; ocultar la URL en capturas.
 
 Ejemplo de ejecución en el host CI, solo después de transferir credenciales y actualizar sus archivos de bootstrap:
+
+Transferencia desde PowerShell, con las variables del apartado 4:
+
+```powershell
+& $Scp -i $Key -o "UserKnownHostsFile=$Known" `
+  '.local-evidence/credentials/ci.env' "${Ci}:/opt/circleguard/ci.env"
+if ($LASTEXITCODE -ne 0) { throw 'No se transfirieron las credenciales de CI' }
+```
+
+Después, en una sesión SSH al CI:
 
 ```bash
 cd /opt/circleguard
@@ -344,7 +421,45 @@ Antes del apply, revisar región, proyecto, AMI, llave, CIDR, registro y capacid
 
 Aplicar el plan revisado de stage; esperar cloud-init, k3s y ambos nodos Ready. Obtener su EIP con `terraform output -raw public_ip`; no reutilizar la IP de dev. Repetir el proceso para prod solo cuando se vayan a realizar pruebas.
 
+```powershell
+& $Tf '-chdir=infra/terraform/envs/stage' apply -input=false tfplan
+if ($LASTEXITCODE -ne 0) { throw 'Apply stage fallido' }
+$StageIp = (& $Tf '-chdir=infra/terraform/envs/stage' output -raw public_ip).Trim()
+& $Ssh @SshOptions "ubuntu@$StageIp" 'sudo cloud-init status --wait'
+& $Ssh @SshOptions "ubuntu@$StageIp" 'sudo k3s kubectl get nodes -o wide'
+```
+
 Exportar el kubeconfig con `infra/terraform/scripts/export-kubeconfig.sh`, revisando primero su uso, o por SSH redirigido a un archivo privado y sustituyendo únicamente `127.0.0.1` por su EIP. No mostrar las claves en consola. Generar el `.env` con `deploy/new-env.sh` en Linux/Git Bash y redirigirlo a un archivo privado; no invocarlo sin redirección. Agregar el registro HTTPS real, SITE_ADDRESS, TLS_ISSUER y ACME_EMAIL. Subir los Secret files a Jenkins con el importador.
+
+Ejemplo Git Bash, desde la raíz y con Terraform en PATH. Cambiar a `prod`
+únicamente cuando exista su infraestructura; no regenerar dev:
+
+```bash
+export PATH="$PWD/.tools/terraform-1.9.8:$PATH"
+export AWS_PROFILE=circleguard-terraform
+export AWS_REGION=us-east-2 AWS_DEFAULT_REGION=us-east-2
+export AWS_EC2_METADATA_DISABLED=true
+environment=stage
+private=.local-evidence/credentials
+umask 077
+mkdir -p "$private"
+test ! -e "$private/circleguard-env-$environment" || exit 1
+ip=$(terraform -chdir="infra/terraform/envs/$environment" output -raw public_ip)
+host="$environment.${ip//./-}.sslip.io"
+bash infra/terraform/scripts/export-kubeconfig.sh "$environment" \
+  "$private/ssh/circleguard-demo-20261123" "$private/$environment.kubeconfig"
+bash deploy/new-env.sh "$environment" "$host" \
+  > "$private/circleguard-env-$environment"
+sed -i 's#^REGISTRY=.*#REGISTRY=registry.18-220-203-182.sslip.io#' \
+  "$private/circleguard-env-$environment"
+printf '\nTLS_ISSUER=circleguard-letsencrypt\nACME_EMAIL=CORREO_REAL_DEL_OPERADOR\n' \
+  >> "$private/circleguard-env-$environment"
+```
+
+Sustituir el correo de ejemplo antes de cargar el archivo. El exportador usa
+SSH con huellas verificadas y falla si el host nuevo todavía no es confiable;
+verificar su huella por SSM antes de aceptarla, no desactivar la comprobación.
+Después ejecutar el importador del apartado 8 con `-Environment stage` o `prod`.
 
 Valores por ambiente:
 
@@ -536,7 +651,7 @@ Separar tres niveles de evidencia:
 | Nivel | Lo que demuestra |
 | --- | --- |
 | Base de estabilización anterior | Los checks enumerados en sección 7 pasaron antes de los últimos parches |
-| Validación de esta entrega | Consultar inventario final y job snapshot; unitarias/JaCoCo y 16 pruebas Node verificadas localmente |
+| Validación de esta entrega | Unitarias, cobertura e integraciones Docker pasaron en Jenkins; Node 16/16, móvil 13/13 y TypeScript local pasan. Build web fallido; no se aprobó el lote de imágenes |
 | Cierre pendiente | Pipeline oficial, Sonar, DNS/TLS de aplicación, E2E/ZAP, alertas/rollback y main desplegado |
 
 Los planes sin cambios de CI/dev se guardaron localmente en `.local-evidence/ci-no-changes.txt` y `dev-no-changes.txt`. Los informes completos de seguridad, kubeconfigs, planes JSON y credenciales permanecen privados. El inventario público solo debe contener nombres, digests, resultados y enlaces de ejecución.
@@ -560,6 +675,8 @@ Confirma el commit y docs/evidence/handover-status.json antes de asumir resultad
 Usa el perfil AWS circleguard, proyecto 001784022331, region us-east-2.
 Verifica STS y el estado real de CI, Nexus y los dos nodos dev.
 Distingue snapshots handover-* de la release oficial pendiente.
+El job #1 termino FAILURE por conflicto NGINX/Alpine de mobile/Dockerfile;
+hay ocho imagenes Java locales y cero publicadas. Corrige ese bloqueo primero.
 Coordina conmigo el webhook existente y cargalo localmente, nunca en Git/chat.
 Corrige los pendientes concretos de observabilidad/alertas de la guia.
 Continua el PR, Release Please y el pipeline oficial hasta cerrar las evidencias.

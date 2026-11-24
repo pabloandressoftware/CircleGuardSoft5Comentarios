@@ -243,6 +243,10 @@ Cambios aplicados sobre el tag `v1.1.0`, verificados con `gradle test`,
 - **Build:** se versiona `gradle/wrapper/gradle-wrapper.jar` (antes `.gitignore`
   lo excluia y `./gradlew` fallaba en un clon limpio).
 
-Sigue pendiente lo que depende de infraestructura real: cuenta AWS, `apply` de
-Terraform, credenciales de Jenkins, DNS/TLS publico, ejecucion del tag completo y
-evidencia de alertas/rollback en los tres ambientes.
+Actualizacion del 23 de noviembre de 2026: ya existen backend Terraform, CI con
+HTTPS y dev k3s con dos nodos Ready y middleware. La aplicacion aun requiere el
+pipeline oficial, TLS de aplicacion, Smoke/E2E y evidencia de alertas/rollback;
+stage/prod no se han creado. El estado vigente, los comandos y el resultado de
+imagenes estan en [la guia de handover](handover-claude-release.md) y
+`docs/evidence/handover-status.json`. No usar el listado historico de pendientes
+de esta seccion como inventario actual de AWS.
