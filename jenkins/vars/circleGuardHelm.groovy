@@ -16,6 +16,13 @@
  * tres ambientes; no se reconstruyen imagenes al promover.
  */
 
+// Groovy pasa los argumentos con nombre como un Map en la PRIMERA posicion:
+// helm.call('dev', deployMiddleware: true) llega como call(Map, String).
+// Sin esta sobrecarga el paso falla con "No such DSL method 'call'".
+def call(Map args, String environment) {
+    return call(environment, args)
+}
+
 def call(String environment, Map args = [:]) {
     if (!(environment in ['dev', 'stage', 'prod'])) {
         error("Ambiente Helm invalido: ${environment}")

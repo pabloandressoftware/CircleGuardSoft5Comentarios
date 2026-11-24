@@ -1,10 +1,13 @@
 package com.circleguard.auth.client;
 
+import com.circleguard.auth.security.InternalApiKeyFilter;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -29,12 +32,17 @@ public class IdentityClient {
 
     private final RestTemplate restTemplate;
     private final String identityUrl;
+    private final String internalApiKey;
 
+    // HU-21: /identities/map exige JWT o la clave interna, y el login todavia no tiene JWT.
+    // Sin la cabecera identity responde 401 y todo login valido termina en 503.
     public IdentityClient(
             @Value("${circleguard.identity-service.url:http://localhost:8083}") String identityBaseUrl,
             @Value("${circleguard.identity-service.connect-timeout:200ms}") Duration connectTimeout,
             @Value("${circleguard.identity-service.read-timeout:250ms}") Duration readTimeout,
+            @Value("${circleguard.internal.api-key:}") String internalApiKey,
             RestTemplateBuilder restTemplateBuilder) {
+        this.internalApiKey = internalApiKey;
         String base = identityBaseUrl.endsWith("/")
                 ? identityBaseUrl.substring(0, identityBaseUrl.length() - 1)
                 : identityBaseUrl;
@@ -51,7 +59,9 @@ public class IdentityClient {
     @CircuitBreaker(name = RESILIENCE_INSTANCE)
     public UUID getAnonymousId(String realIdentity) {
         Map<String, String> request = Map.of("realIdentity", realIdentity);
-        Map<?, ?> response = restTemplate.postForObject(identityUrl, request, Map.class);
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(InternalApiKeyFilter.HEADER, internalApiKey);
+        Map<?, ?> response = restTemplate.postForObject(identityUrl, new HttpEntity<>(request, headers), Map.class);
         if (response == null || response.get("anonymousId") == null) {
             throw new IllegalStateException("identity-service respondio sin anonymousId");
         }

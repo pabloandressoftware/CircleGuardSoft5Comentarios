@@ -16,6 +16,12 @@
  * Devuelve el host del ambiente para las etapas de humo y E2E.
  */
 
+// Groovy pasa los argumentos con nombre como un Map en la PRIMERA posicion:
+// deploy.call('prod', imageTag: 'v1.2.3') llega como call(Map, String).
+def call(Map args, String environment) {
+    return call(environment, args)
+}
+
 def call(String environment, Map args = [:]) {
     if (!(environment in ['dev', 'stage', 'prod'])) {
         error("Ambiente invalido: ${environment}")

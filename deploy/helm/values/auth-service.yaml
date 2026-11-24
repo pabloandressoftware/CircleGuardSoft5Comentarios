@@ -13,6 +13,12 @@ env:
   JWT_EXPIRATION: "3600000"
   QR_EXPIRATION: "60000"
   IDENTITY_SERVICE_URL: http://identity-service:8083
+  # HU-23: los 250 ms por defecto cortan el primer /identities/map tras un
+  # despliegue (JVM y JPA en frio) y el primer login de cada cuenta da 503.
+  # Si identity esta caido la conexion se rechaza al instante; el read
+  # timeout solo cuenta cuando identity responde lento.
+  IDENTITY_CONNECT_TIMEOUT: 500ms
+  IDENTITY_READ_TIMEOUT: 2s
 secretEnv:
   DB_USERNAME: DB_USERNAME
   DB_PASSWORD: DB_PASSWORD

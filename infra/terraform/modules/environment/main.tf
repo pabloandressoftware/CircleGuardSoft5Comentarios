@@ -101,6 +101,12 @@ resource "random_password" "agent" {
 }
 
 resource "aws_instance" "worker" {
+  lifecycle {
+    # Al detener la VM AWS libera la IP publica automatica y el proveedor lee
+    # associate_public_ip_address = false; sin esto el plan exige reemplazarla
+    # cada vez que stage/prod se apagan para ahorrar costo.
+    ignore_changes = [associate_public_ip_address]
+  }
   count                  = var.config.worker_count
   ami                    = var.config.ami_id
   instance_type          = var.config.instance_type

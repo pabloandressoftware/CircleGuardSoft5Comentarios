@@ -36,6 +36,16 @@ async function signIn(page) {
   await expect(page.getByRole('link', { name: 'REPORT', exact: true })).toBeVisible();
 }
 
+// HU-21: crear cuestionarios exige el permiso questionnaire:manage (rol
+// HEALTH_CENTER, migracion V6 de auth); la cuenta de pruebas lo obtiene por API.
+async function apiToken(request) {
+  const login = await request.post(endpoint('E2E_AUTH_URL', '/api/v1/auth/login'), {
+    data: { username: required('E2E_HEALTH_USERNAME'), password: required('E2E_HEALTH_PASSWORD') },
+  });
+  expect(login.status(), 'La cuenta de pruebas inicia sesión por API').toBe(200);
+  return (await login.json()).token;
+}
+
 function nextAlert(page) {
   return new Promise(resolve => page.once('dialog', async dialog => {
     const message = dialog.message();
@@ -61,6 +71,7 @@ test('enviar una respuesta del cuestionario muestra confirmación', async ({ pag
   let active = await request.get(`${formUrl}/active`);
   if (active.status() === 404 && process.env.E2E_SEED_QUESTIONNAIRE === '1') {
     const created = await request.post(formUrl, {
+      headers: { Authorization: `Bearer ${await apiToken(request)}` },
       data: {
         title: 'Health Screening (E2E)',
         version: 1,
