@@ -128,7 +128,10 @@ alert_active() {
 }
 
 capture() {
-  local name=$1 dir="$out/$name"
+  # Dos declaraciones: bash expande todos los argumentos de `local` antes de asignar,
+  # asi que "$name" aun no existe en la misma linea y set -u aborta el script.
+  local name=$1
+  local dir="$out/$name"
   mkdir -p "$dir"
   date -u +%Y-%m-%dT%H:%M:%SZ > "$dir/hora-utc.txt"
   kubectl -n "$ns" get pods -o wide > "$dir/pods.txt" 2>&1 || true
