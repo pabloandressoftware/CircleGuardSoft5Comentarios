@@ -121,7 +121,9 @@ Presentación: [presentacion/sustentacion-parte-2.pdf](../presentacion/sustentac
 4. **Aplicación** (2 min): abrir https://prod.13-59-35-181.sslip.io y mostrar el
    certificado. Si prod está detenido, usar dev.
 5. **Observabilidad** (3 min): `port-forward` a Grafana y a Alertmanager; mostrar el
-   registro de `circleguard-observability` #7 con FIRING/RESOLVED.
+   registro de `circleguard-observability` #7 con FIRING/RESOLVED. Avisar antes de
+   abrirlo que `ServiceDown` (targets de auth y dashboard) y `AvailabilityLow` aparecen
+   activas: es el hallazgo corregido en #64, que llega con 1.1.4.
 6. **Rollback** (2 min): `v1.1.2` #3 y #4, `rollback.json` con la duración.
 7. **Costos y cierre** (1 min).
 8. **Retrospectiva y brechas** (2 min): decirlas antes de que pregunten.
@@ -131,6 +133,8 @@ Antes de empezar:
 - Encender prod (y stage si se va a mostrar) 20 minutos antes.
 - Comprobar `kubectl get nodes` y el humo.
 - Iniciar sesión en Jenkins con el usuario operador, no con `aprobador`.
+- No integrar el PR #65 (release 1.1.4) antes de la sustentación: lo presentado y
+  desplegado es v1.1.2.
 
 ## 10. Contribución individual
 
