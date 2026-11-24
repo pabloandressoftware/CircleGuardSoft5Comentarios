@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.1.1](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/compare/v1.1.0...v1.1.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* **ci:** desbloquear Terraform del pipeline y observabilidad por cluster ([f14f575](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/f14f575067cb737b3aa4f99ebb3e6627a0e4a348))
+* **ci:** evitar que dir oculte el paso de Terraform y aplicar el filtro real de ramas ([92b492e](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/92b492e1dbe927fab143ce80e577d0092c97a758))
+* **ci:** omitir el proyecto agrupador :services en el analisis de Sonar ([dffb88d](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/dffb88db6fb12f9d96922fe49d9b653fcb69d0ba))
+* **observability:** instalar por cluster sin Discord obligatorio y restaurar alertas ([5b19064](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/5b190649cd425abd15bbaad40dd52b24a02c1a79))
+* **observability:** no heredar la ruta Watchdog del chart y exigir Alertmanager listo ([012437f](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/012437febf5ee0947b888f12b7fde77f14c53236))
+* **release:** consolidate AWS stabilization and reproducible handover snapshots ([388e8a9](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/388e8a9d746955eb2da6ff13a0e13f62e7d67d5a))
+* **release:** estabilizar 1.1.0 y preparar despliegue AWS verificable ([ac5ba1f](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/ac5ba1f9301c048734c03a52208bba9572ce7dd3))
+* **release:** estabilizar seguridad, despliegue y HU-23 para 1.1.0 ([69cba57](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/69cba57f127974f04e072aa15bb6f160ae6455c0))
+* **security:** acotar gitleaks y Trivy fs a codigo fuente con excepcion documentada ([6505371](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/6505371a98527d277c83e3668f35c496cc370253))
+* **web:** subir nginx a 1.30.7 para desbloquear el build de la imagen web ([b842e7f](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/b842e7f8aa438be6141cb295eb9753a4cbbdb9f1))
+* **web:** subir nginx a 1.30.7 sin modulos dinamicos que lo fijaban a 1.30.6 ([9ca8059](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/9ca8059231d92f6a2c49798553e0da48ed408dc4))
+
 ## [1.1.0](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/compare/v1.0.0...v1.1.0) (2026-11-23)
 
 
