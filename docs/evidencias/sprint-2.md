@@ -197,7 +197,8 @@ Evidencia copiada del build (sin values ni secretos):
 
 | Tema | Dónde |
 | --- | --- |
-| Métricas de auth y dashboard | PR #64; requiere release |
+| Métricas de auth y dashboard | PR #64 integrado; llega con la release **1.1.4** (PR #65 de Release Please) |
+| Tag `v1.1.3` | Creado el 24-nov 19:51 UTC por PR #62 (incluye #61). **No se construyó ni desplegó**: el filtro de Jenkins solo descubre `v1.1.2`. Lo desplegado sigue siendo v1.1.2 |
 | Filtro de alertas por etiquetas | PR #63 |
 | Discord | [manual-operaciones.md](../manual-operaciones.md#7-alertas-y-notificaciones) |
 | HU-23: ConfigMap y Bulkhead/rate limit | Backlog |

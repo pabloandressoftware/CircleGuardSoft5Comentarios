@@ -88,7 +88,7 @@ Detalle de cada prueba: [evidencias/sprint-2.md](../evidencias/sprint-2.md).
 
 - **Notificaciones:** no hay webhook de Discord y el correo del pipeline falla (SMTP `530 Authentication Required`). Las alertas quedan en Alertmanager. El
   procedimiento para activar ambos sin exponer secretos está en el manual.
-- **PR #64** necesita una release para que Prometheus vea auth y dashboard. Hasta
+- **PR #64** (integrado) necesita la release 1.1.4 (PR #65) para que Prometheus vea auth y dashboard. El tag `v1.1.3` existe (incluye #61) pero no se construyó ni se desplegó. Hasta
   entonces `CircleguardServiceDown` de esos targets y `AvailabilityLow` aparecen activas.
 - **HU-23:** falta el toggle en ConfigMap con prueba en caliente, que el flag
   `unconfirmed-fencing` tenga efecto y un Bulkhead o rate limit.
