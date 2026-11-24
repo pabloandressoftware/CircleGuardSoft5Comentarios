@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import axios from 'axios';
 import { PROMOTION_BASE_URL } from '../constants/Config';
+import { authHeaders } from '../utils/apiAuth';
 
 export interface Circle {
   id: string;
@@ -19,7 +20,10 @@ export const useCircles = (anonymousId: string) => {
     if (!anonymousId) return;
     setLoading(true);
     try {
-      const response = await axios.get(`${PROMOTION_BASE_URL}/api/v1/circles/user/${anonymousId}`);
+      const response = await axios.get(
+        `${PROMOTION_BASE_URL}/api/v1/circles/user/${anonymousId}`,
+        { headers: await authHeaders() },
+      );
       setCircles(response.data);
       setError(null);
     } catch (err: any) {
@@ -32,10 +36,11 @@ export const useCircles = (anonymousId: string) => {
   const createCircle = async (name: string, locationId: string = 'building-1') => {
     setLoading(true);
     try {
-      const response = await axios.post(`${PROMOTION_BASE_URL}/api/v1/circles`, {
-        name,
-        locationId
-      });
+      const response = await axios.post(
+        `${PROMOTION_BASE_URL}/api/v1/circles`,
+        { name, locationId, creatorAnonymousId: anonymousId },
+        { headers: await authHeaders() },
+      );
       await fetchCircles(); // Refresh list
       return response.data;
     } catch (err: any) {
@@ -49,7 +54,11 @@ export const useCircles = (anonymousId: string) => {
   const joinCircle = async (inviteCode: string) => {
     setLoading(true);
     try {
-      const response = await axios.post(`${PROMOTION_BASE_URL}/api/v1/circles/join/${inviteCode}/user/${anonymousId}`);
+      const response = await axios.post(
+        `${PROMOTION_BASE_URL}/api/v1/circles/join/${inviteCode}/user/${anonymousId}`,
+        {},
+        { headers: await authHeaders() },
+      );
       await fetchCircles(); // Refresh list
       return response.data;
     } catch (err: any) {
@@ -63,7 +72,11 @@ export const useCircles = (anonymousId: string) => {
   const addMember = async (circleId: string, memberAnonymousId: string) => {
     setLoading(true);
     try {
-      const response = await axios.post(`${PROMOTION_BASE_URL}/api/v1/circles/${circleId}/members/${memberAnonymousId}`);
+      const response = await axios.post(
+        `${PROMOTION_BASE_URL}/api/v1/circles/${circleId}/members/${memberAnonymousId}`,
+        {},
+        { headers: await authHeaders() },
+      );
       await fetchCircles();
       return response.data;
     } catch (err: any) {
@@ -81,6 +94,6 @@ export const useCircles = (anonymousId: string) => {
     fetchCircles,
     createCircle,
     joinCircle,
-    addMember
+    addMember,
   };
 };

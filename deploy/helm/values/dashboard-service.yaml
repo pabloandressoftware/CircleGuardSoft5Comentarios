@@ -11,6 +11,8 @@ env:
 secretEnv:
   DB_USERNAME: DB_USERNAME
   DB_PASSWORD: DB_PASSWORD
+  # HU-21: las analiticas exigen el permiso dashboard:view.
+  JWT_SECRET: JWT_SECRET
 ingress:
   enabled: true
   paths:

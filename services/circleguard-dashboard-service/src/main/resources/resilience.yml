@@ -1,0 +1,42 @@
+# HU-22 · Resiliencia hacia promotion-service (Resilience4j). Cada umbral se puede ajustar por variable.
+# Orden de los decoradores: Retry( CircuitBreaker( llamada HTTP ) ).
+resilience4j:
+  circuitbreaker:
+    instances:
+      promotion:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: ${PROMOTION_CB_WINDOW:10}
+        minimum-number-of-calls: ${PROMOTION_CB_MIN_CALLS:5}
+        failure-rate-threshold: ${PROMOTION_CB_FAILURE_RATE:50}
+        wait-duration-in-open-state: ${PROMOTION_CB_OPEN_WAIT:10s}
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+        register-health-indicator: true
+        # Solo cuentan como fallo los problemas de red y los 5xx; un 4xx es un error del cliente.
+        record-exceptions:
+          - org.springframework.web.client.ResourceAccessException
+          - org.springframework.web.client.HttpServerErrorException
+  retry:
+    instances:
+      promotion:
+        max-attempts: ${PROMOTION_RETRY_ATTEMPTS:2}
+        wait-duration: ${PROMOTION_RETRY_WAIT:50ms}
+        retry-exceptions:
+          - org.springframework.web.client.ResourceAccessException
+          - org.springframework.web.client.HttpServerErrorException
+        # Con el circuito abierto no se reintenta: se responde de inmediato.
+        ignore-exceptions:
+          - io.github.resilience4j.circuitbreaker.CallNotPermittedException
+
+# Estado del circuito para la evidencia: GET /actuator/circuitbreakers y /actuator/health
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,circuitbreakers,circuitbreakerevents,retries
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true

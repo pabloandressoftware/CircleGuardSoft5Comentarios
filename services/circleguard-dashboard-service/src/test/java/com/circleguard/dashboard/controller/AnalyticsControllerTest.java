@@ -1,5 +1,6 @@
 package com.circleguard.dashboard.controller;
 
+import com.circleguard.dashboard.security.JwtAuthorizer;
 import com.circleguard.dashboard.service.AnalyticsService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -22,6 +23,9 @@ class AnalyticsControllerTest {
 
     @MockBean
     private AnalyticsService analyticsService;
+
+    @MockBean
+    private JwtAuthorizer jwtAuthorizer;
 
     @Test
     void shouldReturnHealthBoardStats() throws Exception {
@@ -56,3 +60,4 @@ class AnalyticsControllerTest {
                 .andExpect(jsonPath("$[0].count").value(120));
     }
 }
+

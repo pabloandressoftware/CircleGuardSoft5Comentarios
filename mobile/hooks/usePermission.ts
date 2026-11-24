@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useAuth } from './useAuth';
+import { useAuth } from '@/context/AuthContext';
 
 /**
  * Hook to handle permission-based UI gating.

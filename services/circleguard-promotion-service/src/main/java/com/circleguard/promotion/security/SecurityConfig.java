@@ -40,9 +40,13 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // HU-21: el portal admin ya exige dashboard:view en la app movil.
                 .requestMatchers("/actuator/health/**", "/actuator/prometheus").permitAll()
+                // Dashboard consulta agregados k-anonimos service-to-service (sin JWT de usuario).
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/health-status/**").permitAll()
                 .requestMatchers("/api/v1/admin/**").hasAuthority("dashboard:view")
                 .requestMatchers("/api/v1/health/**").authenticated()
-                .anyRequest().permitAll()
+                // Default-deny: antes cualquier ruta permitia envenenar el grafo o borrar
+                // edificios/pisos sin autenticacion.
+                .anyRequest().authenticated()
             )
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))

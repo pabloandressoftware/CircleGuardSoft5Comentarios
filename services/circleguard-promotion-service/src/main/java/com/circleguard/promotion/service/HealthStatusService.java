@@ -26,6 +26,7 @@ public class HealthStatusService {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final com.circleguard.promotion.repository.jpa.SystemSettingsRepository systemSettingsRepository;
     private final com.circleguard.promotion.repository.graph.CircleNodeRepository circleNodeRepository;
+    private final org.springframework.cache.CacheManager cacheManager;
     private final MeterRegistry meterRegistry;
 
     private static final String STATUS_KEY_PREFIX = "user:status:";
@@ -36,13 +37,26 @@ public class HealthStatusService {
      * Updates a user's health status and triggers recursive fencing if required.
      * Consolidated into a single transaction with optimized Cypher to meet NFR-1 (<1s target).
      */
+    @Transactional("neo4jTransactionManager")
     public void updateStatus(String anonymousId, String status) {
-        updateStatus(anonymousId, status, false);
+        applyStatusChange(anonymousId, status, false);
+        evictUserStatusCache();
     }
 
     @Transactional("neo4jTransactionManager")
-    @CacheEvict(cacheNames = "userStatus", allEntries = true)
     public void updateStatus(String anonymousId, String status, boolean adminOverride) {
+        applyStatusChange(anonymousId, status, adminOverride);
+        evictUserStatusCache();
+    }
+
+    private void evictUserStatusCache() {
+        var cache = cacheManager.getCache("userStatus");
+        if (cache != null) {
+            cache.clear();
+        }
+    }
+
+    private void applyStatusChange(String anonymousId, String status, boolean adminOverride) {
         log.info("Updating status: {} -> {} (Admin Override: {})", anonymousId, status, adminOverride);
 
         if ("ACTIVE".equals(status) && !adminOverride) {
@@ -61,7 +75,7 @@ public class HealthStatusService {
 
         // Robust Multi-Tier High-Confidence Propagation Cypher - Augmented with isValid checks and timing
         String unifiedQuery = 
-            "MATCH (source:User {anonymousId: $id}) " +
+            "MERGE (source:User {anonymousId: $id}) " +
             "SET source.status = $status, source.statusUpdatedAt = timestamp() " +
             "WITH source " +
             "OPTIONAL MATCH (source)-[r1]-(c1:User) " +
@@ -128,6 +142,21 @@ public class HealthStatusService {
 
             kafkaTemplate.send(TOPIC_STATUS_CHANGED, anonymousId, payload);
 
+            // Cada contacto promovido tambien recibe su evento: antes solo se
+            // notificaba al caso indice y los contactos expuestos nunca sabian.
+            if (affected != null) {
+                for (Map<String, String> contact : affected) {
+                    if (contact != null && contact.get("id") != null) {
+                        Map<String, Object> contactPayload = new HashMap<>();
+                        contactPayload.put("anonymousId", contact.get("id"));
+                        contactPayload.put("status", contact.get("status"));
+                        contactPayload.put("sourceAnonymousId", anonymousId);
+                        contactPayload.put("timestamp", System.currentTimeMillis());
+                        kafkaTemplate.send(TOPIC_STATUS_CHANGED, contact.get("id"), contactPayload);
+                    }
+                }
+            }
+
             // Story 5.4: Automated Room Reservation Cancellation
             checkAndBroadcastFencedCircles(anonymousId);
 
@@ -189,12 +218,19 @@ public class HealthStatusService {
      * Resolves a user's status to ACTIVE and re-evaluates downstream contacts.
      * Implements the "Pulse Recovery" algorithm for Story 4.4.
      */
+    @Transactional("neo4jTransactionManager")
     public void resolveStatus(String anonymousId) {
-        resolveStatus(anonymousId, false);
+        applyResolveStatus(anonymousId, false);
+        evictUserStatusCache();
     }
 
     @Transactional("neo4jTransactionManager")
     public void resolveStatus(String anonymousId, boolean adminOverride) {
+        applyResolveStatus(anonymousId, adminOverride);
+        evictUserStatusCache();
+    }
+
+    private void applyResolveStatus(String anonymousId, boolean adminOverride) {
         log.info("Resolving status for user: {} (Admin Override: {})", anonymousId, adminOverride);
 
         if (!adminOverride) {
@@ -205,7 +241,7 @@ public class HealthStatusService {
         recordContainment(anonymousId);
 
         // 1. Resolve source
-        neo4jClient.query("MATCH (u:User {anonymousId: $id}) SET u.status = 'ACTIVE', u.statusUpdatedAt = timestamp()")
+        neo4jClient.query("MERGE (u:User {anonymousId: $id}) SET u.status = 'ACTIVE', u.statusUpdatedAt = timestamp()")
                 .bind(anonymousId).to("id")
                 .run();
 
@@ -288,13 +324,20 @@ public class HealthStatusService {
     public void promoteToRecovered(String anonymousId) {
         resolveStatus(anonymousId);
         // Note: resolveStatus sets to ACTIVE first, then we update to RECOVERED
-        neo4jClient.query("MATCH (u:User {anonymousId: $id}) SET u.status = 'RECOVERED'")
+        neo4jClient.query("MERGE (u:User {anonymousId: $id}) SET u.status = 'RECOVERED', u.statusUpdatedAt = timestamp()")
                 .bind(anonymousId).to("id").run();
         
         // Immunize in Redis for 30 days
         redisTemplate.opsForValue().set(STATUS_KEY_PREFIX + anonymousId, "RECOVERED");
         redisTemplate.expire(STATUS_KEY_PREFIX + anonymousId, java.time.Duration.ofDays(30));
         recordPromotion("RECOVERED", false);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("anonymousId", anonymousId);
+        payload.put("status", "RECOVERED");
+        payload.put("timestamp", System.currentTimeMillis());
+        kafkaTemplate.send(TOPIC_STATUS_CHANGED, anonymousId, payload);
+        evictUserStatusCache();
     }
 
     /** HU-24: cuenta las promociones por estado para el tablero de negocio. */
@@ -348,7 +391,12 @@ public class HealthStatusService {
                 && user.getStatusUpdatedAt() != null) {
                 
                 var settings = systemSettingsRepository.getSettings()
-                        .orElseThrow(() -> new IllegalStateException("System Settings not initialized"));
+                        .orElse(com.circleguard.promotion.model.jpa.SystemSettings.builder()
+                                .encounterWindowDays(14)
+                                .mandatoryFenceDays(14)
+                                .unconfirmedFencingEnabled(true)
+                                .autoThresholdSeconds(3600L)
+                                .build());
                 
                 long fenceDurationMs = (long) settings.getMandatoryFenceDays() * 24 * 60 * 60 * 1000;
                 long elapsed = System.currentTimeMillis() - user.getStatusUpdatedAt();

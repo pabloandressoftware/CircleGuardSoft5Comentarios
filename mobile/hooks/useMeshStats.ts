@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { PROMOTION_BASE_URL } from '../constants/Config';
+import { authHeaders } from '../utils/apiAuth';
 
 export interface MeshStats {
   confirmedCount: number;
@@ -19,7 +20,10 @@ export const useMeshStats = (anonymousId: string | null) => {
     if (!anonymousId) return;
     setLoading(true);
     try {
-      const response = await axios.get(`${PROMOTION_BASE_URL}/api/v1/mesh/stats/${anonymousId}`);
+      const response = await axios.get(
+        `${PROMOTION_BASE_URL}/api/v1/mesh/stats/${anonymousId}`,
+        { headers: await authHeaders() },
+      );
       setStats(response.data);
       setError(null);
     } catch (err: any) {

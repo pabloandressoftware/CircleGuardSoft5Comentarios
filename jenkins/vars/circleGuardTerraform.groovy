@@ -20,7 +20,21 @@
  */
 
 def available() {
-    return fileExists('infra/terraform')
+    if (!fileExists('infra/terraform/envs/dev/terraform.tfvars')) {
+        return false
+    }
+    // HU-17 dejo plantillas inoperables (cuenta 000000000000, registry
+    // example.invalid). Ejecutar plan/apply con ellas rompe cualquier tag.
+    // Solo se habilita Terraform cuando el operador reemplazo esos valores.
+    String tfvars = readFile('infra/terraform/envs/dev/terraform.tfvars')
+    boolean placeholder = tfvars.contains('000000000000') ||
+        tfvars.contains('example.invalid') ||
+        tfvars.contains('REEMPLAZAR')
+    if (placeholder) {
+        echo 'Terraform: infra/terraform sigue con valores de plantilla; se omite plan/apply.'
+        return false
+    }
+    return true
 }
 
 def plan(String environment, Map args = [:]) {
@@ -45,6 +59,7 @@ def plan(String environment, Map args = [:]) {
                 fi
                 terraform validate
                 terraform plan -input=false -lock-timeout=5m -out=tfplan
+                terraform show -json tfplan | node ../../scripts/check-plan.mjs
                 terraform show -no-color tfplan > terraform-plan.txt
             '''
         }
@@ -69,6 +84,7 @@ def apply(String environment, Map args = [:]) {
             dir(dir) {
                 sh '''#!/bin/bash
                     set -euo pipefail
+                    terraform show -json tfplan | node ../../scripts/check-plan.mjs
                     terraform apply -input=false -lock-timeout=5m -auto-approve tfplan
                     # HU-17: exit 2 (cambios) o 1 (error) bloquea el despliegue.
                     terraform plan -input=false -lock-timeout=5m -detailed-exitcode -no-color \
@@ -91,6 +107,12 @@ private String envDir(String environment) {
 }
 
 private void withAws(String credentialsId, String region, Closure body) {
+    if (env.CIRCLE_AWS_AUTH_MODE == 'instance-profile') {
+        withEnv(["AWS_REGION=${region}", "AWS_DEFAULT_REGION=${region}", 'AWS_PAGER=']) {
+            body()
+        }
+        return
+    }
     withCredentials([usernamePassword(credentialsId: credentialsId,
                                       usernameVariable: 'AWS_ACCESS_KEY_ID',
                                       passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {

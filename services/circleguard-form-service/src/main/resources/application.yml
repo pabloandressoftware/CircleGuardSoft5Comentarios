@@ -18,10 +18,18 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        # Los eventos se publican como Map: sin cabecera __TypeId__ promotion los
+        # deserializa como HashMap y no como la clase interna de Map.of().
+        spring.json.add.type.headers: false
 
 server:
   port: 8086
   forward-headers-strategy: native
+
+# HU-21: los endpoints administrativos validan el JWT de auth-service.
+jwt:
+  secret: ${JWT_SECRET}
 
 # HU-18: sondas de Kubernetes (/actuator/health/liveness y /readiness) y metricas
 # (/actuator/prometheus). El Ingress no publica /actuator; solo se usa dentro del cluster.

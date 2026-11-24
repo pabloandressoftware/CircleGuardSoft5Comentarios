@@ -7,6 +7,7 @@ def call(Map args = [:]) {
     String environment = args.get('environment', 'dev')
     String healthCredentialId = args.get('healthCredentialId', 'circleguard-e2e-health')
     String sshCredentialId = args.get('sshCredentialId', 'circleguard-env-ssh')
+    String deployTarget = args.get('deployTarget', 'compose')
 
     if (!(environment in ['dev', 'local'])) {
         error("La suite E2E solo admite dev o local; recibido: ${environment}")
@@ -31,7 +32,7 @@ def call(Map args = [:]) {
             "E2E_AUTH_URL=https://${host}",
             "E2E_FORM_URL=https://${host}",
             "E2E_GATEWAY_URL=https://${host}",
-            'E2E_IGNORE_HTTPS_ERRORS=1',
+            "E2E_IGNORE_HTTPS_ERRORS=${env.CIRCLE_TLS_INSECURE == '1' ? '1' : '0'}",
             'E2E_SEED_QUESTIONNAIRE=1',
         ]) {
             dir('e2e') {
@@ -41,34 +42,65 @@ def call(Map args = [:]) {
                 try {
                     withCredentials([usernamePassword(credentialsId: healthCredentialId,
                         usernameVariable: 'E2E_HEALTH_USERNAME', passwordVariable: 'E2E_HEALTH_PASSWORD')]) {
-                        sshagent(credentials: [sshCredentialId]) {
-                            sh '''#!/bin/bash
-                                set +x
-                                set -euo pipefail
-                                redis_password=$(env -u REDIS_PASSWORD node --env-file="$CIRCLE_ENV_FILE" -e '
-                                    const password = process.env.REDIS_PASSWORD;
-                                    if (!password) {
-                                        console.error("Falta REDIS_PASSWORD en el archivo de ambiente");
-                                        process.exit(1);
+                        if (deployTarget == 'helm') {
+                            // En Kubernetes Redis es un Pod, no un demonio en la VM.
+                            withCredentials([file(credentialsId: "kubeconfig-${environment}", variable: 'KUBECONFIG')]) {
+                                sh '''#!/bin/bash
+                                    set +x
+                                    set -euo pipefail
+                                    redis_password=$(env -u REDIS_PASSWORD node --env-file="$CIRCLE_ENV_FILE" -e '
+                                        const password = process.env.REDIS_PASSWORD;
+                                        if (!password) {
+                                            console.error("Falta REDIS_PASSWORD en el archivo de ambiente");
+                                            process.exit(1);
+                                        }
+                                        process.stdout.write(encodeURIComponent(password));
+                                    ')
+                                    kubectl -n "circleguard-$E2E_ENV" port-forward svc/redis-master 16379:6379 \
+                                        >/tmp/e2e-redis-tunnel.log 2>&1 &
+                                    tunnel_pid=$!
+                                    trap 'kill "$tunnel_pid" >/dev/null 2>&1 || true' EXIT
+                                    for _ in {1..30}; do
+                                        if (exec 3<>/dev/tcp/127.0.0.1/16379) 2>/dev/null; then
+                                            exec 3>&- 3<&-
+                                            break
+                                        fi
+                                        sleep 1
+                                    done
+                                    export E2E_REDIS_URL="redis://:$redis_password@127.0.0.1:16379"
+                                    npm test
+                                '''
+                            }
+                        } else {
+                            sshagent(credentials: [sshCredentialId]) {
+                                sh '''#!/bin/bash
+                                    set +x
+                                    set -euo pipefail
+                                    redis_password=$(env -u REDIS_PASSWORD node --env-file="$CIRCLE_ENV_FILE" -e '
+                                        const password = process.env.REDIS_PASSWORD;
+                                        if (!password) {
+                                            console.error("Falta REDIS_PASSWORD en el archivo de ambiente");
+                                            process.exit(1);
+                                        }
+                                        process.stdout.write(encodeURIComponent(password));
+                                    ')
+                                    tunnel_dir=$(mktemp -d)
+                                    control_socket="$tunnel_dir/ssh"
+                                    target="ubuntu@$E2E_HOST"
+                                    close_tunnel() {
+                                        ssh -S "$control_socket" -O exit "$target" >/dev/null 2>&1 || true
+                                        rmdir "$tunnel_dir" || true
                                     }
-                                    process.stdout.write(encodeURIComponent(password));
-                                ')
-                                tunnel_dir=$(mktemp -d)
-                                control_socket="$tunnel_dir/ssh"
-                                target="ubuntu@$E2E_HOST"
-                                close_tunnel() {
-                                    ssh -S "$control_socket" -O exit "$target" >/dev/null 2>&1 || true
-                                    rmdir "$tunnel_dir" || true
-                                }
-                                trap close_tunnel EXIT
-                                trap 'exit 143' TERM
-                                trap 'exit 130' INT
-                                ssh -fNT -M -S "$control_socket" -o BatchMode=yes \\
-                                    -o StrictHostKeyChecking=accept-new -o ExitOnForwardFailure=yes \\
-                                    -L 127.0.0.1:16379:127.0.0.1:6379 "$target"
-                                export E2E_REDIS_URL="redis://:$redis_password@127.0.0.1:16379"
-                                npm test
-                            '''
+                                    trap close_tunnel EXIT
+                                    trap 'exit 143' TERM
+                                    trap 'exit 130' INT
+                                    ssh -fNT -M -S "$control_socket" -o BatchMode=yes \\
+                                        -o StrictHostKeyChecking=accept-new -o ExitOnForwardFailure=yes \\
+                                        -L 127.0.0.1:16379:127.0.0.1:6379 "$target"
+                                    export E2E_REDIS_URL="redis://:$redis_password@127.0.0.1:16379"
+                                    npm test
+                                '''
+                            }
                         }
                     }
                 } finally {

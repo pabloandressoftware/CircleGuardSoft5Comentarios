@@ -4,6 +4,10 @@ variable "availability_zone" { type = string }
 variable "admin_cidrs" { type = set(string) }
 variable "api_cidrs" { type = set(string) }
 variable "web_cidrs" { type = set(string) }
+variable "cluster_network" {
+  type    = bool
+  default = false
+}
 
 resource "aws_vpc" "this" {
   cidr_block           = var.cidr
@@ -73,6 +77,26 @@ resource "aws_vpc_security_group_egress_rule" "node" {
   description       = "Pull images, OS updates, DNS and AWS APIs"
   ip_protocol       = "-1"
   cidr_ipv4         = "0.0.0.0/0"
+}
+
+# Trafico entre nodos del mismo cluster; nunca se publica VXLAN en Internet.
+resource "aws_vpc_security_group_ingress_rule" "cluster_tcp" {
+  for_each                     = var.cluster_network ? toset(["6443", "10250"]) : toset([])
+  security_group_id            = aws_security_group.node.id
+  referenced_security_group_id = aws_security_group.node.id
+  description                  = "k3s internal ${each.key}"
+  ip_protocol                  = "tcp"
+  from_port                    = tonumber(each.key)
+  to_port                      = tonumber(each.key)
+}
+resource "aws_vpc_security_group_ingress_rule" "cluster_vxlan" {
+  count                        = var.cluster_network ? 1 : 0
+  security_group_id            = aws_security_group.node.id
+  referenced_security_group_id = aws_security_group.node.id
+  description                  = "Flannel VXLAN internal only"
+  ip_protocol                  = "udp"
+  from_port                    = 8472
+  to_port                      = 8472
 }
 
 output "subnet_id" { value = aws_subnet.public.id }

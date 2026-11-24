@@ -1,5 +1,6 @@
 package com.circleguard.file.controller;
 
+import com.circleguard.file.security.JwtAuthorizer;
 import com.circleguard.file.service.FileStorageService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -21,6 +22,9 @@ class FileUploadControllerTest {
     @MockBean
     private FileStorageService storageService;
 
+    @MockBean
+    private JwtAuthorizer jwtAuthorizer;
+
     @Test
     void shouldUploadFileSuccessfully() throws Exception {
         MockMultipartFile file = new MockMultipartFile(
@@ -33,3 +37,4 @@ class FileUploadControllerTest {
                 .andExpect(jsonPath("$.filename").value("certificate.pdf"));
     }
 }
+

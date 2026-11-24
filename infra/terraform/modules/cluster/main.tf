@@ -11,9 +11,16 @@ variable "registries_yaml" { type = string }
 variable "log_policy" { type = string }
 variable "agent_config" { type = string }
 variable "region" { type = string }
+variable "permissions_boundary" { type = string }
+variable "agent_token" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
 
 resource "aws_iam_role" "node" {
-  name_prefix = "${var.name}-"
+  name_prefix          = "${var.name}-"
+  permissions_boundary = var.permissions_boundary
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [{ Effect = "Allow", Principal = { Service = "ec2.amazonaws.com" }, Action = "sts:AssumeRole" }]
@@ -36,6 +43,10 @@ resource "aws_iam_instance_profile" "node" {
 }
 
 resource "aws_instance" "server" {
+  lifecycle {
+    # La EIP externa no debe forzar reemplazos en cada refresh del proveedor.
+    ignore_changes = [associate_public_ip_address]
+  }
   ami                         = var.ami_id
   instance_type               = var.instance_type
   key_name                    = var.key_name
@@ -45,6 +56,8 @@ resource "aws_instance" "server" {
   associate_public_ip_address = false
   user_data_replace_on_change = true
   user_data = templatefile("${path.module}/cloud-init.sh.tftpl", {
+    node_name      = var.name
+    agent_token    = var.agent_token
     public_ip      = var.public_ip
     volume_serial  = replace(var.volume_id, "-", "")
     k3s_version    = var.k3s_version
@@ -67,3 +80,5 @@ resource "aws_instance" "server" {
 }
 
 output "instance_id" { value = aws_instance.server.id }
+output "private_ip" { value = aws_instance.server.private_ip }
+output "instance_profile" { value = aws_iam_instance_profile.node.name }

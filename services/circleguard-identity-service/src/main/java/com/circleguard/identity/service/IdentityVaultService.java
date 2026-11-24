@@ -4,9 +4,9 @@ import com.circleguard.identity.model.IdentityMapping;
 import com.circleguard.identity.repository.IdentityMappingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.keygen.KeyGenerators;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import java.security.MessageDigest;
 import java.util.UUID;
 import java.util.HexFormat;
@@ -23,22 +23,31 @@ public class IdentityVaultService {
 
     /**
      * Maps a real identity to a secure, encrypted anonymous ID.
+     * Es idempotente: dos logins concurrentes del mismo usuario no crean dos IDs.
      */
-    @Transactional
     public UUID getOrCreateAnonymousId(String realIdentity) {
         String hash = computeHash(realIdentity);
-        
-        return repository.findByIdentityHash(hash)
-                .map(IdentityMapping::getAnonymousId)
-                .orElseGet(() -> {
-                    String salt = KeyGenerators.string().generateKey();
-                    IdentityMapping mapping = IdentityMapping.builder()
-                            .realIdentity(realIdentity)
-                            .identityHash(hash)
-                            .salt(salt)
-                            .build();
-                    return repository.save(mapping).getAnonymousId();
-                });
+
+        var existing = repository.findByIdentityHash(hash);
+        if (existing.isPresent()) {
+            return existing.get().getAnonymousId();
+        }
+
+        String salt = KeyGenerators.string().generateKey();
+        IdentityMapping mapping = IdentityMapping.builder()
+                .realIdentity(realIdentity)
+                .identityHash(hash)
+                .salt(salt)
+                .build();
+        try {
+            return repository.save(mapping).getAnonymousId();
+        } catch (DataIntegrityViolationException e) {
+            // Otro hilo inserto el mismo identity_hash primero: se reutiliza.
+            return repository.findByIdentityHash(hash)
+                    .map(IdentityMapping::getAnonymousId)
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.CONFLICT, "No se pudo resolver la identidad anonima"));
+        }
     }
 
     private String computeHash(String input) {

@@ -28,16 +28,40 @@ for attempt in $(seq 1 180); do
 done
 test -s /tmp/install-k3s.sh
 mkdir -p /etc/rancher/k3s
+mkdir -p /etc/rancher/node /var/lib/rancher/circleguard-node
+# La identidad debe sobrevivir a un reemplazo de EC2 igual que los PVC locales.
+# Cambiar hostname o password del nodo deja los volumenes ligados al nodo viejo.
+if [[ ! -s /var/lib/rancher/circleguard-node/name ]]; then
+  printf '%s' '${node_name}' > /var/lib/rancher/circleguard-node/name
+fi
+if [[ ! -s /var/lib/rancher/circleguard-node/password ]]; then
+  openssl rand -hex 32 > /var/lib/rancher/circleguard-node/password
+fi
+chmod 600 /var/lib/rancher/circleguard-node/{name,password}
+ln -sf /var/lib/rancher/circleguard-node/password /etc/rancher/node/password
+node_name=$(cat /var/lib/rancher/circleguard-node/name)
 printf '%s' '${registries_b64}' | base64 -d > /etc/rancher/k3s/registries.yaml
 chmod 600 /etc/rancher/k3s/registries.yaml
-cat > /etc/rancher/k3s/config.yaml <<'K3S'
+private_ip=$(ip -4 route get 1.1.1.1 | awk '{for(i=1;i<=NF;i++) if($i=="src") {print $(i+1); exit}}')
+test -n "$private_ip"
+cat > /etc/rancher/k3s/config.yaml <<K3S
 write-kubeconfig-mode: "0600"
+node-name: "$node_name"
+node-label:
+  - "circleguard.io/storage=true"
+%{ if agent_token != "" ~}
+agent-token: "${agent_token}"
+%{ endif ~}
+# Los pods usan el API privado. La EIP sigue habilitada para Jenkins/operador.
+advertise-address: "$private_ip"
+node-ip: "$private_ip"
 tls-san:
   - "${public_ip}"
 node-external-ip: "${public_ip}"
 secrets-encryption: true
 log: /var/log/k3s.log
 K3S
+chmod 600 /etc/rancher/k3s/config.yaml
 INSTALL_K3S_VERSION='${k3s_version}' sh /tmp/install-k3s.sh
 # Traefik, metrics-server, CoreDNS, ServiceLB y local-path vienen con k3s.
 # HU-18/HU-19 instalan aplicaciones y HU-24 los dashboards/alertas.

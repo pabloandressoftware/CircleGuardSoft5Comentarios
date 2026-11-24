@@ -21,6 +21,7 @@ export default function TabLayout() {
   const progress = useSharedValue(0);
   const pathname = usePathname();
   const router = useRouter();
+  const defaultHeaderShown = useClientOnlyValue(false, true);
 
   const isDesktop = width >= 768; // Include native tablets
 
@@ -98,7 +99,7 @@ export default function TabLayout() {
         <Tabs
           screenOptions={{
             tabBarActiveTintColor: Colors[colorScheme].tint,
-            headerShown: isDesktop ? false : useClientOnlyValue(false, true),
+            headerShown: isDesktop ? false : defaultHeaderShown,
             tabBarStyle: isDesktop ? { display: 'none' } : {
               backgroundColor: 'transparent',
               borderTopWidth: 0,

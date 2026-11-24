@@ -32,6 +32,9 @@ class IdentityVaultControllerTest {
     private IdentityVaultService vaultService;
 
     @MockBean
+    private com.circleguard.identity.service.VisitorHandoffService visitorHandoffService;
+
+    @MockBean
     private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Test

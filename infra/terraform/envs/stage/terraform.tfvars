@@ -1,19 +1,19 @@
-# Plantilla: los valores TEST-NET, example.invalid, cuenta y AMI son intencionalmente inoperables.
-# Editar únicamente tras confirmar la cuenta, sus cuotas y el presupuesto.
+# Proyecto y AMI verificados el 2026-11-23 en us-east-2.
+# Completar llave, CIDR de operador/Jenkins y Nexus antes de plan/apply.
 config = {
   environment       = "stage"
-  account_id        = "000000000000"
+  account_id        = "001784022331"
   region            = "us-east-2"
   availability_zone = "us-east-2a"
   cidr              = "10.60.0.0/16"
-  ami_id            = "ami-00000000000000000"
-  key_name          = "REEMPLAZAR"
-  admin_cidrs       = ["192.0.2.1/32"]
-  api_cidrs         = ["192.0.2.2/32"]
+  ami_id            = "ami-09cdee81def788c75"
+  key_name          = "circleguard-demo-20261123"
+  admin_cidrs       = ["186.86.52.230/32"]
+  api_cidrs         = ["186.86.52.230/32", "18.220.203.182/32"]
   web_cidrs         = ["0.0.0.0/0"]
-  registry_host     = "registry.example.invalid:5000"
+  registry_host     = "registry.18-220-203-182.sslip.io"
   registry_http     = false
-  instance_type     = "t3.xlarge"
+  instance_type     = "m7i-flex.large"
   data_size_gib     = 80
   log_retention     = 14
   k3s_version       = "v1.34.13+k3s1"

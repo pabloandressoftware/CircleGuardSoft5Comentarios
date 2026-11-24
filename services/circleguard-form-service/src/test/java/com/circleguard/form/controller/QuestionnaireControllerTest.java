@@ -1,6 +1,7 @@
 package com.circleguard.form.controller;
 
 import com.circleguard.form.model.Questionnaire;
+import com.circleguard.form.security.JwtAuthorizer;
 import com.circleguard.form.service.QuestionnaireService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -25,6 +26,9 @@ class QuestionnaireControllerTest {
 
     @MockBean
     private QuestionnaireService questionnaireService;
+
+    @MockBean
+    private JwtAuthorizer jwtAuthorizer;
 
     @Test
     void shouldReturnActiveQuestionnaire() throws Exception {
@@ -61,3 +65,4 @@ class QuestionnaireControllerTest {
                 .andExpect(jsonPath("$.title").value("New Survey"));
     }
 }
+

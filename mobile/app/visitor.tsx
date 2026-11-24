@@ -38,11 +38,12 @@ export default function VisitorRegistrationScreen() {
         email,
         reason_for_visit: reason
       });
-      const anonymousId = idResponse.data.anonymousId;
+      const { anonymousId, handoffToken } = idResponse.data;
 
-      // 2. Request Handoff Token from Auth Service
+      // 2. Request Handoff Token from Auth Service (requires identity's signed proof)
       const authResponse = await axios.post(AUTH_URL, {
-        anonymousId
+        anonymousId,
+        handoffToken
       });
       
       setHandoffToken(authResponse.data.handoffPayload);

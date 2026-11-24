@@ -42,11 +42,21 @@ for s in "${servicios[@]}"; do
     repositorio="${registry}/circleguard/circleguard-${s}"
   fi
   echo "helm upgrade --install ${s} (${repositorio}:${etiqueta}) en ${ns}"
+  public_values=()
+  if [[ -n ${SITE_ADDRESS:-} ]]; then
+    public_host=${SITE_ADDRESS%%,*}
+    [[ $public_host =~ ^[A-Za-z0-9][A-Za-z0-9.-]*$ ]] || { echo 'SITE_ADDRESS invalido.' >&2; exit 2; }
+    public_values=(--set-string "ingress.host=$public_host"
+      --set-string "ingress.tls[0].hosts[0]=$public_host"
+      --set-string "env.CORS_ALLOWED_ORIGINS=https://$public_host"
+      --set-string "ingress.annotations.cert-manager\\.io/cluster-issuer=${TLS_ISSUER:-circleguard-selfsigned}")
+  fi
   helm upgrade --install "$s" "$aqui/circleguard-service" -n "$ns" \
     -f "$aqui/values/$s.yaml" -f "$aqui/envs/$ambiente.yaml" \
     --set image.repository="$repositorio" \
     --set image.tag="$etiqueta" \
     --set "imagePullSecrets[0].name=nexus-registry" \
+    "${public_values[@]}" \
     --wait --timeout "$helm_timeout"
   kubectl -n "$ns" rollout status "deployment/$s" --timeout="$rollout_timeout"
 done

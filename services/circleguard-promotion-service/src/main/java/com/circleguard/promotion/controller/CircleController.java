@@ -19,11 +19,13 @@ public class CircleController {
     public static class CircleCreateRequest {
         private String name;
         private String locationId;
+        private String creatorAnonymousId;
     }
 
     @PostMapping
     public ResponseEntity<CircleNode> createCircle(@RequestBody CircleCreateRequest request) {
-        return ResponseEntity.ok(circleService.createCircle(request.getName(), request.getLocationId()));
+        return ResponseEntity.ok(circleService.createCircle(
+                request.getName(), request.getLocationId(), request.getCreatorAnonymousId()));
     }
 
     @PostMapping("/join/{code}/user/{anonymousId}")

@@ -210,3 +210,43 @@ Cada ambiente debe ser un root module independiente que reutilice `modules/`.
 - [ ] HU-24 fusionada; 24 targets y dashboards visibles.
 - [ ] Tres alertas críticas disparadas con evidencia y aviso a Spidey.
 - [ ] `INTERNAL_API_KEY` y `CI_DEVELOPER_PASSWORD` cargados sin exponerlos en Git.
+
+## 7. Cierre de estabilización 1.1.0 (rama `fix/release-1.1.0-estabilizacion`)
+
+Cambios aplicados sobre el tag `v1.1.0`, verificados con `gradle test`,
+`integrationTest`, `jacocoTestCoverageVerification`, `npm test`, `tsc --noEmit` y
+`helm template` de los nueve releases:
+
+- **Auth:** `/visitor/handoff` ya no firma un JWT para cualquier `anonymousId`;
+  exige un comprobante HMAC emitido por identity (`handoffToken`, 5 min).
+- **Seguridad de servicios:** promotion pasa a *default-deny*; form, dashboard y
+  file validan el JWT; se sembro la autoridad `ADMIN` y los permisos
+  `certificate:validate` y `questionnaire:manage` (migracion V6).
+- **Gate:** promotion hace `MERGE` del `UserNode` antes de escribir el estado, de
+  modo que un CONFIRMED nunca se pierde por un usuario aun no presente en el grafo.
+- **Promotion:** se corrigio la auto-invocacion que anulaba `@Transactional`, se
+  emite un evento por cada contacto afectado y por RECOVERED.
+- **Kafka:** serializers y `add.type.headers=false` en identity/notification;
+  form -> promotion deserializa como `HashMap` (sin `__TypeId__`).
+- **Kubernetes:** `REDIS_HOST=redis-master`; se agregaron `JWT_SECRET` a form,
+  file y dashboard y `KAFKA_BOOTSTRAP_SERVERS` a identity.
+- **Pipeline:** Terraform se omite mientras `terraform.tfvars` tenga placeholders;
+  Helm rechaza `REGISTRY` loopback/invalido; E2E usa `kubectl port-forward` con
+  Helm; el humo deja de aceptar 404; Trivy corre **antes** del push.
+- **HU-23:** integrados Resilience4j (Retry + Circuit Breaker) en auth/dashboard,
+  sus pruebas y `docs/patrones/`.
+- **Observabilidad:** datasource de Loki corregido, alerta 5xx acotada a los
+  namespaces de CircleGuard y evidencia de ServiceDown sobre un servicio monitoreado.
+- **Movil:** `tsconfig` con `moduleResolution: bundler`, `@types/jest`, ruta
+  `/admin` sin duplicado (`/admin/console`), token en llamadas protegidas,
+  multipart sin header manual, `useAuth` unico, version 1.1.0 y fallback SPA.
+- **Build:** se versiona `gradle/wrapper/gradle-wrapper.jar` (antes `.gitignore`
+  lo excluia y `./gradlew` fallaba en un clon limpio).
+
+Actualizacion del 23 de noviembre de 2026: ya existen backend Terraform, CI con
+HTTPS y dev k3s con dos nodos Ready y middleware. La aplicacion aun requiere el
+pipeline oficial, TLS de aplicacion, Smoke/E2E y evidencia de alertas/rollback;
+stage/prod no se han creado. El estado vigente, los comandos y el resultado de
+imagenes estan en [la guia de handover](handover-claude-release.md) y
+`docs/evidence/handover-status.json`. No usar el listado historico de pendientes
+de esta seccion como inventario actual de AWS.

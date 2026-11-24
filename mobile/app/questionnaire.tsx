@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import { useAuth } from '@/context/AuthContext';
 import { FORM_BASE_URL } from '@/constants/Config';
+import { authHeaders } from '@/utils/apiAuth';
 
 export default function QuestionnaireScreen() {
   const router = useRouter();
@@ -70,9 +71,7 @@ export default function QuestionnaireScreen() {
       const response = await fetch(`${FORM_BASE_URL}/api/v1/attachments`, {
         method: 'POST',
         body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: await authHeaders(),
       });
 
       if (response.ok) {

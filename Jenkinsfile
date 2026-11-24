@@ -129,7 +129,7 @@ pipeline {
                     zap = load 'jenkins/vars/circleGuardZap.groovy'
                     terraform = load 'jenkins/vars/circleGuardTerraform.groovy'
                     helm = load 'jenkins/vars/circleGuardHelm.groovy'
-                    sh 'node --test deploy/k8s/releases.test.mjs scripts/check-release-notes.test.mjs'
+                    sh 'node --test deploy/k8s/releases.test.mjs scripts/check-release-notes.test.mjs scripts/spring-rendering-vex.test.mjs infra/terraform/scripts/check-plan.test.mjs'
 
                     String baseRef = env.CHANGE_TARGET
                         ? "origin/${env.CHANGE_TARGET}"
@@ -250,7 +250,8 @@ pipeline {
             }
         }
 
-        stage('Publicar imagenes') {
+        // HU-20: primero se construye, despues Trivy bloquea y solo entonces se publica.
+        stage('Construir imagenes') {
             when {
                 allOf {
                     buildingTag()
@@ -263,7 +264,7 @@ pipeline {
             }
         }
 
-        // HU-20: Trivy sobre las imagenes ya construidas; CRITICAL bloquea antes de desplegar.
+        // HU-20: Trivy sobre las imagenes construidas; CRITICAL bloquea antes del push.
         stage('Escanear imagenes') {
             when {
                 allOf {
@@ -274,6 +275,20 @@ pipeline {
             }
             steps {
                 script { security.images(tag: env.IMAGE_TAG) }
+            }
+        }
+
+        // HU-09: publicacion inmutable solo si el escaneo anterior paso.
+        stage('Publicar imagenes') {
+            when {
+                allOf {
+                    buildingTag()
+                    tag pattern: 'v\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                    expression { !params.ROLLBACK_TAG }
+                }
+            }
+            steps {
+                script { publish.push() }
             }
         }
 
@@ -344,7 +359,7 @@ pipeline {
                 }
             }
             steps {
-                script { e2e.call(host: env.DEV_HOST, environment: 'dev') }
+                script { e2e.call(host: env.DEV_HOST, environment: 'dev', deployTarget: params.DEPLOY_TARGET) }
             }
         }
 

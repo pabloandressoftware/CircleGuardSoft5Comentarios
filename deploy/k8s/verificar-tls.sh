@@ -3,18 +3,19 @@
 #
 #   bash deploy/k8s/verificar-tls.sh dev.circleguard.local
 #
-# Acepta los mismos codigos que la prueba de humo (2xx/3xx/401/403/404/405)
-# porque las rutas de la API no son publicas. Falla si el handshake TLS no
-# ocurre o si el certificado no se puede leer con openssl.
+# Valida confianza y nombre del certificado y acepta 2xx/3xx/401/403.
+# Solo para certificados locales, CIRCLE_TLS_INSECURE=1 omite la confianza.
 set -euo pipefail
 
 host="${1:?Uso: verificar-tls.sh <host-del-ingress>}"
 
 for path in / /api/v1/health; do
-  code=$(curl -ksS --max-time 15 -o /dev/null -w '%{http_code}' "https://${host}${path}" || true)
+  tls_args=()
+  [[ ${CIRCLE_TLS_INSECURE:-0} != 1 ]] || tls_args=(-k)
+  code=$(curl -sS "${tls_args[@]}" --max-time 15 -o /dev/null -w '%{http_code}' "https://${host}${path}" || true)
   echo "TLS ${path} -> ${code}"
   case "$code" in
-    2??|3??|401|403|404|405) ;;
+    2??|3??|401|403) ;;
     *)
       echo "Fallo TLS/HTTPS en ${path} (${code})." >&2
       exit 1

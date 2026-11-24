@@ -54,7 +54,7 @@ public class CircleService {
     }
 
     @Transactional("neo4jTransactionManager")
-    public CircleNode createCircle(String name, String locationId) {
+    public CircleNode createCircle(String name, String locationId, String creatorAnonymousId) {
         String inviteCode = generateUniqueInviteCode();
         CircleNode circle = CircleNode.builder()
                 .name(name)
@@ -66,7 +66,18 @@ public class CircleService {
         
         CircleNode saved = circleRepository.save(circle);
         log.info("Created Circle: {} (Code: {})", name, inviteCode);
+
+        // El creador entra al circulo; antes el circulo quedaba vacio y el
+        // usuario no lo veia en GET /circles/user/{anonymousId}.
+        if (creatorAnonymousId != null && !creatorAnonymousId.isBlank()) {
+            circleRepository.addUserToCircle(creatorAnonymousId, saved.getId());
+        }
         return saved;
+    }
+
+    @Transactional("neo4jTransactionManager")
+    public CircleNode createCircle(String name, String locationId) {
+        return createCircle(name, locationId, null);
     }
 
     @Transactional("neo4jTransactionManager")
