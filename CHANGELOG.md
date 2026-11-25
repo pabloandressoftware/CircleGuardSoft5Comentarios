@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.4](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/compare/v1.1.3...v1.1.4) (2026-11-25)
+
+
+### Bug Fixes
+
+* **observability:** declarar por separado las variables de capture() ([32f6707](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/32f67073230834d09e394b566793a1d5c60695f7))
+* **observability:** exponer /actuator/prometheus en auth y dashboard ([ab653de](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/commit/ab653dedf7f7c09d9e8c6f8eef157ab567131754))
+
 ## [1.1.3](https://github.com/pabloandressoftware/CircleGuardSoft5Comentarios/compare/v1.1.2...v1.1.3) (2026-11-24)
 
 
