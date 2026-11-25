@@ -295,7 +295,7 @@
         <li>Prueba destructiva controlada (nunca en prod): el script guarda réplicas, provoca el fallo, espera FIRING, restaura y espera RESOLVED.</li>
       </ul>
       <div class="card warn" style="margin-top:10pt">
-        <p class="small"><b>Hallazgo:</b> auth y dashboard no exponían <code>/actuator/prometheus</code> (401/404) porque <code>resilience.yml</code> reemplazaba la lista de endpoints. Corregido con prueba de regresión en <b>PR #64</b>; llega con la próxima release.</p>
+        <p class="small"><b>Hallazgo:</b> auth y dashboard no exponían <code>/actuator/prometheus</code> (401/404) porque <code>resilience.yml</code> reemplazaba la lista de endpoints. Corregido con prueba de regresión en <b>PR #64</b> (integrado); llega con la release <b>1.1.4</b>, que se deja para después de la sustentación. Por eso en Grafana/Alertmanager se ven activas <code>ServiceDown</code> de esos dos targets y <code>AvailabilityLow</code>.</p>
       </div>
     </div>
     <div>
@@ -487,7 +487,7 @@
         <li>PR pequeños e integración diaria.</li>
         <li>Mover la tarjeta al integrar el PR.</li>
         <li>No etiquetar sin el pipeline verde en <code>main</code>.</li>
-        <li>Desplegar #64, configurar Discord, Jaeger/Loki en AWS y cabeceras de ZAP.</li>
+        <li>Desplegar 1.1.4 (#64), configurar Discord y SMTP, Jaeger/Loki en AWS y cabeceras de ZAP.</li>
       </ul>
     </div>
   </div>
@@ -512,7 +512,7 @@
       <h2>Pendiente</h2>
       <ul class="small">
         <li>Discord: crear el webhook y cargarlo como credencial.</li>
-        <li>Release con #64 (métricas de auth y dashboard).</li>
+        <li>Release 1.1.4 (PR #65) con #64: métricas de auth y dashboard.</li>
         <li>HU-23: toggle en ConfigMap y Bulkhead/rate limit.</li>
         <li>Jaeger/Loki en AWS; cabeceras de seguridad en el Ingress.</li>
         <li>Retiro ordenado de recursos después del 25-nov 23:59.</li>
@@ -570,8 +570,8 @@
       <p>≈ USD 0,76/h todo encendido. Stage/prod se apagan fuera de pruebas; estimado ≈ USD 23 al cierre, cubierto por créditos del plan FREE.</p>
       <h2>¿Qué es lo más débil del proyecto?</h2>
       <p>HU-23 (toggle en BD y no en ConfigMap, sin Bulkhead), el rendimiento de <code>/surveys</code> sin medir en AWS y la integración tardía.</p>
-      <h2>¿Qué haría distinto el equipo?</h2>
-      <p>Integrar a diario, mantener Jira al día y no etiquetar sin el pipeline completo en verde.</p>
+      <h2>¿Por qué no desplegaron la corrección de métricas?</h2>
+      <p>Está integrada (#64) y saldría en 1.1.4. Se presenta v1.1.2, verificada de punta a punta (E2E, ZAP, alertas, rollback), en vez de arriesgar una release la noche anterior. El tag <code>v1.1.3</code> existe (incluye #61) pero no se construyó ni desplegó.</p>
       <h2>¿Cómo se apaga todo al final?</h2>
       <p>Destroy revisado prod → stage → dev → CI (retirando <code>prevent_destroy</code> a propósito) y el backend al final; luego se verifican EBS, EIP y logs.</p>
     </div>
